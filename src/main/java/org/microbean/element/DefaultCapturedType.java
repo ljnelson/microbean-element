@@ -29,7 +29,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVisitor;
 import javax.lang.model.type.WildcardType;
 
-public final class DefaultCapturedType extends AbstractTypeVariable implements CapturedType {
+public class DefaultCapturedType extends AbstractTypeVariable implements CapturedType {
 
   private final DefaultTypeParameterElement definingElement;
   
@@ -68,7 +68,7 @@ public final class DefaultCapturedType extends AbstractTypeVariable implements C
   }
   
   @Override // AbstractTypeVariable
-  public final <R, P> R accept(final TypeVisitor<R, P> v, final P p) {
+  public <R, P> R accept(final TypeVisitor<R, P> v, final P p) {
     return v.visitTypeVariable(this, p);
   }
   

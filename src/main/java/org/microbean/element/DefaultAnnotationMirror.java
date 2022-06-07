@@ -25,7 +25,7 @@ import javax.lang.model.element.ExecutableElement;
 
 import javax.lang.model.type.DeclaredType;
 
-public final class DefaultAnnotationMirror implements AnnotationMirror {
+public class DefaultAnnotationMirror implements AnnotationMirror {
 
   private final DeclaredType annotationType;
 
@@ -49,12 +49,12 @@ public final class DefaultAnnotationMirror implements AnnotationMirror {
   }
 
   @Override // Object
-  public final int hashCode() {
+  public int hashCode() {
     return Identity.hashCode(this, true);
   }
 
   @Override
-  public final boolean equals(final Object other) {
+  public boolean equals(final Object other) {
     if (this == other) {
       return true;
     } else if (other instanceof AnnotationMirror her) { // instanceof is on purpose

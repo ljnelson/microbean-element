@@ -42,7 +42,7 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 
 public abstract class AbstractElement extends AbstractAnnotatedConstruct implements Element {
-
+  
   private final DefaultName name;
 
   private final ElementKind kind;
@@ -68,7 +68,7 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
     this.readOnlyEnclosedElements = Collections.unmodifiableList(this.enclosedElements);
     this.name = name == null ? DefaultName.EMPTY : DefaultName.of(name);
     this.kind = Objects.requireNonNull(kind, "kind");
-    this.type = Objects.requireNonNull(type, "type");
+    this.type = type == null ? DefaultNoType.NONE : type;
     this.modifiers = modifiers == null || modifiers.isEmpty() ? Set.of() : Set.copyOf(modifiers);
     this.enclosingElement = enclosingElement;
     if (enclosingElement != null) {

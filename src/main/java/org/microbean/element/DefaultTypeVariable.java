@@ -31,9 +31,9 @@ public class DefaultTypeVariable extends AbstractTypeVariable {
 
   private TypeParameterElement definingElement;
 
-  DefaultTypeVariable(final TypeMirror upperBound,
-                      final TypeMirror lowerBound,
-                      final List<? extends AnnotationMirror> annotationMirrors) {
+  protected DefaultTypeVariable(final TypeMirror upperBound,
+                                final TypeMirror lowerBound,
+                                final List<? extends AnnotationMirror> annotationMirrors) {
     super(TypeKind.TYPEVAR, upperBound, lowerBound, annotationMirrors);
   }
   
@@ -47,7 +47,7 @@ public class DefaultTypeVariable extends AbstractTypeVariable {
   }
   
   @Override // AbstractTypeVariable
-  public final <R, P> R accept(final TypeVisitor<R, P> v, final P p) {
+  public <R, P> R accept(final TypeVisitor<R, P> v, final P p) {
     return v.visitTypeVariable(this, p);
   }
 
@@ -56,12 +56,12 @@ public class DefaultTypeVariable extends AbstractTypeVariable {
     return this.definingElement;
   }
 
-  public static final DefaultTypeVariable of(final TypeMirror upperBound) {
+  public static DefaultTypeVariable of(final TypeMirror upperBound) {
     return of(upperBound, List.of());
   }
   
-  public static final DefaultTypeVariable of(final TypeMirror upperBound,
-                                             final List<? extends AnnotationMirror> annotationMirrors) {
+  public static DefaultTypeVariable of(final TypeMirror upperBound,
+                                       final List<? extends AnnotationMirror> annotationMirrors) {
     return new DefaultTypeVariable(upperBound, null, annotationMirrors);
   }
 

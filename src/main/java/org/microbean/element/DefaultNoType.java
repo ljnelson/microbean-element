@@ -24,17 +24,17 @@ import javax.lang.model.type.NoType;
 import javax.lang.model.type.TypeKind;
 
 public final class DefaultNoType extends AbstractTypeMirror implements NoType {
-  
-  public static final DefaultNoType NONE = new DefaultNoType(TypeKind.NONE, List.of());
 
-  public static final DefaultNoType MODULE = new DefaultNoType(TypeKind.MODULE, List.of());
+  public static final DefaultNoType NONE = new DefaultNoType(TypeKind.NONE);
 
-  public static final DefaultNoType PACKAGE = new DefaultNoType(TypeKind.PACKAGE, List.of());
+  public static final DefaultNoType MODULE = new DefaultNoType(TypeKind.MODULE);
 
-  public static final DefaultNoType VOID = new DefaultNoType(TypeKind.VOID, List.of());
-  
-  public DefaultNoType(final TypeKind kind, final List<? extends AnnotationMirror> annotationMirrors) {
-    super(kind, annotationMirrors);
+  public static final DefaultNoType PACKAGE = new DefaultNoType(TypeKind.PACKAGE);
+
+  public static final DefaultNoType VOID = new DefaultNoType(TypeKind.VOID);
+
+  private DefaultNoType(final TypeKind kind) {
+    super(kind, List.of());
     switch (kind) {
     case MODULE:
     case NONE:
@@ -45,6 +45,5 @@ public final class DefaultNoType extends AbstractTypeMirror implements NoType {
       throw new IllegalArgumentException("Not a NoType kind: " + kind);
     }
   }
-      
 
 }

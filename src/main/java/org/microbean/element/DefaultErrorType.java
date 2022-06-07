@@ -27,7 +27,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVisitor;
 
-public final class DefaultErrorType extends DefaultDeclaredType implements ErrorType {
+public class DefaultErrorType extends DefaultDeclaredType implements ErrorType {
 
   public DefaultErrorType(final TypeMirror enclosingType,
                           final List<? extends TypeMirror> typeArguments,
@@ -36,7 +36,7 @@ public final class DefaultErrorType extends DefaultDeclaredType implements Error
   }
 
   @Override // TypeMirror
-  public final <R, P> R accept(final TypeVisitor<R, P> v, P p) {
+  public <R, P> R accept(final TypeVisitor<R, P> v, P p) {
     return v.visitError(this, p);
   }
   

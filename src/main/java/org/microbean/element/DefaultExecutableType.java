@@ -83,7 +83,7 @@ public class DefaultExecutableType extends AbstractTypeMirror implements Executa
     return this.returnType;
   }
 
-  public static final DefaultExecutableType of(final ExecutableType e) {
+  public static DefaultExecutableType of(final ExecutableType e) {
     if (e instanceof DefaultExecutableType de) {
       return de;
     }
@@ -96,12 +96,12 @@ public class DefaultExecutableType extends AbstractTypeMirror implements Executa
                                 e.getAnnotationMirrors());
   }
 
-  public static final DefaultExecutableType of(final List<? extends TypeMirror> parameterTypes,
-                                               final TypeMirror receiverType,
-                                               final TypeMirror returnType,
-                                               final List<? extends TypeMirror> thrownTypes,
-                                               final List<? extends TypeVariable> typeVariables,
-                                               final List<? extends AnnotationMirror> annotationMirrors) {
+  public static DefaultExecutableType of(final List<? extends TypeMirror> parameterTypes,
+                                         final TypeMirror receiverType,
+                                         final TypeMirror returnType,
+                                         final List<? extends TypeMirror> thrownTypes,
+                                         final List<? extends TypeVariable> typeVariables,
+                                         final List<? extends AnnotationMirror> annotationMirrors) {
     return new DefaultExecutableType(parameterTypes,
                                      receiverType,
                                      returnType,

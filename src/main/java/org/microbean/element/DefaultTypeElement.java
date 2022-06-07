@@ -34,51 +34,27 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
 public class DefaultTypeElement extends AbstractElement implements TypeElement {
 
   public static final DefaultTypeElement JAVA_LANG_OBJECT =
     new DefaultTypeElement(DefaultName.of("java.lang.Object"),
-                           ElementKind.CLASS,
                            DefaultDeclaredType.JAVA_LANG_OBJECT,
-                           Set.of(Modifier.PUBLIC),
-                           null,
-                           NestingKind.TOP_LEVEL,
-                           List.of(),
-                           DefaultNoType.NONE,
-                           List.of(),
-                           List.of(),
-                           List.of(),
-                           List.of());
+                           Set.of(Modifier.PUBLIC));
 
   public static final DefaultTypeElement JAVA_LANG_CLONEABLE =
     new DefaultTypeElement(DefaultName.of("java.lang.Cloneable"),
                            ElementKind.INTERFACE,
                            DefaultDeclaredType.JAVA_LANG_CLONEABLE,
-                           Set.of(Modifier.PUBLIC),
-                           null,
-                           NestingKind.TOP_LEVEL,
-                           List.of(),
-                           JAVA_LANG_OBJECT.asType(),
-                           List.of(),
-                           List.of(),
-                           List.of(),
-                           List.of());
+                           Set.of(Modifier.PUBLIC));
 
   public static final DefaultTypeElement JAVA_IO_SERIALIZABLE =
     new DefaultTypeElement(DefaultName.of("java.io.Serializable"),
                            ElementKind.INTERFACE,
                            DefaultDeclaredType.JAVA_IO_SERIALIZABLE,
-                           Set.of(Modifier.PUBLIC),
-                           null,
-                           NestingKind.TOP_LEVEL,
-                           List.of(),
-                           JAVA_LANG_OBJECT.asType(),
-                           List.of(),
-                           List.of(),
-                           List.of(),
-                           List.of());
+                           Set.of(Modifier.PUBLIC));
 
   static {
     assert JAVA_LANG_OBJECT.asType() == DefaultDeclaredType.JAVA_LANG_OBJECT;
@@ -98,6 +74,40 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
   private final List<? extends TypeMirror> permittedSubclasses;
 
   private final List<? extends RecordComponentElement> recordComponents;
+
+  @Deprecated // you can use this, but you better know what you're doing.
+  DefaultTypeElement() {
+    this(DefaultName.EMPTY, ElementKind.CLASS, new DefaultDeclaredType(), Set.of());
+  }
+
+  @Deprecated // you can use this, but you better know what you're doing.
+  DefaultTypeElement(final Name qualifiedName) {
+    this(qualifiedName, ElementKind.CLASS, new DefaultDeclaredType(), Set.of());
+  }
+
+  DefaultTypeElement(final Name qualifiedName,
+                     final TypeMirror type,
+                     final Set<? extends Modifier> modifiers) {
+    this(qualifiedName, ElementKind.CLASS, type, modifiers);
+  }
+
+  DefaultTypeElement(final Name qualifiedName,
+                     final ElementKind kind,
+                     final TypeMirror type,
+                     final Set<? extends Modifier> modifiers) {
+    this(qualifiedName,
+         kind,
+         type,
+         modifiers,
+         null,
+         null,
+         List.of(),
+         null,
+         List.of(),
+         List.of(),
+         List.of(),
+         List.of());
+  }
 
   public DefaultTypeElement(final Name qualifiedName,
                             final ElementKind kind,

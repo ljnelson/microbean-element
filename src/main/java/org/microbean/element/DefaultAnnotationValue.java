@@ -26,18 +26,18 @@ import javax.lang.model.element.VariableElement;
 
 import javax.lang.model.type.TypeMirror;
 
-public final class DefaultAnnotationValue implements AnnotationValue {
+public class DefaultAnnotationValue implements AnnotationValue {
 
   private final Object value;
   
-  private DefaultAnnotationValue(final Object value) {
+  protected DefaultAnnotationValue(final Object value) {
     super();
     this.value = Objects.requireNonNull(value, "value");
   }
 
   @Override // AnnotationValue
   @SuppressWarnings("unchecked")
-  public final <R, P> R accept(final AnnotationValueVisitor<R, P> v, final P p) {
+  public <R, P> R accept(final AnnotationValueVisitor<R, P> v, final P p) {
     final Object value = this.getValue();
     if (value instanceof String s) {
       return v.visitString(s, p);
@@ -78,12 +78,12 @@ public final class DefaultAnnotationValue implements AnnotationValue {
   }
 
   @Override // Object
-  public final int hashCode() {
+  public int hashCode() {
     return Identity.hashCode(this, true);
   }
 
   @Override // Object
-  public final boolean equals(final Object other) {
+  public boolean equals(final Object other) {
     if (this == other) {
       return true;
     } else if (other instanceof AnnotationValue her) { // instanceof is on purpose
@@ -93,7 +93,7 @@ public final class DefaultAnnotationValue implements AnnotationValue {
     }
   }
 
-  public static final DefaultAnnotationValue of(final Object value) {
+  public static DefaultAnnotationValue of(final Object value) {
     return new DefaultAnnotationValue(value);
   }
   

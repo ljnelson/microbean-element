@@ -26,7 +26,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVisitor;
 
-public final class DefaultPrimitiveType extends AbstractTypeMirror implements PrimitiveType {
+public class DefaultPrimitiveType extends AbstractTypeMirror implements PrimitiveType {
 
   public static final DefaultPrimitiveType BOOLEAN = new DefaultPrimitiveType(TypeKind.BOOLEAN, List.of());
 
@@ -43,6 +43,10 @@ public final class DefaultPrimitiveType extends AbstractTypeMirror implements Pr
   public static final DefaultPrimitiveType LONG = new DefaultPrimitiveType(TypeKind.LONG, List.of());
 
   public static final DefaultPrimitiveType SHORT = new DefaultPrimitiveType(TypeKind.SHORT, List.of());
+
+  public DefaultPrimitiveType(final TypeKind kind) {
+    this(kind, List.of());
+  }
   
   public DefaultPrimitiveType(final TypeKind kind,
                               final List<? extends AnnotationMirror> annotationMirrors) {
@@ -63,7 +67,7 @@ public final class DefaultPrimitiveType extends AbstractTypeMirror implements Pr
   }
 
   @Override // TypeMirror
-  public final <R, P> R accept(final TypeVisitor<R, P> v, P p) {
+  public <R, P> R accept(final TypeVisitor<R, P> v, P p) {
     return v.visitPrimitive(this, p);
   }
   

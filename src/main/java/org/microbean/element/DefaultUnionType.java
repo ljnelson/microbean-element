@@ -25,24 +25,20 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVisitor;
 import javax.lang.model.type.UnionType;
 
-public final class DefaultUnionType extends AbstractTypeMirror implements UnionType {
+public class DefaultUnionType extends AbstractTypeMirror implements UnionType {
 
   // I don't even know if this is legal.
-  public static final DefaultUnionType EMPTY = new DefaultUnionType();
+  public static final DefaultUnionType EMPTY = new DefaultUnionType(List.of());
   
   private final List<? extends TypeMirror> alternatives;
 
-  private DefaultUnionType() {
-    this(List.of());
-  }
-  
-  private DefaultUnionType(final List<? extends TypeMirror> alternatives) {
+  protected DefaultUnionType(final List<? extends TypeMirror> alternatives) {
     super(TypeKind.UNION, List.of());
     this.alternatives = alternatives == null || alternatives.isEmpty() ? List.of() : List.copyOf(alternatives);
   }
 
   @Override // TypeMirror
-  public final <R, P> R accept(final TypeVisitor<R, P> v, P p) {
+  public <R, P> R accept(final TypeVisitor<R, P> v, P p) {
     return v.visitUnion(this, p);
   }
   
@@ -51,15 +47,15 @@ public final class DefaultUnionType extends AbstractTypeMirror implements UnionT
     return this.alternatives;
   }
 
-  public static final DefaultUnionType of() {
+  public static DefaultUnionType of() {
     return EMPTY;
   }
 
-  public static final DefaultUnionType of(final TypeMirror alternative) {
+  public static DefaultUnionType of(final TypeMirror alternative) {
     return of(List.of(alternative));
   }
 
-  public static final DefaultUnionType of(final List<? extends TypeMirror> alternatives) {
+  public static DefaultUnionType of(final List<? extends TypeMirror> alternatives) {
     return new DefaultUnionType(alternatives);
   }
   

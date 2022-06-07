@@ -59,7 +59,7 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
           (kind == ElementKind.STATIC_INIT ? DefaultName.of("<clinit>") :
            (kind == ElementKind.INSTANCE_INIT ? DefaultName.EMPTY : simpleName)),
           kind,
-          type,
+          validate(type),
           modifiers,
           enclosingElement,
           annotationMirrors);
@@ -129,6 +129,15 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
     return this.asType().getReturnType();
   }
 
+  private static final ExecutableType validate(final ExecutableType t) {
+    switch (t.getKind()) {
+    case EXECUTABLE:
+      return t;
+    default:
+      throw new IllegalArgumentException("t: " + t);
+    }
+  }
+  
   public static final DefaultExecutableElement of(final ExecutableElement e) {
     if (e instanceof DefaultExecutableElement de) {
       return de;

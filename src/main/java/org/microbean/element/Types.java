@@ -513,23 +513,25 @@ final class Types {
     return t;
   }
 
+  // Returns a MODIFIABLE list
   private static final List<TypeMirror> closure(final TypeMirror t) {
-    final List<TypeMirror> cl;
+    List<TypeMirror> cl;
     final TypeMirror st = supertype(t);
     switch (t.getKind()) {
     case INTERSECTION:
-      cl = closure(st);
+      cl = closure(st); // RECURSIVE
       break;
     case DECLARED:
     case TYPEVAR:
       switch (st.getKind()) {
       case DECLARED:
-        cl = closureInsert(closure(st), t);
+        // (Yes, it is OK that INTERSECTION is not present as a case.)
+        cl = closureInsert(closure(st), t); // RECURSIVE
         break;
       case TYPEVAR:
         cl = new ArrayList<>();
         cl.add(t);
-        cl.addAll(closure(st));
+        cl.addAll(closure(st)); // RECURSIVE
         break;
       default:
         throw new IllegalArgumentException("t: " + t);
@@ -538,20 +540,23 @@ final class Types {
     default:
       throw new IllegalArgumentException("t: " + t);
     }
-    // TODO: resume
-    throw new UnsupportedOperationException();
+    for (final TypeMirror iface : interfaces(t)) {
+      cl = closureUnion(cl, closure(iface)); // RECURSIVE
+    }
+    return cl;
   }
 
+  // Returns a MODIFIABLE list
   private static final List<TypeMirror> closureInsert(final List<TypeMirror> closure, final TypeMirror t) {
     if (closure.isEmpty()) {
       closure.add(t);
       return closure;
     }
-    final Element e = asElement(t);
+    final Element e = asElement(t, false);
     if (e == null) {
       throw new IllegalArgumentException("t: " + t);
     }
-    final Element headE = asElement(closure.get(0));
+    final Element headE = asElement(closure.get(0), false);
     if (headE == null) {
       throw new IllegalArgumentException("closure: " + closure);
     }
@@ -565,6 +570,7 @@ final class Types {
     return closure;
   }
 
+  // Returns a MODIFIABLE list
   private static final List<TypeMirror> closureUnion(final List<TypeMirror> c1, final List<TypeMirror> c2) {
     if (c1.isEmpty()) {
       return c2;
@@ -572,12 +578,12 @@ final class Types {
       return c1;
     }
     final TypeMirror head1 = c1.get(0);
-    final Element head1E = asElement(head1);
+    final Element head1E = asElement(head1, false);
     if (head1E == null) {
       throw new IllegalArgumentException("c1: " + c1);
     }
     final TypeMirror head2 = c2.get(0);
-    final Element head2E = asElement(head2);
+    final Element head2E = asElement(head2, false);
     if (head2E == null) {
       throw new IllegalArgumentException("c2: " + c2);
     }
@@ -899,14 +905,68 @@ final class Types {
                                annotationMirrors);
   }
 
+  private static final TypeMirror glb(final List<? extends TypeMirror> ts) {
+    final int size = ts.size();
+    TypeMirror t;
+    switch (size) {
+    case 0:
+      throw new IllegalArgumentException("ts.isEmpty()");
+    default:
+      t = ts.get(0);
+      break;
+    }
+    for (int i = 1; i < size; i++) {
+      t = glb(t, ts.get(i));
+    }
+    return t;
+  }
+
   // "greatest lower bound"
   // Not visitor-based
+  // Combines glb and glbFlattened
   private static final TypeMirror glb(final TypeMirror t, final TypeMirror s) {
     if (s == null) {
       return t;
+    } else if (isPrimitive(t)) {
+      throw new IllegalArgumentException("t: " + t);
+    } else if (isPrimitive(s)) {
+      throw new IllegalArgumentException("s: " + s);
+    } else if (subtype(t, s, false)) {
+      return t;
+    } else if (subtype(s, t, false)) {
+      return s;
     }
-    // TODO: resume
-    throw new UnsupportedOperationException();
+    final ArrayList<TypeMirror> bounds = new ArrayList<>(minimumTypes(closureUnion(closure(t), closure(s))));
+    final int size = bounds.size();
+    switch (size) {
+    case 0:
+      return objectType();
+    case 1:
+      return bounds.get(0);
+    default:
+      int classCount = 0;
+      ArrayList<TypeMirror> capturedTypeVariables = new ArrayList<>();
+      ArrayList<TypeMirror> lowers = new ArrayList<>();
+      for (final TypeMirror bound : bounds) {
+        if (!isInterface(bound)) {
+          classCount++;
+          final TypeMirror lower = capturedTypeVariableLowerBound(bound);
+          if (bound != lower && lower.getKind() != TypeKind.NULL) {
+            capturedTypeVariables.add(bound);
+            lowers.add(lower);
+          }
+        }
+      }
+      if (classCount > 1) {
+        if (lowers.isEmpty()) {
+          throw new IllegalArgumentException("t: " + t);
+        }
+        bounds.removeIf(capturedTypeVariables::contains);
+        bounds.addAll(lowers);
+        return glb(bounds); // RECURSIVE, in a way
+      }
+    }
+    return intersectionType(bounds);
   }
 
   public static final boolean hasTypeArguments(final TypeMirror t) {
@@ -1037,6 +1097,14 @@ final class Types {
     }
   }
 
+  private static final boolean isPrimitive(final Element e) {
+    return isPrimitive(e.asType());
+  }
+  
+  private static final boolean isPrimitive(final TypeMirror t) {
+    return t.getKind().isPrimitive();
+  }
+  
   private static final boolean isStatic(final Element e) {
     return e.getModifiers().contains(Modifier.STATIC);
   }

@@ -22,8 +22,11 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 
@@ -55,14 +58,52 @@ import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.UnionType;
 import javax.lang.model.type.WildcardType;
 
-// Worth noting that javac itself has all kinds of problems:
+// The spirit of this class and this whole exercise is to ultimately
+// implement the javac type assignability rules on top of the java
+// lang model.
+//
+// Some of the rules are javac's and some of them are defined by the
+// Java Language Specification.  They don't always line up, somewhat
+// surprisingly.  In general, I try to follow javac, not the
+// specification.
+//
+// In general, the spirit of the methods in this class is a faithful
+// port with edits and the occasional rename. javac, for example, uses
+// elemtype to refer to an array type's component type; such a
+// construct is referred to as a componentType in this class.  javac
+// sometimes names a Type-typed parameter "elem"; this class does not
+// follow suit.
+//
+// There seem to be an awful lot of substitutions of bounds in javac
+// where strictly speaking none are called for; this class generally
+// follows the javac path.
+//
+// It is also worth noting that javac itself has all kinds of
+// problems:
 //
 // https://bugs.openjdk.java.net/issues/?jql=project%20%3D%20JDK%20AND%20labels%20%3D%20jls-types
 //
 // https://bugs.openjdk.java.net/browse/JDK-8154901
 //
 // https://bugs.openjdk.java.net/issues/?jql=project%20%3D%20JDK%20AND%20issuetype%20%3D%20Bug%20AND%20status%20%3D%20Open%20AND%20labels%20in%20(javac%2C%20javac-types%2C%20javac-wildcards%2C%20javac-check-spec)
-
+//
+// I've made no attempt to repair these.
+//
+// javac's type hierarchy is...interesting.  For example, an
+// IntersectionClassType "is a" ClassType, whereas in the lang model
+// IntersectionType is distinct from DeclaredType and
+// TypeKind.DECLARED != TypeKind.INTERSECTION (obviously).
+//
+// Most types in the javac type model have symbols, even where such a
+// thing doesn't make sense.  This is probably left over from Java's
+// earliest more Smalltalky days.  The lang model, by contrast, does
+// not provide asElement() methods on most of its types—even for those
+// types where such a thing would make sense, like ExecutableType.
+// Because javac still uses elements ("symbols") in many type
+// calculations, I synthesize some elements where they are needed.
+//
+// javac, being a true compiler, of course, understandably does many
+// fancy things with error types.  In general, this class bails out.
 final class Types {
 
   private static final DefaultDeclaredType CLONEABLE_TYPE = DefaultDeclaredType.JAVA_LANG_CLONEABLE;
@@ -107,15 +148,15 @@ final class Types {
     }
   }
 
-  public static final ArrayType arrayType(final TypeMirror componentType) {
+  private static final ArrayType arrayType(final TypeMirror componentType) {
     return arrayType(componentType, List.of());
   }
 
-  public static final ArrayType arrayType(final TypeMirror componentType, final List<? extends AnnotationMirror> annotationMirrors) {
+  private static final ArrayType arrayType(final TypeMirror componentType, final List<? extends AnnotationMirror> annotationMirrors) {
     return DefaultArrayType.of(componentType, annotationMirrors);
   }
 
-  public static final Element asElement(final TypeMirror t) {
+  private static final Element asElement(final TypeMirror t) {
     // "Returns the element corresponding to a type. The type may be a
     // DeclaredType or TypeVariable. Returns null if the type is not
     // one with a corresponding element."
@@ -599,8 +640,66 @@ final class Types {
     }
   }
 
+  // See Types#elemtype(Type); bonkers bananas crazy town
+  private static final TypeMirror componentType(final TypeMirror t) {
+    switch (t.getKind()) {
+    case ARRAY:
+      // Straightforward and makes sense.
+      return ((ArrayType)t).getComponentType();
+    case ERROR:
+      // O...K....
+      return t;
+    case EXECUTABLE:
+      // For some really weird reason elemtype(ForAll) yields
+      // elemtype(((ForAll)t).qtype), which reduces to
+      // elemtype(MethodType) which returns null.  Why this isn't just
+      // handled by the default clause is beyond me.  I separate it
+      // here in case I've misread things.
+      return null;
+    case TYPEVAR:
+      // It seems weird to me that elemtype(Type) would explicitly
+      // handle wildcards but not type variables.  Maybe I'm not
+      // thinking clearly.  Can't you have T extends Object[]?
+      // Wouldn't you want the component type returned to be Object
+      // rather than null?  I return null here because the case is not
+      // handled in javac.
+      return null;
+    case WILDCARD:
+      // I guess this just erases the wildcardness out of the mix and
+      // (in most cases) will return null again, unless of course it's
+      // an array?
+      return componentType(wildcardUpperBound(t)); // RECURSIVE
+    default:
+      return null;
+    }
+  }
+
+  // Models Types#containsType(Type, Type), not Type#contains(Type)
+  private static final boolean contains(final TypeMirror t, final TypeMirror s) {
+    // TODO: resume
+    throw new UnsupportedOperationException();
+  }
+
+  // Models Types#containsTypeEquivalent(Type, Type).
+  // I don't entirely understand what this method is for.
+  private static final boolean containsEquivalent(final TypeMirror t, final TypeMirror s) {
+    return
+      models(t, s) ||
+      contains(t, s) && contains(s, t);
+  }
+
+  private static final boolean containsEquivalent(final List<? extends TypeMirror> ts, final List<? extends TypeMirror> ss) {
+    final Iterator<? extends TypeMirror> ti = ts.iterator();
+    final Iterator<? extends TypeMirror> si = ss.iterator();
+    while (ti.hasNext() && si.hasNext() && containsEquivalent(ti.next(), si.next())) {
+      // no-op
+    }
+    return !ti.hasNext() && !si.hasNext();
+  }
+  
   /**
-   * Returns {@code true} if {@code t1} contains {@code t2}.
+   * Returns {@code true} if {@code t1} <em>references</em> {@code
+   * t2}.
    *
    * <p>Loosely speaking: does {@code t1} have a {@link TypeMirror}
    * affiliated with it that is {@linkplain
@@ -611,7 +710,7 @@ final class Types {
    *
    * @param t2 another {@link TypeMirror}; must not be {@code null}
    *
-   * @return {@code true} if {@code t1} contains {@code t2}
+   * @return {@code true} if {@code t1} references {@code t2}
    *
    * @exception NullPointerException if either parameter is {@code
    * null}
@@ -620,45 +719,49 @@ final class Types {
    * encountered that has both an upper and a lower bound
    */
   // Not visitor-based.
-  public static final boolean contains(final TypeMirror t1, final TypeMirror t2) {
+  // Models Type#contains(Type), not Types#containsType(Type, Type).
+  private static final boolean references(final TypeMirror t1, final TypeMirror t2) {
     switch (t1.getKind()) {
     case ARRAY:
-      return contains((ArrayType)t1, t2);
+      return references((ArrayType)t1, t2);
     case DECLARED:
-      return contains((DeclaredType)t1, t2);
+      return references((DeclaredType)t1, t2);
     case EXECUTABLE:
-      return contains((ExecutableType)t1, t2);
+      return references((ExecutableType)t1, t2);
     case INTERSECTION:
-      return contains((IntersectionType)t1, t2);
+      return references((IntersectionType)t1, t2);
     case UNION:
-      return contains((UnionType)t1, t2);
+      return references((UnionType)t1, t2);
     case WILDCARD:
-      return contains((WildcardType)t1, t2);
+      return references((WildcardType)t1, t2);
     default:
       return Identity.identical(t1, t2, false);
     }
   }
 
-  private static final boolean contains(final ArrayType t1, final TypeMirror t2) {
+  // Models Type#contains(Type), not Types#containsType(Type, Type).
+  private static final boolean references(final ArrayType t1, final TypeMirror t2) {
     assert t1.getKind() == TypeKind.ARRAY;
     return
       Identity.identical(t1, t2, false) ||
-      contains(t1.getComponentType(), t2);
+      references(t1.getComponentType(), t2);
   }
 
-  private static final boolean contains(final DeclaredType t1, final TypeMirror t2) {
+  // Models Type#contains(Type), not Types#containsType(Type, Type).
+  private static final boolean references(final DeclaredType t1, final TypeMirror t2) {
     assert t1.getKind() == TypeKind.DECLARED;
     return
       Identity.identical(t1, t2, false) ||
-      (hasTypeArguments(t1) && (contains(t1.getEnclosingType(), t2) || anyIs(t1.getTypeArguments(), t2)));
+      (hasTypeArguments(t1) && (references(t1.getEnclosingType(), t2) || anyIs(t1.getTypeArguments(), t2)));
   }
 
-  private static final boolean contains(final ExecutableType t1, final TypeMirror t2) {
+  // Models Type#contains(Type), not Types#containsType(Type, Type).
+  private static final boolean references(final ExecutableType t1, final TypeMirror t2) {
     assert t1.getKind() == TypeKind.EXECUTABLE;
     return
       Identity.identical(t1, t2, false) ||
       anyIs(t1.getParameterTypes(), t2) ||
-      contains(t1.getReturnType(), t2) ||
+      references(t1.getReturnType(), t2) ||
       anyIs(t1.getThrownTypes(), t2);
   }
 
@@ -667,24 +770,27 @@ final class Types {
   // you consider that all three of these are effectively just
   // collections of types with no real identity of their own.
 
-  private static final boolean contains(final IntersectionType t1, final TypeMirror t2) {
+  // Models Type#contains(Type), not Types#containsType(Type, Type).
+  private static final boolean references(final IntersectionType t1, final TypeMirror t2) {
     assert t1.getKind() == TypeKind.INTERSECTION;
     return anyIs(t1.getBounds(), t2);
   }
 
-  private static final boolean contains(final UnionType t1, final TypeMirror t2) {
+  // Models Type#contains(Type), not Types#containsType(Type, Type).
+  private static final boolean references(final UnionType t1, final TypeMirror t2) {
     assert t1.getKind() == TypeKind.UNION;
     return anyIs(t1.getAlternatives(), t2);
   }
 
-  private static final boolean contains(final WildcardType t1, final TypeMirror t2) {
+  // Models Type#contains(Type), not Types#containsType(Type, Type).
+  private static final boolean references(final WildcardType t1, final TypeMirror t2) {
     assert t1.getKind() == TypeKind.WILDCARD;
     final TypeMirror upperBound = t1.getExtendsBound();
     final TypeMirror lowerBound = t1.getSuperBound();
     if (upperBound == null) {
-      return lowerBound != null && contains(lowerBound, t2);
+      return lowerBound != null && references(lowerBound, t2);
     } else if (lowerBound == null) {
-      return contains(upperBound, t2);
+      return references(upperBound, t2);
     } else {
       throw new IllegalArgumentException("t1: " + t1);
     }
@@ -703,10 +809,10 @@ final class Types {
   }
 
   // Does t contain at least one s in ss?
-  private static final boolean containsAny(final TypeMirror t, final Collection<? extends TypeMirror> ss) {
+  private static final boolean referencesAny(final TypeMirror t, final Collection<? extends TypeMirror> ss) {
     if (!ss.isEmpty()) {
       for (final TypeMirror s : ss) {
-        if (contains(t, s)) {
+        if (references(t, s)) {
           return true;
         }
       }
@@ -715,10 +821,10 @@ final class Types {
   }
 
   // Does at least one t in ts contain at least one s in ss?
-  private static final boolean anyContainsAny(final Collection<? extends TypeMirror> ts, final Collection<? extends TypeMirror> ss) {
+  private static final boolean anyReferencesAny(final Collection<? extends TypeMirror> ts, final Collection<? extends TypeMirror> ss) {
     if (!ts.isEmpty() && !ss.isEmpty()) {
       for (final TypeMirror t : ts) {
-        if (containsAny(t, ss)) {
+        if (referencesAny(t, ss)) {
           return true;
         }
       }
@@ -726,26 +832,26 @@ final class Types {
     return false;
   }
 
-  public static final DeclaredType declaredType() {
+  private static final DeclaredType declaredType() {
     return DefaultDeclaredType.JAVA_LANG_OBJECT;
   }
 
-  public static final DeclaredType declaredType(final List<? extends AnnotationMirror> annotationMirrors) {
+  private static final DeclaredType declaredType(final List<? extends AnnotationMirror> annotationMirrors) {
     return declaredType(noneType(), List.of(), annotationMirrors);
   }
 
-  public static final DeclaredType declaredType(final List<? extends TypeMirror> typeArguments,
+  private static final DeclaredType declaredType(final List<? extends TypeMirror> typeArguments,
                                                 final List<? extends AnnotationMirror> annotationMirrors) {
     return declaredType(noneType(), typeArguments, annotationMirrors);
   }
 
-  public static final DeclaredType declaredType(final DeclaredType enclosingType,
+  private static final DeclaredType declaredType(final DeclaredType enclosingType,
                                                 final List<? extends TypeMirror> typeArguments,
                                                 final List<? extends AnnotationMirror> annotationMirrors) {
     return declaredType((TypeMirror)enclosingType, typeArguments, annotationMirrors);
   }
 
-  public static final DeclaredType declaredType(final TypeMirror enclosingType,
+  private static final DeclaredType declaredType(final TypeMirror enclosingType,
                                                 final List<? extends TypeMirror> typeArguments,
                                                 final List<? extends AnnotationMirror> annotationMirrors) {
     if ((enclosingType == null || enclosingType.getKind() == TypeKind.NONE) &&
@@ -773,7 +879,7 @@ final class Types {
   }
 
   // StructuralTypeMapping-based
-  public static final TypeMirror erase(final TypeMirror t) {
+  private static final TypeMirror erase(final TypeMirror t) {
     // https://docs.oracle.com/javase/specs/jls/se11/html/jls-4.html#jls-4.6
     // 4.6. Type Erasure
     //
@@ -814,7 +920,7 @@ final class Types {
 
   // The original is StructuralTypeMapping-based, which means identity
   // is important in the return value.
-  public static final List<? extends TypeMirror> erase(final List<? extends TypeMirror> ts) {
+  private static final List<? extends TypeMirror> erase(final List<? extends TypeMirror> ts) {
     if (ts.isEmpty()) {
       return ts;
     }
@@ -969,7 +1075,7 @@ final class Types {
     return intersectionType(bounds);
   }
 
-  public static final boolean hasTypeArguments(final TypeMirror t) {
+  private static final boolean hasTypeArguments(final TypeMirror t) {
     // This is modeled after javac's allparams() method.  javac
     // frequently confuses type parameters and type arguments in its
     // terminology.  This implementation could probably be made more
@@ -983,7 +1089,7 @@ final class Types {
       return false;
     }
   }
-
+  
   // UnaryVisitor-based
   private static final List<? extends TypeMirror> interfaces(final TypeMirror t) {
     switch (t.getKind()) {
@@ -1259,11 +1365,110 @@ final class Types {
     }
   }
 
-  public static final NoType noneType() {
+  // Port of isSameType()
+  private static final boolean models(final TypeMirror t, final TypeMirror s) {
+    final TypeKind tk = t.getKind();
+    switch (tk) {
+    case ARRAY:
+      return models((ArrayType)t, s);
+    case BOOLEAN:
+    case BYTE:
+    case CHAR:
+    case DOUBLE:
+    case FLOAT:
+    case INT:
+    case LONG:
+    case NONE:
+    case NULL:
+    case SHORT:
+    case VOID:
+      return tk == s.getKind();
+    case DECLARED:
+      return models((DeclaredType)t, s);
+    case EXECUTABLE:
+      break;
+    case ERROR:
+      return true;
+    case INTERSECTION:
+      return models((IntersectionType)t, s);
+    case MODULE:
+      // Hmm; not present in javac
+    case PACKAGE:
+      return Identity.identical(t, s, true);
+    case TYPEVAR:
+      break;
+    case WILDCARD:
+      break;
+    default:
+      break;
+    }
+    // TODO: resume
+    throw new UnsupportedOperationException();
+  }
+
+  private static final boolean models(final ArrayType t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.ARRAY;
+    switch (s.getKind()) {
+    case ARRAY:
+      final TypeMirror tct = t.getComponentType();
+      final TypeMirror sct = componentType(s); // handles wildcards etc.
+      return containsEquivalent(tct, sct);
+    default:
+      return false;
+    }
+  }
+
+  private static final boolean models(final DeclaredType t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.DECLARED;
+    switch (s.getKind()) {
+    case WILDCARD:
+      if (((WildcardType)s).getSuperBound() != null) {
+        return
+          models(t, wildcardUpperBound(s)) &&
+          models(t, wildcardLowerBound(s));
+      }
+      break;
+    default:
+      break;
+    }
+    return
+      Identity.identical(asElement(t, false), asElement(s, true), true) &&
+      models(enclosingType(t), enclosingType(s)) &&
+      containsEquivalent(typeArguments(t), typeArguments(s));
+  }
+
+  private static final boolean models(final IntersectionType t, final IntersectionType s) {
+    assert t.getKind() == TypeKind.INTERSECTION;
+    switch (s.getKind()) {
+    case INTERSECTION:
+      if (!models(supertype(t), supertype(s))) {
+        return false;
+      }
+
+      final Map<DefaultElement, TypeMirror> map = new HashMap<>();
+      for (final TypeMirror tiface : interfaces(t)) {
+        map.put(DefaultElement.of(asElement(tiface, true)), tiface);
+      }
+      for (final TypeMirror siface : interfaces(s)) {
+        final TypeMirror tiface = map.remove(DefaultElement.of(asElement(siface, true)));
+        if (tiface == null || !models(tiface, siface)) {
+          return false;
+        }
+      }
+      return map.isEmpty();
+    default:
+      return
+        Identity.identical(asElement(t, false), asElement(s, true), true) &&
+        models(enclosingType(t), enclosingType(s)) &&
+        containsEquivalent(typeArguments(t), typeArguments(s));
+    }
+  }
+  
+  private static final NoType noneType() {
     return DefaultNoType.NONE;
   }
 
-  public static final NullType nullType() {
+  private static final NullType nullType() {
     return DefaultNullType.INSTANCE;
   }
 
@@ -1271,7 +1476,7 @@ final class Types {
     return DefaultDeclaredType.JAVA_LANG_OBJECT;
   }
 
-  public static final boolean parameterized(final TypeMirror t) {
+  private static final boolean parameterized(final TypeMirror t) {
     switch (t.getKind()) {
     case ARRAY:
       return parameterized(((ArrayType)t).getComponentType());
@@ -1537,7 +1742,7 @@ final class Types {
     //
     // So *first* we should do the alpha conversion/renaming:
     List<? extends TypeVariable> typeVariables = t.getTypeVariables();
-    if (anyContainsAny(to, typeVariables)) {
+    if (anyReferencesAny(to, typeVariables)) {
       t = executableType(t.getParameterTypes(),
                          t.getReceiverType(),
                          t.getReturnType(),
@@ -1755,7 +1960,7 @@ final class Types {
   }
 
   // TypeRelation-based
-  public static final boolean subtype(final TypeMirror t, final TypeMirror s, final boolean capture) {
+  private static final boolean subtype(final TypeMirror t, final TypeMirror s, final boolean capture) {
     if (Identity.identical(t, s, false)) {
       return true;
     }
@@ -1825,7 +2030,6 @@ final class Types {
     case UNION:
       throw new IllegalArgumentException("t: " + t);
     case VOID:
-      // Wow; this is odd
       return s.getKind() == TypeKind.VOID;
     case NONE:
     case WILDCARD:
@@ -1837,6 +2041,34 @@ final class Types {
 
   private static final boolean subtype0(final ArrayType t, final TypeMirror s) {
     assert t.getKind() == TypeKind.ARRAY;
+    switch (s.getKind()) {
+    case ARRAY:
+      final TypeMirror componentType = t.getComponentType();
+      if (componentType.getKind().isPrimitive()) {
+        // TODO: resume
+        throw new UnsupportedOperationException();
+      }
+      break;
+    case DECLARED:
+    case INTERSECTION:
+      final Element e = asElement(s, true);
+      if (e != null) {
+        switch (e.getKind()) {
+        case CLASS:
+        case INTERFACE:
+          final Name n = ((TypeElement)e).getQualifiedName();
+          return
+            n.contentEquals("java.lang.Object") ||
+            n.contentEquals("java.lang.Cloneable") ||
+            n.contentEquals("java.io.Serializable");
+        default:
+          return false;
+        }
+      }
+      return false;
+    default:
+      return false;
+    }
     // TODO: resume
     throw new UnsupportedOperationException();
   }
@@ -1919,7 +2151,7 @@ final class Types {
 
 
   // UnaryVisitor-based
-  public static final TypeMirror supertype(final TypeMirror t) {
+  private static final TypeMirror supertype(final TypeMirror t) {
     switch (t.getKind()) {
     case ARRAY:
       return supertype((ArrayType)t);
@@ -2078,6 +2310,15 @@ final class Types {
     return t;
   }
 
+  private static final List<? extends TypeMirror> typeArguments(final TypeMirror t) {
+    switch (t.getKind()) {
+    case DECLARED:
+      return ((DeclaredType)t).getTypeArguments();
+    default:
+      return List.of();
+    }
+  }
+  
   private static final TypeVariable typeVariable(final TypeVariable tv, final TypeMirror upperBound) {
     assert tv.getKind() == TypeKind.TYPEVAR;
     final DefaultTypeVariable returnValue = new DefaultTypeVariable(upperBound, tv.getLowerBound(), tv.getAnnotationMirrors());
@@ -2148,7 +2389,8 @@ final class Types {
     final TypeMirror lowerBound = w.getSuperBound();
     if (lowerBound == null) {
       if (upperBound == null || !Identity.identical(tv, upperBound, false)) {
-        // Replace the upper bound with the TypeVariable.
+        // Return a (normally new) wildcard type whose upper bound is
+        // the TypeVariable.
         return upperBoundedWildcardType(tv, w.getAnnotationMirrors());
       }
       return w;
@@ -2156,7 +2398,8 @@ final class Types {
       if (Identity.identical(tv, lowerBound, false)) {
         return w;
       }
-      // Replace the lower bound with the TypeVariable.
+      // Return a (normally new) wildcard type whose lower bound is
+      // the TypeVariable.
       return lowerBoundedWildcardType(tv, w.getAnnotationMirrors());
     } else {
       throw new IllegalArgumentException("w: " + w);

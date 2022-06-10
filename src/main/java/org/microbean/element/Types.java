@@ -692,7 +692,7 @@ final class Types {
     final Iterator<? extends TypeMirror> ti = ts.iterator();
     final Iterator<? extends TypeMirror> si = ss.iterator();
     while (ti.hasNext() && si.hasNext() && containsEquivalent(ti.next(), si.next())) {
-      // no-op
+      // do nothing
     }
     return !ti.hasNext() && !si.hasNext();
   }
@@ -1366,6 +1366,7 @@ final class Types {
   }
 
   // Port of isSameType()
+  // TypeRelation-based
   private static final boolean models(final TypeMirror t, final TypeMirror s) {
     final TypeKind tk = t.getKind();
     switch (tk) {
@@ -1386,50 +1387,54 @@ final class Types {
     case DECLARED:
       return models((DeclaredType)t, s);
     case EXECUTABLE:
-      break;
+      return models((ExecutableType)t, s);
     case ERROR:
       return true;
     case INTERSECTION:
       return models((IntersectionType)t, s);
-    case MODULE:
-      // Hmm; not present in javac
     case PACKAGE:
+      // I wonder why this is called out/allowed.
       return Identity.identical(t, s, true);
     case TYPEVAR:
-      break;
+      return models((TypeVariable)t, s);
     case WILDCARD:
-      break;
+      return models((WildcardType)t, s);
     default:
-      break;
+      throw new IllegalArgumentException("t: " + t);
     }
-    // TODO: resume
-    throw new UnsupportedOperationException();
   }
 
   private static final boolean models(final ArrayType t, final TypeMirror s) {
     assert t.getKind() == TypeKind.ARRAY;
-    switch (s.getKind()) {
-    case ARRAY:
-      final TypeMirror tct = t.getComponentType();
-      final TypeMirror sct = componentType(s); // handles wildcards etc.
-      return containsEquivalent(tct, sct);
-    default:
-      return false;
-    }
+    return s.getKind() == TypeKind.ARRAY && models(t, (ArrayType)s);
+  }
+
+  private static final boolean models(final ArrayType t, final ArrayType s) {
+    assert t.getKind() == TypeKind.ARRAY;
+    assert s.getKind() == TypeKind.ARRAY;
+    return containsEquivalent(t.getComponentType(), componentType(s));
   }
 
   private static final boolean models(final DeclaredType t, final TypeMirror s) {
     assert t.getKind() == TypeKind.DECLARED;
     switch (s.getKind()) {
     case WILDCARD:
-      if (((WildcardType)s).getSuperBound() != null) {
-        return
-          models(t, wildcardUpperBound(s)) &&
-          models(t, wildcardLowerBound(s));
-      }
-      break;
+      return models(t, (WildcardType)s);
     default:
-      break;
+      return
+        Identity.identical(asElement(t, false), asElement(s, true), true) &&
+        models(enclosingType(t), enclosingType(s)) &&
+        containsEquivalent(typeArguments(t), typeArguments(s));
+    }
+  }
+
+  private static final boolean models(final DeclaredType t, final WildcardType s) {
+    assert t.getKind() == TypeKind.DECLARED;
+    assert s.getKind() == TypeKind.WILDCARD;
+    if (s.getSuperBound() != null) {
+      return
+        models(t, wildcardUpperBound(s)) &&
+        models(t, wildcardLowerBound(s));
     }
     return
       Identity.identical(asElement(t, false), asElement(s, true), true) &&
@@ -1437,31 +1442,125 @@ final class Types {
       containsEquivalent(typeArguments(t), typeArguments(s));
   }
 
-  private static final boolean models(final IntersectionType t, final IntersectionType s) {
+  private static final boolean models(final ExecutableType t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.EXECUTABLE;
+    return s.getKind() == TypeKind.EXECUTABLE && models(t, (ExecutableType)s);
+  }
+
+  private static final boolean models(final ExecutableType t, final ExecutableType s) {
+    assert t.getKind() == TypeKind.EXECUTABLE;
+    assert s.getKind() == TypeKind.EXECUTABLE;
+    return
+      modelsTypeVariablesOf(t, s) &&
+      models(t, subst(s, s.getTypeVariables(), t.getTypeVariables())) &&
+      modelsParametersOf(t, s) &&
+      models(t.getReturnType(), s.getReturnType());
+  }
+
+  private static final boolean models(final IntersectionType t, final TypeMirror s) {
     assert t.getKind() == TypeKind.INTERSECTION;
     switch (s.getKind()) {
     case INTERSECTION:
-      if (!models(supertype(t), supertype(s))) {
-        return false;
-      }
-
-      final Map<DefaultElement, TypeMirror> map = new HashMap<>();
-      for (final TypeMirror tiface : interfaces(t)) {
-        map.put(DefaultElement.of(asElement(tiface, true)), tiface);
-      }
-      for (final TypeMirror siface : interfaces(s)) {
-        final TypeMirror tiface = map.remove(DefaultElement.of(asElement(siface, true)));
-        if (tiface == null || !models(tiface, siface)) {
-          return false;
-        }
-      }
-      return map.isEmpty();
+      return models(t, (IntersectionType)s);
     default:
       return
         Identity.identical(asElement(t, false), asElement(s, true), true) &&
         models(enclosingType(t), enclosingType(s)) &&
         containsEquivalent(typeArguments(t), typeArguments(s));
     }
+  }
+
+  private static final boolean models(final IntersectionType t, final IntersectionType s) {
+    assert t.getKind() == TypeKind.INTERSECTION;
+    assert s.getKind() == TypeKind.INTERSECTION;
+    if (!models(supertype(t), supertype(s))) {
+      return false;
+    }
+    
+    final Map<DefaultElement, TypeMirror> map = new HashMap<>();
+    for (final TypeMirror tiface : interfaces(t)) {
+      map.put(DefaultElement.of(asElement(tiface, true)), tiface);
+    }
+    for (final TypeMirror siface : interfaces(s)) {
+      final TypeMirror tiface = map.remove(DefaultElement.of(asElement(siface, true)));
+      if (tiface == null || !models(tiface, siface)) {
+        return false;
+      }
+    }
+    return map.isEmpty();
+  }
+
+  private static final boolean models(final TypeVariable t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.TYPEVAR;
+    switch (s.getKind()) {
+    case TYPEVAR:
+      return Identity.identical(t, s, true);
+    case WILDCARD:
+      return models(t, (WildcardType)s);
+    default:
+      return false;
+    }
+  }
+
+  private static final boolean models(final TypeVariable t, final WildcardType s) {
+    assert t.getKind() == TypeKind.TYPEVAR;
+    assert s.getKind() == TypeKind.WILDCARD;
+    return s.getExtendsBound() == null && models(t, wildcardUpperBound(s));
+  }
+  
+  private static final boolean models(final WildcardType t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.WILDCARD;
+    return s.getKind() == TypeKind.WILDCARD && models(t, (WildcardType)s);
+  }
+
+  private static final boolean models(final WildcardType t, final WildcardType s) {
+    assert t.getKind() == TypeKind.WILDCARD;
+    assert s.getKind() == TypeKind.WILDCARD;
+    final TypeMirror tLower = t.getSuperBound();
+    if (tLower == null) {
+      final TypeMirror tUpper = t.getExtendsBound();
+      final TypeMirror sLower = s.getSuperBound();
+      final TypeMirror sUpper = s.getExtendsBound();
+      if (tUpper == null) {
+        if (sLower == null) {
+          return sUpper == null || models(objectType(), sUpper);
+        }
+      } else if (sLower == null) {
+        return models(tUpper, sUpper == null ? objectType() : sUpper);
+      }
+    }
+    return false;
+  }
+
+  // Port of Types#hasSameArgs(Type, Type)
+  private static final boolean modelsParametersOf(final ExecutableType t, final ExecutableType s) {
+    if (t.getKind() != TypeKind.EXECUTABLE || t.getKind() != TypeKind.EXECUTABLE) {
+      return false;
+    }
+    return
+      containsEquivalent(t.getParameterTypes(), s.getParameterTypes()) &&
+      modelsTypeVariablesOf(t, s) &&
+      modelsParametersOf(t, subst(s, s.getTypeVariables(), t.getTypeVariables())); // RECURSIVE
+  }
+  
+  // Port of Types#hasSameBounds(ForAll, ForAll)
+  private static final boolean modelsTypeVariablesOf(final ExecutableType t, final ExecutableType s) {
+    if (t.getKind() != TypeKind.EXECUTABLE || t.getKind() != TypeKind.EXECUTABLE) {
+      return false;
+    }
+    final List<? extends TypeVariable> tvt = t.getTypeVariables();
+    final List<? extends TypeVariable> tvs = s.getTypeVariables();
+    final Iterator<? extends TypeVariable> ti = tvt.iterator();
+    final Iterator<? extends TypeVariable> si = tvs.iterator();
+    while (ti.hasNext() &&
+           si.hasNext() &&
+           models(ti.next().getUpperBound(),
+                  subst(si.next().getUpperBound(),
+                        tvs,
+                        tvt))) {
+      // do nothing
+    }
+    return !ti.hasNext() && !si.hasNext();
   }
   
   private static final NoType noneType() {

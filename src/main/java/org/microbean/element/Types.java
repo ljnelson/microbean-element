@@ -58,6 +58,8 @@ import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.UnionType;
 import javax.lang.model.type.WildcardType;
 
+import org.microbean.development.annotation.Experimental;
+
 // The spirit of this class and this whole exercise is to ultimately
 // implement the javac type assignability rules on top of the java
 // lang model.
@@ -554,6 +556,22 @@ final class Types {
     return t;
   }
 
+  // Port of Types#isCaptureOf(Type, WildcardType)
+  private static final boolean captures(final TypeMirror tv, final TypeMirror w) {
+    return
+      tv.getKind() == TypeKind.TYPEVAR &&
+      tv instanceof CapturedType ct &&
+      w.getKind() == TypeKind.WILDCARD &&
+      captures(ct, (WildcardType)w);
+  }
+
+  private static final boolean captures(final CapturedType ct, final WildcardType w) {
+    assert ct.getKind() == TypeKind.TYPEVAR;
+    assert w.getKind() == TypeKind.WILDCARD;
+    // isSameWildcard(), you'll note, does not check annotations.
+    return Identity.identical(w, ct.getWildcardType(), false);
+  }
+
   // Returns a MODIFIABLE list
   private static final List<TypeMirror> closure(final TypeMirror t) {
     List<TypeMirror> cl;
@@ -676,8 +694,28 @@ final class Types {
 
   // Models Types#containsType(Type, Type), not Type#contains(Type)
   private static final boolean contains(final TypeMirror t, final TypeMirror s) {
-    // TODO: resume
-    throw new UnsupportedOperationException();
+    switch (t.getKind()) {
+    case ERROR:
+      return true;
+    case WILDCARD:
+      return contains((WildcardType)t, s);
+    default:
+      return models(t, s);
+    }
+  }
+
+  private static final boolean contains(final WildcardType w, final TypeMirror s) {
+    assert w.getKind() == TypeKind.WILDCARD;
+    if (Identity.identical(w, s, true)) {
+      return true;
+    }
+    if (captures(s, w)) {
+      return true;
+    }
+    if (w.getSuperBound() == null) {
+      return subtype(wildcardUpperBound(s), wildcardUpperBound(w), false);
+    }
+    return subtype(wildcardLowerBound(w), wildcardLowerBound(s), false);
   }
 
   // Models Types#containsTypeEquivalent(Type, Type).

@@ -116,10 +116,220 @@ final class Types {
   // @GuardedBy("itself")
   private static final WeakHashMap<TypeMirror, Element> syntheticElements = new WeakHashMap<>();
 
+
+  /*
+   * Constructors.
+   */
+
+  
   private Types() {
     super();
   }
 
+
+  /*
+   * Static methods.
+   */
+
+  // I have no idea what this method is doing. Ported slavishly from javac.
+  private static final void adapt(final TypeMirror source,
+                                  final TypeMirror target,
+                                  final List<TypeMirror> from,
+                                  final List<TypeMirror> to,
+                                  final Map<Element, TypeMirror> mapping,
+                                  final Set<TypeMirrorPair> cache) {
+    // First do the visiting
+    switch (source.getKind()) {
+    case ARRAY:
+      adapt((ArrayType)source, target, from, to, mapping, cache);
+      break;
+    case DECLARED:
+    case INTERSECTION:
+      adapt0(source, target, from, to, mapping, cache);
+      break;
+    case TYPEVAR:
+      adapt((TypeVariable)source, target, from, to, mapping, cache);
+      break;
+    case WILDCARD:
+      adapt((WildcardType)source, target, from, to, mapping, cache);
+      break;
+    default:
+      break;
+    }
+    
+    // Then do the mysterious symbol processing.
+    /*
+      List<Type> fromList = from.toList();
+      List<Type> toList = to.toList();
+      while (!fromList.isEmpty()) {
+          Type val = mapping.get(fromList.head.tsym);
+          if (toList.head != val)
+              toList.head = val;
+          fromList = fromList.tail;
+          toList = toList.tail;
+      }
+    */
+    final int size = from.size();
+    for (int i = 0; i < size; i++) {
+      final TypeMirror val = mapping.get(asElement(from.get(i), true));
+      // Note that there's no check on the size of to
+      if (val == null || i + 1 >= to.size() || !Identity.identical(val, to.get(i), true)) {
+        to.set(i, val);
+      }
+    }
+  }
+
+  private static final void adapt(final ArrayType source,
+                                  final TypeMirror target,
+                                  final List<TypeMirror> from,
+                                  final List<TypeMirror> to,
+                                  final Map<Element, TypeMirror> mapping,
+                                  final Set<TypeMirrorPair> cache) {
+    switch (target.getKind()) {
+    case ARRAY:
+      adapt(source, (ArrayType)target, from, to, mapping, cache);
+      break;
+    default:
+      break;
+    }
+  }
+
+  private static final void adapt(final ArrayType source,
+                                  final ArrayType target,
+                                  final List<TypeMirror> from,
+                                  final List<TypeMirror> to,
+                                  final Map<Element, TypeMirror> mapping,
+                                  final Set<TypeMirrorPair> cache) {
+    assert source.getKind() == TypeKind.ARRAY;
+    assert target.getKind() == TypeKind.ARRAY;
+    adaptRecursive(source.getComponentType(), target.getComponentType(), from, to, mapping, cache);
+  }
+  
+  private static final void adapt0(final TypeMirror source,
+                                   final TypeMirror target,
+                                   final List<TypeMirror> from,
+                                   final List<TypeMirror> to,
+                                   final Map<Element, TypeMirror> mapping,
+                                   final Set<TypeMirrorPair> cache) {
+    assert source.getKind() == TypeKind.DECLARED || source.getKind() == TypeKind.INTERSECTION;
+    switch (target.getKind()) {
+    case DECLARED:
+    case INTERSECTION:
+      adaptRecursive(allTypeArguments(source), allTypeArguments(target), from, to, mapping, cache);
+      break;
+    default:
+      break;
+    }    
+  }
+
+  private static final void adapt(final TypeVariable source,
+                                  final TypeMirror target,
+                                  final List<TypeMirror> from,
+                                  final List<TypeMirror> to,
+                                  final Map<Element, TypeMirror> mapping,
+                                  final Set<TypeMirrorPair> cache) {
+    assert source.getKind() == TypeKind.TYPEVAR;
+    final Element sourceElement = asElement(source);
+    TypeMirror val = mapping.get(sourceElement);
+    if (val == null) {
+      val = target;
+      from.add(source);
+      to.add(target);
+    } else {
+      switch (val.getKind()) {
+      case WILDCARD:
+        final WildcardType valW = (WildcardType)val;
+        switch (target.getKind()) {
+        case WILDCARD:
+          final WildcardType targetW = (WildcardType)target;
+          final TypeMirror valLowerBound = valW.getSuperBound();
+          final TypeMirror valUpperBound = valW.getExtendsBound();
+          final TypeMirror targetLowerBound = targetW.getSuperBound();
+          final TypeMirror targetUpperBound = targetW.getExtendsBound();
+          if (valLowerBound == null) {
+            if (valUpperBound == null) {
+              // valW is lower-bounded (and upper-bounded)
+              if (targetUpperBound == null && subtype(wildcardLowerBound(val), wildcardLowerBound(target), true)) {
+                // targetW is lower-bounded (and maybe unbounded)
+                val = target;
+              }
+            } else if (targetLowerBound == null && !subtype(wildcardUpperBound(val), wildcardUpperBound(target), true)) {
+              // valW is upper-bounded
+              // targetW is upper-bounded (and maybe unbounded)
+              val = target;
+            }
+          } else if (valUpperBound == null) {
+            // valW is lower-bounded
+            if (targetUpperBound == null && subtype(wildcardLowerBound(val), wildcardLowerBound(target), true)) {
+              // targetW is lower-bounded (and maybe unbounded)
+              val = target;
+            }            
+          } else {
+            throw new IllegalStateException("val: " + val);
+          }
+          break;
+        default:
+          break;
+        }
+        break;
+      default:
+        if (!models(val, target)) {
+          throw new IllegalStateException();
+        }
+        break;
+      }
+    }
+    mapping.put(sourceElement, val);
+  }
+
+  private static final void adapt(final WildcardType source,
+                                  final TypeMirror target,
+                                  final List<TypeMirror> from,
+                                  final List<TypeMirror> to,
+                                  final Map<Element, TypeMirror> mapping,
+                                  final Set<TypeMirrorPair> cache) {
+    assert source.getKind() == TypeKind.WILDCARD;
+    if (source.getSuperBound() == null) {
+      // upper-bounded; maybe unbounded
+      adaptRecursive(wildcardUpperBound(source), wildcardUpperBound(target), from, to, mapping, cache);
+    } else if (source.getExtendsBound() == null) {
+      adaptRecursive(wildcardLowerBound(source), wildcardLowerBound(target), from, to, mapping, cache);
+    } else {
+      throw new IllegalArgumentException("source: " + source);
+    }
+  }
+
+  private static final void adaptRecursive(final TypeMirror source,
+                                           final TypeMirror target,
+                                           final List<TypeMirror> from,
+                                           final List<TypeMirror> to,
+                                           final Map<Element, TypeMirror> mapping,
+                                           final Set<TypeMirrorPair> cache) {
+    final TypeMirrorPair pair = new TypeMirrorPair(source, target);
+    if (cache.add(pair)) {
+      try {
+        adapt(source, target, from, to, mapping, cache);
+      } finally {
+        cache.remove(pair);
+      }
+    }
+  }
+
+  private static final void adaptRecursive(final List<? extends TypeMirror> source,
+                                           final List<? extends TypeMirror> target,
+                                           final List<TypeMirror> from,
+                                           final List<TypeMirror> to,
+                                           final Map<Element, TypeMirror> mapping,
+                                           final Set<TypeMirrorPair> cache) {
+    final int sourceSize = source.size();
+    if (sourceSize > 0 && sourceSize == target.size()) {
+      for (int i = 0; i < sourceSize; i++) {
+        adaptRecursive(source.get(0), target.get(0), from, to, mapping, cache);
+      }
+    }
+  }
+
+  
   @Convenience
   // Not visitor-based in javac
   private static final List<? extends TypeMirror> allTypeArguments(final TypeMirror t) {
@@ -799,7 +1009,7 @@ final class Types {
     assert t1.getKind() == TypeKind.ARRAY;
     return
       Identity.identical(t1, t2, false) ||
-      references(t1.getComponentType(), t2);
+      references(t1.getComponentType(), t2); // RECURSIVE
   }
 
   // Models Type#contains(Type), not Types#containsType(Type, Type).
@@ -807,7 +1017,7 @@ final class Types {
     assert t1.getKind() == TypeKind.DECLARED;
     return
       Identity.identical(t1, t2, false) ||
-      (hasTypeArguments(t1) && (references(t1.getEnclosingType(), t2) || anyIdentical(t1.getTypeArguments(), t2)));
+      (hasTypeArguments(t1) && (references(t1.getEnclosingType(), t2) || anyIdentical(t1.getTypeArguments(), t2))); // RECURSIVE
   }
 
   // Models Type#contains(Type), not Types#containsType(Type, Type).
@@ -816,7 +1026,7 @@ final class Types {
     return
       Identity.identical(t1, t2, false) ||
       anyIdentical(t1.getParameterTypes(), t2) ||
-      references(t1.getReturnType(), t2) ||
+      references(t1.getReturnType(), t2) || // RECURSIVE
       anyIdentical(t1.getThrownTypes(), t2);
   }
 
@@ -843,9 +1053,9 @@ final class Types {
     final TypeMirror upperBound = t1.getExtendsBound();
     final TypeMirror lowerBound = t1.getSuperBound();
     if (upperBound == null) {
-      return lowerBound != null && references(lowerBound, t2);
+      return lowerBound != null && references(lowerBound, t2); // RECURSIVE
     } else if (lowerBound == null) {
-      return references(upperBound, t2);
+      return references(upperBound, t2); // RECURSIVE
     } else {
       throw new IllegalArgumentException("t1: " + t1);
     }

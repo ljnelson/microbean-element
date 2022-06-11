@@ -1079,8 +1079,44 @@ final class Types {
             else return prefix.append(sep, name);
         }
     */
-    // TODO: resume
-    throw new UnsupportedOperationException();
+    final Element enclosingElement = e.getEnclosingElement();
+    if (enclosingElement == null) {
+      return e.getSimpleName();
+    }
+    char separator;
+    switch (enclosingElement.getKind()) {
+    case ANNOTATION_TYPE:
+    case CLASS:
+    case ENUM:
+    case INTERFACE:
+    case RECORD:
+      switch (enclosingElement.asType().getKind()) {
+      case TYPEVAR:
+        return e.getSimpleName();
+      default:
+        separator = '$';
+        break;
+      }
+      break;
+    case CONSTRUCTOR:
+    case METHOD:
+    case BINDING_VARIABLE:
+    case ENUM_CONSTANT:
+    case EXCEPTION_PARAMETER:
+    case FIELD:
+    case LOCAL_VARIABLE:
+    case PARAMETER:
+    case RESOURCE_VARIABLE:
+      return e.getSimpleName();
+    default:
+      separator = '.';
+      break;
+    }
+    final Name prefix = flatName(enclosingElement); // RECURSIVE
+    if (prefix == null || prefix.isEmpty()) {
+      return e.getSimpleName();
+    }
+    return DefaultName.of(new StringBuilder(prefix).append(separator).append(e.getSimpleName().toString()).toString());
   }
   
   private static final TypeMirror glb(final List<? extends TypeMirror> ts) {

@@ -131,6 +131,13 @@ final class Types {
    * Static methods.
    */
 
+  private static final void adapt(final TypeMirror source,
+                                  final TypeMirror target,
+                                  final List<TypeMirror> from,
+                                  final List<TypeMirror> to) {
+    adapt(source, target, from, to, new HashMap<>(), new HashSet<>());
+  }
+  
   // I have no idea what this method is doing. Ported slavishly from javac.
   private static final void adapt(final TypeMirror source,
                                   final TypeMirror target,
@@ -324,11 +331,24 @@ final class Types {
     final int sourceSize = source.size();
     if (sourceSize > 0 && sourceSize == target.size()) {
       for (int i = 0; i < sourceSize; i++) {
-        adaptRecursive(source.get(0), target.get(0), from, to, mapping, cache);
+        adaptRecursive(source.get(i), target.get(i), from, to, mapping, cache);
       }
     }
   }
 
+  private static final void adaptSelf(final TypeMirror t,
+                                      final List<TypeMirror> from,
+                                      final List<TypeMirror> to) {
+    adaptSelf(t, from, to, new HashMap<>(), new HashSet<>());
+  }
+  
+  private static final void adaptSelf(final TypeMirror t,
+                                      final List<TypeMirror> from,
+                                      final List<TypeMirror> to,
+                                      final Map<Element, TypeMirror> mapping,
+                                      final Set<TypeMirrorPair> cache) {
+    adapt(canonicalType(t), t, from, to, mapping, cache);
+  }
   
   @Convenience
   // Not visitor-based in javac
@@ -2002,6 +2022,44 @@ final class Types {
       !hasTypeArguments(t); // t does not have type arguments
   }
 
+  // Ported slavishly from javac.
+  private static final TypeMirror rewriteSupers(final TypeMirror t) {
+    if (parameterized(t)) {
+      List<TypeMirror> from = new ArrayList<>();
+      List<TypeMirror> to = new ArrayList<>();
+      adaptSelf(t, from, to);
+      if (!from.isEmpty()) {
+        final List<TypeMirror> rewrite = new ArrayList<>();
+        boolean changed = false;
+        for (final TypeMirror orig : to) {
+          TypeMirror s = rewriteSupers(orig);
+          switch (s.getKind()) {
+          case WILDCARD:
+            if (((WildcardType)s).getSuperBound() != null) {
+              // TODO: maybe need to somehow ensure this shows up as non-canonical
+              s = unboundedWildcardType(s.getAnnotationMirrors());
+              changed = true;
+            }
+            break;
+          default:
+            if (s != orig) { // Don't need Identity.identical() here
+              // TODO: maybe need to somehow ensure this shows up as non-canonical
+              s = upperBoundedWildcardType(wildcardUpperBound(s),
+                                           s.getAnnotationMirrors());
+              changed = true;
+            }
+            break;
+          }
+          rewrite.add(s);
+        }
+        if (changed) {
+          return subst(canonicalType(t), from, rewrite);
+        }
+      }
+    }
+    return t;
+  }
+
   // StructuralTypeMapping-based.
   //
   // TODO: There's "needsStripping", which I don't know what it does:
@@ -2759,6 +2817,14 @@ final class Types {
       newTvs.set(i, typeVariable(tv, (TypeVariable)subst(tv.getUpperBound(), tvs, newTvs))); // NOTE subst() call
     }
     return Collections.unmodifiableList(newTvs);
+  }
+
+  private static final WildcardType unboundedWildcardType() {
+    return DefaultWildcardType.UNBOUNDED;
+  }
+
+  private static final WildcardType unboundedWildcardType(final List<? extends AnnotationMirror> annotationMirrors) {
+    return DefaultWildcardType.unboundedWildcardType(annotationMirrors);
   }
 
   private static final UnionType unionType(final List<? extends TypeMirror> alternatives) {

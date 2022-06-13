@@ -116,12 +116,17 @@ final class Types {
   // @GuardedBy("itself")
   private static final WeakHashMap<TypeMirror, Element> syntheticElements = new WeakHashMap<>();
 
+  // @GuardedBy("itself")
+  private static final Set<TypeMirrorPair> containsRecursiveCache = new HashSet<>();
+
+  // @GuardedBy("itself")
+  private static final Set<Element> asSuperSeenTypes = new HashSet<>();
 
   /*
    * Constructors.
    */
 
-  
+
   private Types() {
     super();
   }
@@ -137,33 +142,36 @@ final class Types {
                                   final List<TypeMirror> to) {
     adapt(source, target, from, to, new HashMap<>(), new HashSet<>());
   }
-  
+
   // I have no idea what this method is doing. Ported slavishly from javac.
   private static final void adapt(final TypeMirror source,
                                   final TypeMirror target,
                                   final List<TypeMirror> from,
                                   final List<TypeMirror> to,
                                   final Map<Element, TypeMirror> mapping,
-                                  final Set<TypeMirrorPair> cache) {
+                                  final Set<TypeMirrorPair> adaptCache) {
     // First do the visiting
     switch (source.getKind()) {
     case ARRAY:
-      adapt((ArrayType)source, target, from, to, mapping, cache);
+      adapt((ArrayType)source, target, from, to, mapping, adaptCache);
       break;
     case DECLARED:
     case INTERSECTION:
-      adapt0(source, target, from, to, mapping, cache);
+      adapt0(source, target, from, to, mapping, adaptCache);
       break;
     case TYPEVAR:
-      adapt((TypeVariable)source, target, from, to, mapping, cache);
+      adapt((TypeVariable)source, target, from, to, mapping, adaptCache);
       break;
     case WILDCARD:
-      adapt((WildcardType)source, target, from, to, mapping, cache);
+      adapt((WildcardType)source, target, from, to, mapping, adaptCache);
       break;
     default:
       break;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("source: " + source);
     }
-    
+
     // Then do the mysterious symbol processing.
     /*
       List<Type> fromList = from.toList();
@@ -191,13 +199,16 @@ final class Types {
                                   final List<TypeMirror> from,
                                   final List<TypeMirror> to,
                                   final Map<Element, TypeMirror> mapping,
-                                  final Set<TypeMirrorPair> cache) {
+                                  final Set<TypeMirrorPair> adaptCache) {
     switch (target.getKind()) {
     case ARRAY:
-      adapt(source, (ArrayType)target, from, to, mapping, cache);
+      adapt(source, (ArrayType)target, from, to, mapping, adaptCache);
       break;
     default:
       break;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("target: " + target);
     }
   }
 
@@ -206,27 +217,30 @@ final class Types {
                                   final List<TypeMirror> from,
                                   final List<TypeMirror> to,
                                   final Map<Element, TypeMirror> mapping,
-                                  final Set<TypeMirrorPair> cache) {
+                                  final Set<TypeMirrorPair> adaptCache) {
     assert source.getKind() == TypeKind.ARRAY;
     assert target.getKind() == TypeKind.ARRAY;
-    adaptRecursive(source.getComponentType(), target.getComponentType(), from, to, mapping, cache);
+    adaptRecursive(source.getComponentType(), target.getComponentType(), from, to, mapping, adaptCache);
   }
-  
+
   private static final void adapt0(final TypeMirror source,
                                    final TypeMirror target,
                                    final List<TypeMirror> from,
                                    final List<TypeMirror> to,
                                    final Map<Element, TypeMirror> mapping,
-                                   final Set<TypeMirrorPair> cache) {
+                                   final Set<TypeMirrorPair> adaptCache) {
     assert source.getKind() == TypeKind.DECLARED || source.getKind() == TypeKind.INTERSECTION;
     switch (target.getKind()) {
     case DECLARED:
     case INTERSECTION:
-      adaptRecursive(allTypeArguments(source), allTypeArguments(target), from, to, mapping, cache);
+      adaptRecursive(allTypeArguments(source), allTypeArguments(target), from, to, mapping, adaptCache);
       break;
     default:
       break;
-    }    
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("target: " + target);
+    }
   }
 
   private static final void adapt(final TypeVariable source,
@@ -234,7 +248,7 @@ final class Types {
                                   final List<TypeMirror> from,
                                   final List<TypeMirror> to,
                                   final Map<Element, TypeMirror> mapping,
-                                  final Set<TypeMirrorPair> cache) {
+                                  final Set<TypeMirrorPair> adaptCache) {
     assert source.getKind() == TypeKind.TYPEVAR;
     final Element sourceElement = asElement(source);
     TypeMirror val = mapping.get(sourceElement);
@@ -270,13 +284,16 @@ final class Types {
             if (targetUpperBound == null && subtype(wildcardLowerBound(val), wildcardLowerBound(target), true)) {
               // targetW is lower-bounded (and maybe unbounded)
               val = target;
-            }            
+            }
           } else {
             throw new IllegalStateException("val: " + val);
           }
           break;
         default:
           break;
+        case ERROR:
+        case UNION:
+          throw new IllegalArgumentException("target: " + target);
         }
         break;
       default:
@@ -284,6 +301,9 @@ final class Types {
           throw new IllegalStateException();
         }
         break;
+      case ERROR:
+      case UNION:
+        throw new IllegalStateException("val: " + val);
       }
     }
     mapping.put(sourceElement, val);
@@ -294,13 +314,13 @@ final class Types {
                                   final List<TypeMirror> from,
                                   final List<TypeMirror> to,
                                   final Map<Element, TypeMirror> mapping,
-                                  final Set<TypeMirrorPair> cache) {
+                                  final Set<TypeMirrorPair> adaptCache) {
     assert source.getKind() == TypeKind.WILDCARD;
     if (source.getSuperBound() == null) {
       // upper-bounded; maybe unbounded
-      adaptRecursive(wildcardUpperBound(source), wildcardUpperBound(target), from, to, mapping, cache);
+      adaptRecursive(wildcardUpperBound(source), wildcardUpperBound(target), from, to, mapping, adaptCache);
     } else if (source.getExtendsBound() == null) {
-      adaptRecursive(wildcardLowerBound(source), wildcardLowerBound(target), from, to, mapping, cache);
+      adaptRecursive(wildcardLowerBound(source), wildcardLowerBound(target), from, to, mapping, adaptCache);
     } else {
       throw new IllegalArgumentException("source: " + source);
     }
@@ -311,13 +331,13 @@ final class Types {
                                            final List<TypeMirror> from,
                                            final List<TypeMirror> to,
                                            final Map<Element, TypeMirror> mapping,
-                                           final Set<TypeMirrorPair> cache) {
+                                           final Set<TypeMirrorPair> adaptCache) {
     final TypeMirrorPair pair = new TypeMirrorPair(source, target);
-    if (cache.add(pair)) {
+    if (adaptCache.add(pair)) {
       try {
-        adapt(source, target, from, to, mapping, cache);
+        adapt(source, target, from, to, mapping, adaptCache);
       } finally {
-        cache.remove(pair);
+        adaptCache.remove(pair);
       }
     }
   }
@@ -327,11 +347,11 @@ final class Types {
                                            final List<TypeMirror> from,
                                            final List<TypeMirror> to,
                                            final Map<Element, TypeMirror> mapping,
-                                           final Set<TypeMirrorPair> cache) {
+                                           final Set<TypeMirrorPair> adaptCache) {
     final int sourceSize = source.size();
     if (sourceSize > 0 && sourceSize == target.size()) {
       for (int i = 0; i < sourceSize; i++) {
-        adaptRecursive(source.get(i), target.get(i), from, to, mapping, cache);
+        adaptRecursive(source.get(i), target.get(i), from, to, mapping, adaptCache);
       }
     }
   }
@@ -341,15 +361,15 @@ final class Types {
                                       final List<TypeMirror> to) {
     adaptSelf(t, from, to, new HashMap<>(), new HashSet<>());
   }
-  
+
   private static final void adaptSelf(final TypeMirror t,
                                       final List<TypeMirror> from,
                                       final List<TypeMirror> to,
                                       final Map<Element, TypeMirror> mapping,
-                                      final Set<TypeMirrorPair> cache) {
-    adapt(canonicalType(t), t, from, to, mapping, cache);
+                                      final Set<TypeMirrorPair> adaptCache) {
+    adapt(canonicalType(t), t, from, to, mapping, adaptCache);
   }
-  
+
   @Convenience
   // Not visitor-based in javac
   private static final List<? extends TypeMirror> allTypeArguments(final TypeMirror t) {
@@ -363,6 +383,9 @@ final class Types {
       // https://github.com/openjdk/jdk/blob/jdk-19+25/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Type.java#L1265
     default:
       return List.of();
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -546,8 +569,6 @@ final class Types {
       return null;
 
     case ERROR:
-      throw new UnsupportedOperationException();
-
     case UNION:
     default:
       throw new IllegalArgumentException("t: " + t);
@@ -555,7 +576,7 @@ final class Types {
   }
 
   // Not visitor-based in javac
-  private static final TypeMirror asOuterSuper(TypeMirror t, final Element e) {
+  private static final TypeMirror asOuterSuper(final TypeMirror t, final Element e) {
     switch (t.getKind()) {
     case ARRAY:
       final TypeMirror et = e.asType();
@@ -565,27 +586,41 @@ final class Types {
       return asOuterSuper0(t, e);
     case TYPEVAR:
       return asSuper(t, e);
-    case ERROR:
-      return t;
     default:
       return null;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
   private static final TypeMirror asOuterSuper0(final TypeMirror t, final Element e) {
+    assert t.getKind() == TypeKind.DECLARED || t.getKind() == TypeKind.INTERSECTION : t.getKind();
     TypeMirror x = t;
     WHILE_LOOP:
     while (x != null) {
+      final TypeKind xk = x.getKind();
+      if (xk == TypeKind.NONE) {
+        // For some reason, javac's Types#asOuterSuper(Type, Type) uses null as a sentinel
+        // value, even though NONE is used elsewhere.  We follow suit.
+        return null;
+      }
       final TypeMirror s = asSuper(x, e);
       if (s != null) {
         return s;
       }
-      switch (x.getKind()) {
+      switch (xk) {
       case DECLARED:
         x = ((DeclaredType)x).getEnclosingType();
         continue WHILE_LOOP;
       default:
         return null;
+      case NONE:
+        // (We already checked this.)
+        throw new AssertionError();
+      case ERROR:
+      case UNION:
+        throw new IllegalStateException("x: " + x);
       }
     }
     return null;
@@ -594,27 +629,19 @@ final class Types {
   // SimpleVisitor-based
   // https://github.com/openjdk/jdk/blob/jdk-18+37/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L2131-L2215
   private static final TypeMirror asSuper(final TypeMirror t, final Element e) {
-    return asSuper(t, e, null);
-  }
-
-  private static final TypeMirror asSuper(final TypeMirror t, final Element e, final Set<AnnotatedConstruct> seen) {
     // TODO: optimize for when e.asType() is java.lang.Object
     switch (t.getKind()) {
     case ARRAY:
-      return asSuper((ArrayType)t, e);
+      return asSuper((ArrayType)t, e); // RECURSIVE
     case DECLARED:
-    case TYPEVAR:
-      return asSuper0(t, e, seen == null ? new HashSet<>() : seen);
-    case ERROR:
-      return t;
     case INTERSECTION:
-      // TODO: I'm pretty sure this is a correct port, but...not super
-      // sure.  IntersectionClassTypes have symbols, bizarrely enough,
-      // but it is exactly one symbol.  This may matter in the "seen"
-      // set.
-      return null;
+    case TYPEVAR:
+      return asSuper0(t, e);
     default:
-      return null; // Yes, really
+      return null; // Yes, really; not sure why NONE isn't used but this is critical
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -624,38 +651,44 @@ final class Types {
     return subtype(t, elementType, true) ? elementType : null;
   }
 
-  private static final TypeMirror asSuper0(final TypeMirror t, final Element e, final Set<AnnotatedConstruct> seen) {
+  private static final TypeMirror asSuper0(final TypeMirror t, final Element e) {
     final Element te = asElement(t, true);
     if (Identity.identical(te, e, true)) {
       return t;
     }
     if (t.getKind() == TypeKind.TYPEVAR) {
       // SimpleVisitor-based so also handles captured type variables
-      return asSuper(((TypeVariable)t).getUpperBound(), e, seen); // RECURSIVE
+      return asSuper(((TypeVariable)t).getUpperBound(), e); // RECURSIVE, potentially
     }
     final DefaultElement teKey = DefaultElement.of(te);
-    if (!seen.add(teKey)) {
-      return t;
+    final boolean added;
+    synchronized (asSuperSeenTypes) {
+      added = asSuperSeenTypes.add(teKey);
     }
-    try {
-      TypeMirror x = asSuper(supertype(t), e, seen); // RECURSIVE
-      if (x != null) {
-        return x;
-      }
-      if (isInterface(e)) {
-        for (final TypeMirror iface : interfaces(t)) {
-          if (iface.getKind() != TypeKind.ERROR) {
-            x = asSuper(iface, e, seen); // RECURSIVE
-            if (x != null) {
-              return x;
+    if (added) {
+      try {
+        TypeMirror x = asSuper(supertype(t), e); // RECURSIVE, potentially
+        if (x != null) {
+          return x;
+        }
+        if (isInterface(e)) {
+          for (final TypeMirror iface : interfaces(t)) {
+            if (iface.getKind() != TypeKind.ERROR) {
+              x = asSuper(iface, e); // RECURSIVE, potentially
+              if (x != null) {
+                return x;
+              }
             }
           }
         }
+        return null; // Yes, really.
+      } finally {
+        synchronized (asSuperSeenTypes) {
+          asSuperSeenTypes.remove(teKey);
+        }
       }
-      return null; // Yes, really.
-    } finally {
-      seen.remove(teKey);
     }
+    return t;
   }
 
   private static final boolean bottomType(final TypeMirror t) {
@@ -678,10 +711,12 @@ final class Types {
     case TYPEVAR:
       // UnaryVisitor-based so also handles captured type variables
       return boundingClass(supertype(t));
-    case ERROR:
     case INTERSECTION:
     default:
       return t;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -703,6 +738,9 @@ final class Types {
       return capture((DeclaredType)t);
     default:
       return t;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -765,6 +803,9 @@ final class Types {
       return t instanceof CapturedType;
     default:
       return false;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -827,10 +868,14 @@ final class Types {
         cl.add(t);
         cl.addAll(closure(st)); // RECURSIVE
         break;
+      case ERROR:
+      case UNION:
       default:
         throw new IllegalArgumentException("t: " + t);
       }
       break;
+    case ERROR:
+    case UNION:
     default:
       throw new IllegalArgumentException("t: " + t);
     }
@@ -899,9 +944,6 @@ final class Types {
     case ARRAY:
       // Straightforward and makes sense.
       return ((ArrayType)t).getComponentType();
-    case ERROR:
-      // O...K....
-      return t;
     case EXECUTABLE:
       // For some really weird reason elemtype(ForAll) yields
       // elemtype(((ForAll)t).qtype), which reduces to
@@ -924,6 +966,9 @@ final class Types {
       return componentType(wildcardUpperBound(t)); // RECURSIVE
     default:
       return null;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -936,16 +981,17 @@ final class Types {
     }
     return !ti.hasNext() && !si.hasNext();
   }
-  
+
   // Models Types#containsType(Type, Type), not Type#contains(Type)
   private static final boolean contains(final TypeMirror t, final TypeMirror s) {
     switch (t.getKind()) {
-    case ERROR:
-      return true;
     case WILDCARD:
       return contains((WildcardType)t, s);
     default:
       return models(t, s);
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -982,6 +1028,41 @@ final class Types {
     return !ti.hasNext() && !si.hasNext();
   }
 
+  // Called by subtype(TypeMirror, TypeMirror, boolean)
+  // Models Types#containsTypeRecursive(Type, Type)
+  //
+  // "Recursive" really just seems to mean that it plows into type
+  // arguments.
+  //
+  // The original code puts entries into the cache that are clearly
+  // never going to return true.  This version tries to avoid mutating
+  // the cache as much as possible.
+  private static final boolean subtype0_containsRecursive(final TypeMirror t, final TypeMirror s) {
+    final List<? extends TypeMirror> tTypeArguments = typeArguments(t);
+    final List<? extends TypeMirror> sTypeArguments = typeArguments(s);
+    if (tTypeArguments.isEmpty()) {
+      return sTypeArguments.isEmpty();
+    } else if (sTypeArguments.isEmpty()) {
+      return false;
+    }
+    final TypeMirrorPair pair = new TypeMirrorPair(t, s);
+    final boolean added;
+    synchronized (containsRecursiveCache) {
+      added = containsRecursiveCache.add(pair);
+    }
+    if (added) {
+      try {
+        return contains(tTypeArguments, sTypeArguments);
+      } finally {
+        synchronized (containsRecursiveCache) {
+          containsRecursiveCache.remove(pair);
+        }
+      }
+    } else {
+      return contains(tTypeArguments, typeArguments(subtype0_rewriteSuperBoundedWildcardTypes(s)));
+    }
+  }
+
   /**
    * Returns {@code true} if {@code t1} <em>references</em> {@code
    * t2}.
@@ -1015,12 +1096,13 @@ final class Types {
       return references((ExecutableType)t1, t2);
     case INTERSECTION:
       return references((IntersectionType)t1, t2);
-    case UNION:
-      return references((UnionType)t1, t2);
     case WILDCARD:
       return references((WildcardType)t1, t2);
     default:
       return Identity.identical(t1, t2, false);
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t1: " + t1);
     }
   }
 
@@ -1147,6 +1229,8 @@ final class Types {
     case DECLARED:
     case NONE:
       break;
+    case ERROR:
+    case UNION:
     default:
       throw new IllegalArgumentException("enclosingType: " + enclosingType);
     }
@@ -1159,6 +1243,9 @@ final class Types {
       return ((DeclaredType)t).getEnclosingType();
     default:
       return noneType();
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -1199,6 +1286,9 @@ final class Types {
       return erase((WildcardType)t);
     default:
       return t;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -1234,6 +1324,8 @@ final class Types {
       return declaredType(erase((DeclaredType)enclosingType), List.of(), t.getAnnotationMirrors());
     case NONE:
       return t.getTypeArguments().isEmpty() ? t : declaredType(enclosingType, List.of(), t.getAnnotationMirrors());
+    case ERROR:
+    case UNION:
     default:
       throw new IllegalArgumentException("t: " + t);
     }
@@ -1326,6 +1418,9 @@ final class Types {
       default:
         separator = '$';
         break;
+      case ERROR:
+      case UNION:
+        throw new IllegalStateException("enclosingElement: " + enclosingElement);
       }
       break;
     case CONSTRUCTOR:
@@ -1348,7 +1443,7 @@ final class Types {
     }
     return DefaultName.of(new StringBuilder(prefix).append(separator).append(e.getSimpleName().toString()).toString());
   }
-  
+
   private static final TypeMirror glb(final List<? extends TypeMirror> ts) {
     final int size = ts.size();
     TypeMirror t;
@@ -1425,6 +1520,9 @@ final class Types {
       return !allTypeArguments(t).isEmpty();
     default:
       return false;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -1437,10 +1535,11 @@ final class Types {
       return interfaces((IntersectionType)t);
     case TYPEVAR:
       return interfaces((TypeVariable)t);
-    case UNION:
-      throw new IllegalArgumentException("t: " + t);
     default:
       return List.of();
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -1497,10 +1596,11 @@ final class Types {
       return ((DeclaredType)upperBound).asElement().getKind().isInterface() ? List.of(upperBound) : List.of();
     case INTERSECTION:
       return interfaces(upperBound);
-    case UNION:
-      throw new IllegalArgumentException("t: " + t);
     default:
       return List.of();
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -1528,6 +1628,9 @@ final class Types {
       return isInterface(((DeclaredType)t).asElement());
     default:
       return false;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -1552,18 +1655,17 @@ final class Types {
     switch (t.getKind()) {
     case DECLARED:
       return memberType((DeclaredType)t, e);
-    case ERROR:
-      return memberType((ErrorType)t, e);
     case INTERSECTION:
       return memberType((IntersectionType)t, e);
     case TYPEVAR:
       return memberType((TypeVariable)t, e);
-    case UNION:
-      throw new IllegalArgumentException("t: " + t);
     case WILDCARD:
       return memberType((WildcardType)t, e);
     default:
       return e.asType();
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -1574,7 +1676,7 @@ final class Types {
 
   private static final TypeMirror memberType(final ErrorType t, final Element e) {
     assert t.getKind() == TypeKind.ERROR;
-    return t;
+    throw new UnsupportedOperationException();
   }
 
   private static final TypeMirror memberType(final IntersectionType t, final Element e) {
@@ -1656,6 +1758,8 @@ final class Types {
       case TYPEVAR:
         e = ((TypeVariable)t).asElement();
         break;
+      case ERROR:
+      case UNION:
       default:
         throw new IllegalArgumentException("ts: " + ts);
       }
@@ -1716,8 +1820,6 @@ final class Types {
       return models((DeclaredType)t, s);
     case EXECUTABLE:
       return models((ExecutableType)t, s);
-    case ERROR:
-      return true;
     case INTERSECTION:
       return models((IntersectionType)t, s);
     case PACKAGE:
@@ -1727,6 +1829,8 @@ final class Types {
       return models((TypeVariable)t, s);
     case WILDCARD:
       return models((WildcardType)t, s);
+    case ERROR:
+    case UNION:
     default:
       throw new IllegalArgumentException("t: " + t);
     }
@@ -1753,6 +1857,10 @@ final class Types {
         Identity.identical(asElement(t, false), asElement(s, true), true) &&
         models(enclosingType(t), enclosingType(s)) &&
         containsEquivalent(typeArguments(t), typeArguments(s));
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("s: " + s);
+
     }
   }
 
@@ -1795,6 +1903,9 @@ final class Types {
         Identity.identical(asElement(t, false), asElement(s, true), true) &&
         models(enclosingType(t), enclosingType(s)) &&
         containsEquivalent(typeArguments(t), typeArguments(s));
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("s: " + s);
     }
   }
 
@@ -1827,6 +1938,9 @@ final class Types {
       return models(t, (WildcardType)s);
     default:
       return false;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("s: " + s);
     }
   }
 
@@ -1911,6 +2025,9 @@ final class Types {
       return !allTypeArguments(t).isEmpty();
     default:
       return false;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -1933,6 +2050,8 @@ final class Types {
           ((TypeElement)f).getQualifiedName().toString().compareTo(((TypeElement)e).getQualifiedName().toString()) < 0;
       case TYPEVAR:
         return true;
+      case ERROR:
+      case UNION:
       default:
         throw new IllegalArgumentException("f: " + f);
       }
@@ -1945,7 +2064,12 @@ final class Types {
         return subtype(t, s, true);
       default:
         return true;
+      case ERROR:
+      case UNION:
+        throw new IllegalArgumentException("f: " + f);
       }
+    case ERROR:
+    case UNION:
     default:
       throw new IllegalArgumentException("e: " + e);
     }
@@ -1972,9 +2096,10 @@ final class Types {
         r = Math.max(r, rank(iface));
       }
       return r + 1;
-    case ERROR:
     case NONE:
       return 0;
+    case ERROR:
+    case UNION:
     default:
       throw new IllegalArgumentException("t: " + t);
     }
@@ -1988,6 +2113,9 @@ final class Types {
       return raw((DeclaredType)t);
     default:
       return false;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -2023,7 +2151,7 @@ final class Types {
   }
 
   // Ported slavishly from javac.
-  private static final TypeMirror rewriteSupers(final TypeMirror t) {
+  private static final TypeMirror subtype0_rewriteSuperBoundedWildcardTypes(final TypeMirror t) {
     if (parameterized(t)) {
       List<TypeMirror> from = new ArrayList<>();
       List<TypeMirror> to = new ArrayList<>();
@@ -2032,23 +2160,28 @@ final class Types {
         final List<TypeMirror> rewrite = new ArrayList<>();
         boolean changed = false;
         for (final TypeMirror orig : to) {
-          TypeMirror s = rewriteSupers(orig);
+          TypeMirror s = subtype0_rewriteSuperBoundedWildcardTypes(orig); // RECURSIVE
           switch (s.getKind()) {
           case WILDCARD:
             if (((WildcardType)s).getSuperBound() != null) {
-              // TODO: maybe need to somehow ensure this shows up as non-canonical
+              // TODO: maybe need to somehow ensure this shows up as
+              // non-canonical/synthetic
               s = unboundedWildcardType(s.getAnnotationMirrors());
               changed = true;
             }
             break;
           default:
             if (s != orig) { // Don't need Identity.identical() here
-              // TODO: maybe need to somehow ensure this shows up as non-canonical
+              // TODO: maybe need to somehow ensure this shows up as
+              // non-canonical/synthetic
               s = upperBoundedWildcardType(wildcardUpperBound(s),
                                            s.getAnnotationMirrors());
               changed = true;
             }
             break;
+          case ERROR:
+          case UNION:
+            throw new IllegalStateException("s: " + s);
           }
           rewrite.add(s);
         }
@@ -2093,14 +2226,15 @@ final class Types {
       return subst((ExecutableType)t, from, to);
     case INTERSECTION:
       return subst((IntersectionType)t, from, to);
-    case UNION:
-      throw new IllegalArgumentException("t: " + t);
     case TYPEVAR:
       return subst((TypeVariable)t, from, to);
     case WILDCARD:
       return subst((WildcardType)t, from, to);
     default:
       return t;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -2446,20 +2580,22 @@ final class Types {
     switch (s.getKind()) {
     case INTERSECTION:
       return subtype(t, (IntersectionType)s, capture);
+    case ERROR:
     case UNION:
       throw new IllegalArgumentException("s: " + s);
     default:
       switch (t.getKind()) {
       case INTERSECTION:
         break;
-      case UNION:
-        throw new IllegalArgumentException("t: " + t);
       default:
         final TypeMirror lowerBound = capturedTypeVariableLowerBound(wildcardLowerBound(s));
         if (s != lowerBound && !bottomType(lowerBound)) {
           return subtype(capture ? capture(t) : t, lowerBound, false); // RECURSIVE
         }
         break;
+      case ERROR:
+      case UNION:
+        throw new IllegalArgumentException("t: " + t);
       }
     }
     return subtype0(capture ? capture(t) : t, s); // NOTE: subtype0, not subtype
@@ -2499,22 +2635,19 @@ final class Types {
       assert tk.isPrimitive();
       return subtype0((PrimitiveType)t, s);
     case DECLARED:
-      return subtype0((DeclaredType)t, s);
-    case ERROR:
-      return true;
     case INTERSECTION:
-      return subtype0((IntersectionType)t, s);
+      return subtype0DeclaredOrIntersection(t, s);
     case NULL:
       return subtype0((NullType)t, s);
     case TYPEVAR:
       return subtype0((TypeVariable)t, s);
-    case UNION:
-      throw new IllegalArgumentException("t: " + t);
     case VOID:
       return s.getKind() == TypeKind.VOID;
     case NONE:
     case WILDCARD:
       return false;
+    case ERROR:
+    case UNION:
     default:
       throw new IllegalArgumentException("t: " + t);
     }
@@ -2544,6 +2677,9 @@ final class Types {
       }
     default:
       return false;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("s: " + s);
     }
   }
 
@@ -2558,29 +2694,25 @@ final class Types {
     }
   }
 
-  private static final boolean subtype0(final DeclaredType t, final TypeMirror s) {
-    assert t.getKind() == TypeKind.DECLARED;
+  private static final boolean subtype0DeclaredOrIntersection(final TypeMirror t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.DECLARED || t.getKind() == TypeKind.INTERSECTION : t.getKind();
     final TypeMirror sup = asSuper(t, asElement(s));
     if (sup == null) {
       return false;
     }
     switch (sup.getKind()) {
     case DECLARED:
-      // TODO: resume
-      throw new UnsupportedOperationException();
+    case INTERSECTION:
+      return
+        Identity.identical(asElement(t), asElement(s), true) &&
+        (!parameterized(s) || subtype0_containsRecursive(s, sup)) &&
+        subtype(enclosingType(sup), enclosingType(s), false);
     default:
       return subtype(sup, s, false);
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
-  }
-
-  private static final boolean subtype0(final IntersectionType t, final TypeMirror s) {
-    assert t.getKind() == TypeKind.INTERSECTION;
-    // Note that there is explicit handling in Types.java of
-    // intersection types here:
-    // https://github.com/openjdk/jdk/blob/jdk-19+25/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1189-L1192
-    //
-    // TODO: resume
-    throw new UnsupportedOperationException();
   }
 
   // https://github.com/openjdk/jdk/blob/jdk-19+25/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1125-L1128
@@ -2590,32 +2722,132 @@ final class Types {
     case ARRAY:
     case DECLARED:
     case INTERSECTION:
-    case ERROR:
     case NULL:
     case TYPEVAR:
       return true;
     default:
       return false;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("s: " + s);
     }
   }
 
   private static final boolean subtype0(final PrimitiveType t, final TypeMirror s) {
-    switch (t.getKind()) {
+    final TypeKind tk = t.getKind();
+    assert tk.isPrimitive();
+    switch (tk) {
+
     case BOOLEAN:
-      return s.getKind() == TypeKind.BOOLEAN;
+      switch (s.getKind()) {
+      case BOOLEAN:
+        return true;
+      default:
+        return false;
+      case ERROR:
+      case UNION:
+        throw new IllegalArgumentException("s: " + s);
+      }
+
     case BYTE:
+      switch (s.getKind()) {
+      case BYTE:
+      case DOUBLE:
+      case FLOAT:
+      case INT:
+      case LONG:
+      case SHORT:
+        return true;
+      default:
+        return false;
+      case ERROR:
+      case UNION:
+        throw new IllegalArgumentException("s: " + s);
+      }
+
     case CHAR:
+      switch (s.getKind()) {
+      case CHAR:
+      case DOUBLE:
+      case FLOAT:
+      case INT:
+      case LONG:
+        return true;
+      default:
+        return false;
+      case ERROR:
+      case UNION:
+        throw new IllegalArgumentException("s: " + s);
+      }
+
     case DOUBLE:
+      switch (s.getKind()) {
+      case DOUBLE:
+        return true;
+      default:
+        return false;
+      case ERROR:
+      case UNION:
+        throw new IllegalArgumentException("s: " + s);
+      }
+
     case FLOAT:
+      switch (s.getKind()) {
+      case DOUBLE:
+      case FLOAT:
+        return true;
+      default:
+        return false;
+      case ERROR:
+      case UNION:
+        throw new IllegalArgumentException("s: " + s);
+      }
+
     case INT:
+      switch (s.getKind()) {
+      case DOUBLE:
+      case FLOAT:
+      case INT:
+      case LONG:
+        return true;
+      default:
+        return false;
+      case ERROR:
+      case UNION:
+        throw new IllegalArgumentException("s: " + s);
+      }
+
     case LONG:
+      switch (s.getKind()) {
+      case DOUBLE:
+      case FLOAT:
+      case LONG:
+        return true;
+      default:
+        return false;
+      case ERROR:
+      case UNION:
+        throw new IllegalArgumentException("s: " + s);
+      }
+
     case SHORT:
-      break;
+      switch (s.getKind()) {
+      case DOUBLE:
+      case FLOAT:
+      case INT:
+      case LONG:
+      case SHORT:
+        return true;
+      default:
+        return false;
+      case ERROR:
+      case UNION:
+        throw new IllegalArgumentException("s: " + s);
+      }
+
     default:
       throw new AssertionError();
     }
-    // TODO: resume
-    throw new UnsupportedOperationException();
   }
 
   private static final boolean subtype0(final TypeVariable t, final TypeMirror s) {
@@ -2635,10 +2867,11 @@ final class Types {
       return supertype((IntersectionType)t);
     case TYPEVAR:
       return supertype((TypeVariable)t);
-    case UNION:
-      throw new IllegalArgumentException("t: " + t);
     default:
       return noneType();
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -2770,6 +3003,9 @@ final class Types {
       return supertype(upperBound);
     default:
       return isInterface(upperBound) ? supertype(upperBound) : upperBound;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -2780,12 +3016,16 @@ final class Types {
     return t;
   }
 
+  // See also allTypeArguments(TypeMirror)
   private static final List<? extends TypeMirror> typeArguments(final TypeMirror t) {
     switch (t.getKind()) {
     case DECLARED:
       return ((DeclaredType)t).getTypeArguments();
     default:
       return List.of();
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -2842,6 +3082,9 @@ final class Types {
       return wildcardLowerBound((WildcardType)t);
     default:
       return t;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -2891,6 +3134,9 @@ final class Types {
       return wildcardUpperBound((WildcardType)t);
     default:
       return t;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 
@@ -2928,6 +3174,10 @@ final class Types {
         break;
       default:
         list.add(typeArgument);
+        break;
+      case ERROR:
+      case UNION:
+        throw new IllegalArgumentException("typeArguments: " + typeArguments);
       }
     }
     return Collections.unmodifiableList(list);
@@ -2979,7 +3229,7 @@ final class Types {
     private final TypeMirror t;
 
     private final TypeMirror s;
-    
+
     private TypeMirrorPair(final TypeMirror t,
                            final TypeMirror s) {
       super();
@@ -3019,12 +3269,11 @@ final class Types {
         return hashCode((TypeVariable)t);
       case WILDCARD:
         return hashCode((WildcardType)t);
-      case ERROR:
-        return 0;
-      case UNION:
-        throw new IllegalArgumentException("t: " + t);
       default:
         return tk.ordinal();
+      case ERROR:
+      case UNION:
+        throw new IllegalArgumentException("t: " + t);
       }
     }
 
@@ -3040,7 +3289,7 @@ final class Types {
       }
       return result;
     }
-    
+
     private static final int hashCode(final ArrayType t) {
       assert t.getKind() == TypeKind.ARRAY;
       return hashCode(t.getComponentType()) + 12;
@@ -3062,7 +3311,7 @@ final class Types {
       // Identity.hashCode(t) here; maybe we can?
       return System.identityHashCode(t);
     }
-    
+
     private static final int hashCode(final WildcardType t) {
       final TypeKind tk = t.getKind();
       assert tk == TypeKind.WILDCARD;
@@ -3082,7 +3331,7 @@ final class Types {
       }
       return result;
     }
-    
+
   }
 
 }

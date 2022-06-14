@@ -30,11 +30,35 @@ import javax.lang.model.type.TypeVisitor;
 
 public class DefaultDeclaredType extends AbstractReferenceType implements DeclaredType {
 
-  static final DefaultDeclaredType JAVA_LANG_OBJECT = new DefaultDeclaredType();
-
   static final DefaultDeclaredType JAVA_IO_SERIALIZABLE = new DefaultDeclaredType();
 
+  static final DefaultDeclaredType JAVA_LANG_BOOLEAN = new DefaultDeclaredType();
+
+  static final DefaultDeclaredType JAVA_LANG_BYTE = new DefaultDeclaredType();
+
+  static final DefaultDeclaredType JAVA_LANG_CHARACTER = new DefaultDeclaredType();
+
   static final DefaultDeclaredType JAVA_LANG_CLONEABLE = new DefaultDeclaredType();
+
+  static final DefaultDeclaredType JAVA_LANG_CONSTANT_CONSTABLE = new DefaultDeclaredType();
+
+  static final DefaultDeclaredType JAVA_LANG_CONSTANT_CONSTANTDESC = new DefaultDeclaredType();
+
+  static final DefaultDeclaredType JAVA_LANG_DOUBLE = new DefaultDeclaredType();
+
+  static final DefaultDeclaredType JAVA_LANG_FLOAT = new DefaultDeclaredType();
+
+  static final DefaultDeclaredType JAVA_LANG_INTEGER = new DefaultDeclaredType();
+
+  static final DefaultDeclaredType JAVA_LANG_LONG = new DefaultDeclaredType();
+
+  static final DefaultDeclaredType JAVA_LANG_NUMBER = new DefaultDeclaredType();
+
+  static final DefaultDeclaredType JAVA_LANG_OBJECT = new DefaultDeclaredType();
+
+  static final DefaultDeclaredType JAVA_LANG_SHORT = new DefaultDeclaredType();
+
+  static final DefaultDeclaredType JAVA_LANG_VOID = new DefaultDeclaredType();
   
   private final TypeMirror enclosingType;
 

@@ -405,6 +405,32 @@ final class Types {
     }
   }
 
+  // Is at least one t in ts identical to s?
+  private static final boolean anyIdentical(final Collection<? extends TypeMirror> ts,
+                                            final TypeMirror s) {
+    if (!ts.isEmpty()) {
+      for (final TypeMirror t : ts) {
+        if (Identity.identical(t, s, false)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // Does at least one t in ts reference at least one s in ss?
+  private static final boolean anyReferencesAny(final Collection<? extends TypeMirror> ts,
+                                                final Collection<? extends TypeMirror> ss) {
+    if (!ts.isEmpty() && !ss.isEmpty()) {
+      for (final TypeMirror t : ts) {
+        if (referencesAny(t, ss)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  
   private static final ArrayType arrayType(final TypeMirror componentType) {
     return arrayType(componentType, List.of());
   }
@@ -467,7 +493,7 @@ final class Types {
     case EXECUTABLE:
       // This is really problematic.  There *is* an ExecutableElement
       // in the lang model, and an ExecutableType, but they aren't
-      // related in the say that, say, DeclaredType and TypeElement
+      // related in the way that, say, DeclaredType and TypeElement
       // are. javac seems to use a singleton synthetic ClassType (!)
       // for all method symbols.  I'm not sure what to do here.  I'm
       // going to leave it null for now.
@@ -720,6 +746,11 @@ final class Types {
     }
   }
 
+  private static final TypeElement boxedClass(final TypeMirror t) {
+    // TODO: resume
+    throw new UnsupportedOperationException();
+  }
+  
   private static final boolean canonical(final TypeMirror t) {
     final Element e = asElement(t);
     return e == null || Identity.identical(t, e.asType(), true);
@@ -1037,7 +1068,7 @@ final class Types {
   // The original code puts entries into the cache that are clearly
   // never going to return true.  This version tries to avoid mutating
   // the cache as much as possible.
-  private static final boolean subtype0_containsRecursive(final TypeMirror t, final TypeMirror s) {
+  private static final boolean containsRecursive(final TypeMirror t, final TypeMirror s) {
     final List<? extends TypeMirror> tTypeArguments = typeArguments(t);
     final List<? extends TypeMirror> sTypeArguments = typeArguments(s);
     if (tTypeArguments.isEmpty()) {
@@ -1059,149 +1090,23 @@ final class Types {
         }
       }
     } else {
-      return contains(tTypeArguments, typeArguments(subtype0_rewriteSuperBoundedWildcardTypes(s)));
+      return contains(tTypeArguments, typeArguments(rewriteSuperBoundedWildcardTypes(s)));
     }
   }
 
-  /**
-   * Returns {@code true} if {@code t1} <em>references</em> {@code
-   * t2}.
-   *
-   * <p>Loosely speaking: does {@code t1} have a {@link TypeMirror}
-   * affiliated with it that is {@linkplain
-   * Identity#identical(TypeMirror, TypeMirror, boolean) identical} to
-   * {@code t2}?</p>
-   *
-   * @param t1 a {@link TypeMirror}; must not be {@code null}
-   *
-   * @param t2 another {@link TypeMirror}; must not be {@code null}
-   *
-   * @return {@code true} if {@code t1} references {@code t2}
-   *
-   * @exception NullPointerException if either parameter is {@code
-   * null}
-   *
-   * @exception IllegalArgumentException if a {@link WildcardType} is
-   * encountered that has both an upper and a lower bound
-   */
-  // Not visitor-based.
-  // Models Type#contains(Type), not Types#containsType(Type, Type).
-  private static final boolean references(final TypeMirror t1, final TypeMirror t2) {
-    switch (t1.getKind()) {
-    case ARRAY:
-      return references((ArrayType)t1, t2);
-    case DECLARED:
-      return references((DeclaredType)t1, t2);
-    case EXECUTABLE:
-      return references((ExecutableType)t1, t2);
-    case INTERSECTION:
-      return references((IntersectionType)t1, t2);
-    case WILDCARD:
-      return references((WildcardType)t1, t2);
-    default:
-      return Identity.identical(t1, t2, false);
-    case ERROR:
-    case UNION:
-      throw new IllegalArgumentException("t1: " + t1);
-    }
-  }
-
-  // Models Type#contains(Type), not Types#containsType(Type, Type).
-  private static final boolean references(final ArrayType t1, final TypeMirror t2) {
-    assert t1.getKind() == TypeKind.ARRAY;
-    return
-      Identity.identical(t1, t2, false) ||
-      references(t1.getComponentType(), t2); // RECURSIVE
-  }
-
-  // Models Type#contains(Type), not Types#containsType(Type, Type).
-  private static final boolean references(final DeclaredType t1, final TypeMirror t2) {
-    assert t1.getKind() == TypeKind.DECLARED;
-    return
-      Identity.identical(t1, t2, false) ||
-      (hasTypeArguments(t1) && (references(t1.getEnclosingType(), t2) || anyIdentical(t1.getTypeArguments(), t2))); // RECURSIVE
-  }
-
-  // Models Type#contains(Type), not Types#containsType(Type, Type).
-  private static final boolean references(final ExecutableType t1, final TypeMirror t2) {
-    assert t1.getKind() == TypeKind.EXECUTABLE;
-    return
-      Identity.identical(t1, t2, false) ||
-      anyIdentical(t1.getParameterTypes(), t2) ||
-      references(t1.getReturnType(), t2) || // RECURSIVE
-      anyIdentical(t1.getThrownTypes(), t2);
-  }
-
-  // Interestingly, the compiler does *not* test for equality/identity
-  // in these three cases.  It makes a certain amount of sense when
-  // you consider that all three of these are effectively just
-  // collections of types with no real identity of their own.
-
-  // Models Type#contains(Type), not Types#containsType(Type, Type).
-  private static final boolean references(final IntersectionType t1, final TypeMirror t2) {
-    assert t1.getKind() == TypeKind.INTERSECTION;
-    return anyIdentical(t1.getBounds(), t2);
-  }
-
-  // Models Type#contains(Type), not Types#containsType(Type, Type).
-  private static final boolean references(final UnionType t1, final TypeMirror t2) {
-    assert t1.getKind() == TypeKind.UNION;
-    return anyIdentical(t1.getAlternatives(), t2);
-  }
-
-  // Models Type#contains(Type), not Types#containsType(Type, Type).
-  private static final boolean references(final WildcardType t1, final TypeMirror t2) {
-    assert t1.getKind() == TypeKind.WILDCARD;
-    final TypeMirror upperBound = t1.getExtendsBound();
-    final TypeMirror lowerBound = t1.getSuperBound();
-    if (upperBound == null) {
-      return lowerBound != null && references(lowerBound, t2); // RECURSIVE
-    } else if (lowerBound == null) {
-      return references(upperBound, t2); // RECURSIVE
+  private static final boolean convertible(final TypeMirror t, final TypeMirror s) {
+    if (isPrimitive(t)) {
+      if (isPrimitive(s)) {
+        return subtypeUnchecked(t, s, true);
+      }
+      return subtype(boxedClass(t).asType(), s, true);
+    } else if (isPrimitive(s)) {
+      return subtype(unboxedType(t), s, true);
     } else {
-      throw new IllegalArgumentException("t1: " + t1);
+      return subtypeUnchecked(t, s, true);
     }
   }
-
-  // Is at least one t in ts identical to s?
-  private static final boolean anyIdentical(final Collection<? extends TypeMirror> ts,
-                                            final TypeMirror s) {
-    if (!ts.isEmpty()) {
-      for (final TypeMirror t : ts) {
-        if (Identity.identical(t, s, false)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  // Does t reference at least one s in ss?
-  private static final boolean referencesAny(final TypeMirror t,
-                                             final Collection<? extends TypeMirror> ss) {
-    if (!ss.isEmpty()) {
-      for (final TypeMirror s : ss) {
-        if (references(t, s)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  // Does at least one t in ts reference at least one s in ss?
-  private static final boolean anyReferencesAny(final Collection<? extends TypeMirror> ts,
-                                                final Collection<? extends TypeMirror> ss) {
-    if (!ts.isEmpty() && !ss.isEmpty()) {
-      for (final TypeMirror t : ts) {
-        if (referencesAny(t, ss)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
+  
   private static final DeclaredType declaredType(final List<? extends AnnotationMirror> annotationMirrors) {
     return declaredType(noneType(), List.of(), annotationMirrors);
   }
@@ -2150,8 +2055,121 @@ final class Types {
       !hasTypeArguments(t); // t does not have type arguments
   }
 
+    /**
+   * Returns {@code true} if {@code t1} <em>references</em> {@code
+   * t2}.
+   *
+   * <p>Loosely speaking: does {@code t1} have a {@link TypeMirror}
+   * affiliated with it that is {@linkplain
+   * Identity#identical(TypeMirror, TypeMirror, boolean) identical} to
+   * {@code t2}?</p>
+   *
+   * @param t1 a {@link TypeMirror}; must not be {@code null}
+   *
+   * @param t2 another {@link TypeMirror}; must not be {@code null}
+   *
+   * @return {@code true} if {@code t1} references {@code t2}
+   *
+   * @exception NullPointerException if either parameter is {@code
+   * null}
+   *
+   * @exception IllegalArgumentException if a {@link WildcardType} is
+   * encountered that has both an upper and a lower bound
+   */
+  // Not visitor-based.
+  // Models Type#contains(Type), not Types#containsType(Type, Type).
+  private static final boolean references(final TypeMirror t1, final TypeMirror t2) {
+    switch (t1.getKind()) {
+    case ARRAY:
+      return references((ArrayType)t1, t2);
+    case DECLARED:
+      return references((DeclaredType)t1, t2);
+    case EXECUTABLE:
+      return references((ExecutableType)t1, t2);
+    case INTERSECTION:
+      return references((IntersectionType)t1, t2);
+    case WILDCARD:
+      return references((WildcardType)t1, t2);
+    default:
+      return Identity.identical(t1, t2, false);
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t1: " + t1);
+    }
+  }
+
+  // Models Type#contains(Type), not Types#containsType(Type, Type).
+  private static final boolean references(final ArrayType t1, final TypeMirror t2) {
+    assert t1.getKind() == TypeKind.ARRAY;
+    return
+      Identity.identical(t1, t2, false) ||
+      references(t1.getComponentType(), t2); // RECURSIVE
+  }
+
+  // Models Type#contains(Type), not Types#containsType(Type, Type).
+  private static final boolean references(final DeclaredType t1, final TypeMirror t2) {
+    assert t1.getKind() == TypeKind.DECLARED;
+    return
+      Identity.identical(t1, t2, false) ||
+      (hasTypeArguments(t1) && (references(t1.getEnclosingType(), t2) || anyIdentical(t1.getTypeArguments(), t2))); // RECURSIVE
+  }
+
+  // Models Type#contains(Type), not Types#containsType(Type, Type).
+  private static final boolean references(final ExecutableType t1, final TypeMirror t2) {
+    assert t1.getKind() == TypeKind.EXECUTABLE;
+    return
+      Identity.identical(t1, t2, false) ||
+      anyIdentical(t1.getParameterTypes(), t2) ||
+      references(t1.getReturnType(), t2) || // RECURSIVE
+      anyIdentical(t1.getThrownTypes(), t2);
+  }
+
+  // Interestingly, the compiler does *not* test for equality/identity
+  // in these three cases.  It makes a certain amount of sense when
+  // you consider that all three of these are effectively just
+  // collections of types with no real identity of their own.
+
+  // Models Type#contains(Type), not Types#containsType(Type, Type).
+  private static final boolean references(final IntersectionType t1, final TypeMirror t2) {
+    assert t1.getKind() == TypeKind.INTERSECTION;
+    return anyIdentical(t1.getBounds(), t2);
+  }
+
+  // Models Type#contains(Type), not Types#containsType(Type, Type).
+  private static final boolean references(final UnionType t1, final TypeMirror t2) {
+    assert t1.getKind() == TypeKind.UNION;
+    return anyIdentical(t1.getAlternatives(), t2);
+  }
+
+  // Models Type#contains(Type), not Types#containsType(Type, Type).
+  private static final boolean references(final WildcardType t1, final TypeMirror t2) {
+    assert t1.getKind() == TypeKind.WILDCARD;
+    final TypeMirror upperBound = t1.getExtendsBound();
+    final TypeMirror lowerBound = t1.getSuperBound();
+    if (upperBound == null) {
+      return lowerBound != null && references(lowerBound, t2); // RECURSIVE
+    } else if (lowerBound == null) {
+      return references(upperBound, t2); // RECURSIVE
+    } else {
+      throw new IllegalArgumentException("t1: " + t1);
+    }
+  }
+
+  // Does t reference at least one s in ss?
+  private static final boolean referencesAny(final TypeMirror t,
+                                             final Collection<? extends TypeMirror> ss) {
+    if (!ss.isEmpty()) {
+      for (final TypeMirror s : ss) {
+        if (references(t, s)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   // Ported slavishly from javac.
-  private static final TypeMirror subtype0_rewriteSuperBoundedWildcardTypes(final TypeMirror t) {
+  private static final TypeMirror rewriteSuperBoundedWildcardTypes(final TypeMirror t) {
     if (parameterized(t)) {
       List<TypeMirror> from = new ArrayList<>();
       List<TypeMirror> to = new ArrayList<>();
@@ -2160,7 +2178,7 @@ final class Types {
         final List<TypeMirror> rewrite = new ArrayList<>();
         boolean changed = false;
         for (final TypeMirror orig : to) {
-          TypeMirror s = subtype0_rewriteSuperBoundedWildcardTypes(orig); // RECURSIVE
+          TypeMirror s = rewriteSuperBoundedWildcardTypes(orig); // RECURSIVE
           switch (s.getKind()) {
           case WILDCARD:
             if (((WildcardType)s).getSuperBound() != null) {
@@ -2705,7 +2723,7 @@ final class Types {
     case INTERSECTION:
       return
         Identity.identical(asElement(t), asElement(s), true) &&
-        (!parameterized(s) || subtype0_containsRecursive(s, sup)) &&
+        (!parameterized(s) || containsRecursive(s, sup)) &&
         subtype(enclosingType(sup), enclosingType(s), false);
     default:
       return subtype(sup, s, false);
@@ -2855,6 +2873,11 @@ final class Types {
     return subtype(t.getUpperBound(), s, false); // RECURSIVE, in a way
   }
 
+  private static final boolean subtypeUnchecked(final TypeMirror t, final TypeMirror s, final boolean capture) {
+    // It is not entirely clear to me that we need this since we're not a compiler (unlike javac).
+    // TODO: resume
+    throw new UnsupportedOperationException();
+  }
 
   // UnaryVisitor-based
   private static final TypeMirror supertype(final TypeMirror t) {
@@ -3067,6 +3090,11 @@ final class Types {
     return DefaultWildcardType.unboundedWildcardType(annotationMirrors);
   }
 
+  private static final TypeMirror unboxedType(final TypeMirror t) {
+    // TODO: resume
+    throw new UnsupportedOperationException();
+  }
+  
   private static final UnionType unionType(final List<? extends TypeMirror> alternatives) {
     return DefaultUnionType.of(alternatives);
   }

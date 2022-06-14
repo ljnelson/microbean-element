@@ -39,22 +39,115 @@ import javax.lang.model.type.TypeMirror;
 
 public class DefaultTypeElement extends AbstractElement implements TypeElement {
 
+  // TODO: clean these up
+
+  public static final Set<Modifier> PUBLIC = EnumSet.of(Modifier.PUBLIC);
+
   public static final DefaultTypeElement JAVA_LANG_OBJECT =
     new DefaultTypeElement(DefaultName.of("java.lang.Object"),
                            DefaultDeclaredType.JAVA_LANG_OBJECT,
-                           Set.of(Modifier.PUBLIC));
+                           PUBLIC);
+  
+  public static final DefaultTypeElement JAVA_IO_SERIALIZABLE =
+    new DefaultTypeElement(DefaultName.of("java.io.Serializable"),
+                           ElementKind.INTERFACE,
+                           DefaultDeclaredType.JAVA_IO_SERIALIZABLE,
+                           PUBLIC);
 
   public static final DefaultTypeElement JAVA_LANG_CLONEABLE =
     new DefaultTypeElement(DefaultName.of("java.lang.Cloneable"),
                            ElementKind.INTERFACE,
                            DefaultDeclaredType.JAVA_LANG_CLONEABLE,
-                           Set.of(Modifier.PUBLIC));
+                           PUBLIC);
 
-  public static final DefaultTypeElement JAVA_IO_SERIALIZABLE =
-    new DefaultTypeElement(DefaultName.of("java.io.Serializable"),
+  public static final DefaultTypeElement JAVA_LANG_CONSTANT_CONSTABLE =
+    new DefaultTypeElement(DefaultName.of("java.lang.constant.Constable"),
                            ElementKind.INTERFACE,
-                           DefaultDeclaredType.JAVA_IO_SERIALIZABLE,
-                           Set.of(Modifier.PUBLIC));
+                           DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE,
+                           PUBLIC);
+  
+  public static final DefaultTypeElement JAVA_LANG_BOOLEAN =
+    new DefaultTypeElement(DefaultName.of("java.lang.Boolean"),
+                           DefaultDeclaredType.JAVA_LANG_BOOLEAN,
+                           PUBLIC,
+                           DefaultDeclaredType.JAVA_LANG_OBJECT,
+                           List.of(DefaultDeclaredType.JAVA_IO_SERIALIZABLE,
+                                   // TODO: Comparable<Boolean>
+                                   DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
+
+  public static final DefaultTypeElement JAVA_LANG_NUMBER =
+    new DefaultTypeElement(DefaultName.of("java.lang.Number"),
+                           DefaultDeclaredType.JAVA_LANG_NUMBER,
+                           PUBLIC);
+  
+  public static final DefaultTypeElement JAVA_LANG_BYTE =
+    new DefaultTypeElement(DefaultName.of("java.lang.Byte"),
+                           DefaultDeclaredType.JAVA_LANG_BYTE,
+                           PUBLIC,
+                           DefaultDeclaredType.JAVA_LANG_NUMBER,
+                           List.of(DefaultDeclaredType.JAVA_IO_SERIALIZABLE,
+                                   // TODO: Comparable<Byte>
+                                   DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
+
+  public static final DefaultTypeElement JAVA_LANG_CHARACTER =
+    new DefaultTypeElement(DefaultName.of("java.lang.Character"),
+                           DefaultDeclaredType.JAVA_LANG_CHARACTER,
+                           PUBLIC,
+                           DefaultDeclaredType.JAVA_LANG_NUMBER,
+                           List.of(DefaultDeclaredType.JAVA_IO_SERIALIZABLE,
+                                   // TODO: Comparable<Character>
+                                   DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
+
+  public static final DefaultTypeElement JAVA_LANG_DOUBLE =
+    new DefaultTypeElement(DefaultName.of("java.lang.Double"),
+                           DefaultDeclaredType.JAVA_LANG_DOUBLE,
+                           PUBLIC,
+                           DefaultDeclaredType.JAVA_LANG_NUMBER,
+                           List.of(DefaultDeclaredType.JAVA_IO_SERIALIZABLE,
+                                   // TODO: Comparable<Double>
+                                   DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
+
+  public static final DefaultTypeElement JAVA_LANG_FLOAT =
+    new DefaultTypeElement(DefaultName.of("java.lang.Float"),
+                           DefaultDeclaredType.JAVA_LANG_FLOAT,
+                           PUBLIC,
+                           DefaultDeclaredType.JAVA_LANG_NUMBER,
+                           List.of(DefaultDeclaredType.JAVA_IO_SERIALIZABLE,
+                                   // TODO: Comparable<Float>
+                                   DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
+
+  public static final DefaultTypeElement JAVA_LANG_INTEGER =
+    new DefaultTypeElement(DefaultName.of("java.lang.Integer"),
+                           DefaultDeclaredType.JAVA_LANG_INTEGER,
+                           PUBLIC,
+                           DefaultDeclaredType.JAVA_LANG_NUMBER,
+                           List.of(DefaultDeclaredType.JAVA_IO_SERIALIZABLE,
+                                   // TODO: Comparable<Integer>
+                                   DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
+
+  public static final DefaultTypeElement JAVA_LANG_LONG =
+    new DefaultTypeElement(DefaultName.of("java.lang.Long"),
+                           DefaultDeclaredType.JAVA_LANG_LONG,
+                           PUBLIC,
+                           DefaultDeclaredType.JAVA_LANG_NUMBER,
+                           List.of(DefaultDeclaredType.JAVA_IO_SERIALIZABLE,
+                                   // TODO: Comparable<Long>
+                                   DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
+
+  public static final DefaultTypeElement JAVA_LANG_SHORT =
+    new DefaultTypeElement(DefaultName.of("java.lang.Short"),
+                           DefaultDeclaredType.JAVA_LANG_SHORT,
+                           PUBLIC,
+                           DefaultDeclaredType.JAVA_LANG_NUMBER,
+                           List.of(DefaultDeclaredType.JAVA_IO_SERIALIZABLE,
+                                   // TODO: Comparable<Short>
+                                   DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
+
+  public static final DefaultTypeElement JAVA_LANG_VOID =
+    new DefaultTypeElement(DefaultName.of("java.lang.Void"),
+                           DefaultDeclaredType.JAVA_LANG_VOID,
+                           PUBLIC,
+                           DefaultDeclaredType.JAVA_LANG_OBJECT);
 
   static {
     assert JAVA_LANG_OBJECT.asType() == DefaultDeclaredType.JAVA_LANG_OBJECT;
@@ -89,6 +182,43 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
                      final TypeMirror type,
                      final Set<? extends Modifier> modifiers) {
     this(qualifiedName, ElementKind.CLASS, type, modifiers);
+  }
+
+  DefaultTypeElement(final Name qualifiedName,
+                     final TypeMirror type,
+                     final Set<? extends Modifier> modifiers,
+                     final TypeMirror superclass) {
+    this(qualifiedName,
+         ElementKind.CLASS,
+         type,
+         modifiers,
+         null,
+         null,
+         List.of(),
+         superclass,
+         List.of(),
+         List.of(),
+         List.of(),
+         List.of());
+  }
+  
+  DefaultTypeElement(final Name qualifiedName,
+                     final TypeMirror type,
+                     final Set<? extends Modifier> modifiers,
+                     final TypeMirror superclass,
+                     final List<? extends TypeMirror> interfaces) {
+    this(qualifiedName,
+         ElementKind.CLASS,
+         type,
+         modifiers,
+         null,
+         null,
+         List.of(),
+         superclass,
+         List.of(),
+         interfaces,
+         List.of(),
+         List.of());
   }
 
   DefaultTypeElement(final Name qualifiedName,

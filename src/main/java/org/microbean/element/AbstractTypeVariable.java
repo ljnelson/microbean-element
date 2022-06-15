@@ -37,7 +37,7 @@ public abstract class AbstractTypeVariable extends AbstractReferenceType impleme
                                  final List<? extends AnnotationMirror> annotationMirrors) {
     super(kind, annotationMirrors);
     this.lowerBound = lowerBound == null ? DefaultNullType.INSTANCE : lowerBound;
-    this.upperBound = upperBound == null ? DefaultTypeElement.JAVA_LANG_OBJECT.asType() : upperBound;
+    this.upperBound = upperBound == null ? DefaultDeclaredType.JAVA_LANG_OBJECT : upperBound;
   }
 
   @Override // TypeMirror

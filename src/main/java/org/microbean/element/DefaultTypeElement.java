@@ -65,6 +65,61 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
                            ElementKind.INTERFACE,
                            DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE,
                            PUBLIC);
+
+  // Hazy on all this.
+  //
+  // I think my? the JDK's? confusion around types and names is
+  // because a Java identifier sometimes denotes an Element (in lang
+  // model parlance) and sometimes just stands in for a TypeMirror
+  // backing that element.
+  //
+  // So in:
+  //
+  //   public class Frob implements Comparable<Frob> ...
+  //
+  // ...the first occurrence of Frob defines the canonical
+  // TypeElement, and the second occurrence of Frob (inside the angle
+  // brackets) is some text that refers to it.
+  //
+  // For example, I think that in the following declarations:
+  //
+  //   public interface java.lang.Comparable<T> ...
+  //
+  //   public class Frob implements Comparable<Frob> ...
+  //
+  // ...there are the following things, working from the top down:
+  //
+  // * an element, T.  This is represented in the lang model as a
+  //   TypeParameterElement.  Its getSimpleName() method will return a
+  //   Name representing the String "T".  Its getGenericElement() and
+  //   its getEnclosingElement() will return the Element it is a type
+  //   parameter for.  (We'll get to that next.)  Its asType() method
+  //   will return a (definitionally nameless) TypeVariable whose
+  //   upper bound is the DeclaredType denoted by a TypeElement, not
+  //   present here, whose qualified Name is "java.lang.Object".
+  //
+  // * a TypeElement named "java.lang.Comparable" that defines a (definitionally nameless) DeclaredType
+  //
+  // * an element, Frob.  This is fundamentally what is being
+  //   declared.  It "has" an associated (definitionally nameless; in
+  //   the lang model types don't have names) type "backing" it
+  //   featuring zero type arguments, because none were supplied,
+  //   because the Frob element declares zero type parameters.
+
+  // * an element, declared elsewhere, Comparable<T>.  (If you were to
+  // * call asType() on this element, what would be the value of
+  // * type.getTypeArguments()? Probably List.of().)
+  
+  // * an element, Comparable<Frob>.  It "has" an associated
+  // * (definitionally nameless) type "backing" it whose
+  // * getTypeArguments() will return exactly one type, namely the
+  // * type backing the Frob element.
+  // 
+  public static final DefaultTypeElement JAVA_LANG_COMPARABLE_BOOLEAN =
+    new DefaultTypeElement(DefaultName.of("java.lang.Comparable"),
+                           ElementKind.INTERFACE,
+                           DefaultDeclaredType.JAVA_LANG_COMPARABLE_BOOLEAN,
+                           PUBLIC);
   
   public static final DefaultTypeElement JAVA_LANG_BOOLEAN =
     new DefaultTypeElement(DefaultName.of("java.lang.Boolean"),
@@ -72,7 +127,7 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
                            PUBLIC,
                            DefaultDeclaredType.JAVA_LANG_OBJECT,
                            List.of(DefaultDeclaredType.JAVA_IO_SERIALIZABLE,
-                                   // TODO: Comparable<Boolean>
+                                   DefaultDeclaredType.JAVA_LANG_COMPARABLE_BOOLEAN,
                                    DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
 
   public static final DefaultTypeElement JAVA_LANG_NUMBER =

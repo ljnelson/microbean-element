@@ -132,6 +132,7 @@
               </configurationParameters>
             </properties>
             <systemPropertyVariables>
+              <project.basedir>${project.basedir}</project.basedir>
               <project.build.directory>${project.build.directory}</project.build.directory>
               <project.build.testOutputDirectory>${project.build.testOutputDirectory}</project.build.testOutputDirectory>
             </systemPropertyVariables>

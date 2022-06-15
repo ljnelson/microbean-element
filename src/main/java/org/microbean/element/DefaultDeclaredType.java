@@ -40,6 +40,10 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
 
   static final DefaultDeclaredType JAVA_LANG_CLONEABLE = new DefaultDeclaredType();
 
+  static final DefaultDeclaredType JAVA_LANG_COMPARABLE_BOOLEAN =
+    new DefaultDeclaredType(List.of(JAVA_LANG_BOOLEAN),
+                            List.of()); // no annotations
+
   static final DefaultDeclaredType JAVA_LANG_CONSTANT_CONSTABLE = new DefaultDeclaredType();
 
   static final DefaultDeclaredType JAVA_LANG_CONSTANT_CONSTANTDESC = new DefaultDeclaredType();

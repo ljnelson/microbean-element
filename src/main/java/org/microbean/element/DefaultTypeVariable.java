@@ -56,6 +56,10 @@ public class DefaultTypeVariable extends AbstractTypeVariable {
     return this.definingElement;
   }
 
+  public static DefaultTypeVariable of() {
+    return of(null, List.of());
+  }
+  
   public static DefaultTypeVariable of(final TypeMirror upperBound) {
     return of(upperBound, List.of());
   }

@@ -24,6 +24,7 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ElementVisitor;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 
 import javax.lang.model.type.IntersectionType;
@@ -32,6 +33,8 @@ import javax.lang.model.type.TypeVariable;
 
 public final class DefaultTypeParameterElement extends AbstractElement implements TypeParameterElement {
 
+  private final TypeElement genericElement;
+  
   public DefaultTypeParameterElement(final Name simpleName, final TypeVariable type) {
     this(simpleName, type, Set.of(), null, List.of());
   }
@@ -39,16 +42,20 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
   public DefaultTypeParameterElement(final Name simpleName,
                                      final TypeVariable type,
                                      final Set<? extends Modifier> modifiers,
-                                     final AbstractElement enclosingElement,
+                                     final TypeElement genericElement,
                                      final List<? extends AnnotationMirror> annotationMirrors) {
     super(simpleName,
           ElementKind.TYPE_PARAMETER,
           type,
           modifiers,
-          validate(enclosingElement),
+          null,
           annotationMirrors);
     if (type instanceof DefaultTypeVariable dtv) {
       dtv.element(this);
+    }
+    this.genericElement = validate(genericElement);
+    if (genericElement instanceof DefaultTypeElement dte) {
+      dte.addTypeParameter(this);
     }
   }
   
@@ -67,9 +74,14 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
     return boundsFrom(this.asType());
   }
 
+  @Override // AbstractElement
+  public final TypeElement getEnclosingElement() {
+    return this.getGenericElement();
+  }
+
   @Override // TypeParameterElement
-  public final AbstractElement getGenericElement() {
-    return this.getEnclosingElement();
+  public final TypeElement getGenericElement() {
+    return this.genericElement;
   }
 
   private static final List<? extends TypeMirror> boundsFrom(final TypeVariable typeVariable) {
@@ -105,7 +117,7 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
     }
   }
   
-  private static final <E extends AbstractElement> E validate(final E element) {
+  private static final <E extends TypeElement> E validate(final E element) {
     if (element != null) {
       switch (element.getKind()) {
       case CLASS:

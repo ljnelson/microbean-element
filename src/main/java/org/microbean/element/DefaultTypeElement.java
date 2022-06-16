@@ -16,10 +16,13 @@
  */
 package org.microbean.element;
 
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import java.util.function.Supplier;
 
@@ -213,6 +216,8 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
 
   private final NestingKind nestingKind;
 
+  private final List<TypeParameterElement> mutableTypeParameters;
+  
   private final List<? extends TypeParameterElement> typeParameters;
 
   private final TypeMirror superclass;
@@ -249,7 +254,6 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
          modifiers,
          null,
          null,
-         List.of(),
          superclass,
          List.of(),
          List.of(),
@@ -268,7 +272,6 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
          modifiers,
          null,
          null,
-         List.of(),
          superclass,
          List.of(),
          interfaces,
@@ -286,7 +289,6 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
          modifiers,
          null,
          null,
-         List.of(),
          null,
          List.of(),
          List.of(),
@@ -300,7 +302,6 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
                             final Set<? extends Modifier> modifiers,
                             final AbstractElement enclosingElement,
                             final NestingKind nestingKind,
-                            final List<? extends TypeParameterElement> typeParameters,
                             final TypeMirror superclass,
                             final List<? extends TypeMirror> permittedSubclasses,
                             final List<? extends TypeMirror> interfaces,
@@ -314,7 +315,8 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
           annotationMirrors);
     this.simpleName = DefaultName.ofSimple(qualifiedName);
     this.nestingKind = nestingKind == null ? NestingKind.TOP_LEVEL : nestingKind;
-    this.typeParameters = typeParameters == null || typeParameters.isEmpty() ? List.of() : List.copyOf(typeParameters);
+    this.mutableTypeParameters = new CopyOnWriteArrayList<>();
+    this.typeParameters = Collections.unmodifiableList(this.mutableTypeParameters);
     this.superclass = superclass == null ? DefaultNoType.NONE : superclass;
     this.interfaces = interfaces == null || interfaces.isEmpty() ? List.of() : List.copyOf(interfaces);
     this.permittedSubclasses = permittedSubclasses == null || permittedSubclasses.isEmpty() ? List.of() : List.copyOf(permittedSubclasses);
@@ -332,6 +334,16 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
   @Override // TypeElement
   public List<? extends TypeParameterElement> getTypeParameters() {
     return this.typeParameters;
+  }
+
+  final void addTypeParameter(final TypeParameterElement tp) {
+    switch (tp.getKind()) {
+    case TYPE_PARAMETER:
+      this.mutableTypeParameters.add(tp);
+      break;
+    default:
+      throw new IllegalArgumentException();
+    }
   }
 
   @Override // TypeElement

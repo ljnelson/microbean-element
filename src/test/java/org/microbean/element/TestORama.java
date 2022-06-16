@@ -188,6 +188,7 @@ final class TestORama {
        * Let's see if we can replicate it.
        */
 
+
       // Let's work inside out.  First the type variable.
       final DefaultTypeVariable defaultTType = DefaultTypeVariable.of();
 
@@ -213,9 +214,8 @@ final class TestORama {
                                         defaultComparableElement,
                                         List.of());
 
-      // TODO: but we don't have a way, now, of ensuring that
-      // defaultTElement ends up in defaultComparableElement's list of
-      // type parameters.  Shoot.
+      assertEquals(1, defaultComparableElement.getTypeParameters().size());
+      assertSame(defaultTElement, defaultComparableElement.getTypeParameters().get(0));
 
 
       /*

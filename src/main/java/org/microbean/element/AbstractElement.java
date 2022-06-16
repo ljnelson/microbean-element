@@ -136,7 +136,7 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
   }
 
   @Override // Element
-  public AbstractElement getEnclosingElement() {
+  public Element getEnclosingElement() {
     return this.enclosingElement;
   }
 

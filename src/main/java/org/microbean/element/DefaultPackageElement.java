@@ -24,9 +24,9 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ElementVisitor;
 import javax.lang.model.element.Modifier;
-import javax.lang.model.element.PackageElement;
-import javax.lang.model.element.Name;
 import javax.lang.model.element.ModuleElement;
+import javax.lang.model.element.Name;
+import javax.lang.model.element.PackageElement;
 
 import javax.lang.model.type.NoType;
 
@@ -43,7 +43,7 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
           ElementKind.PACKAGE,
           packageType,
           modifiers,
-          enclosingElement,
+          validate(enclosingElement),
           annotationMirrors);
     this.simpleName = DefaultName.ofSimple(fullyQualifiedName);
   }
@@ -69,13 +69,25 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
   }
 
   @Override // PackageElement
-  public final DefaultModuleElement getEnclosingElement() {
-    return (DefaultModuleElement)super.getEnclosingElement();
+  public final ModuleElement getEnclosingElement() {
+    return (ModuleElement)super.getEnclosingElement();
   }
 
   @Override // PackageElement
   public final boolean isUnnamed() {
     return this.getSimpleName().length() <= 0;
+  }
+
+  private static final <E extends ModuleElement> E validate(final E enclosingElement) {
+    if (enclosingElement == null) {
+      return null;
+    }
+    switch (enclosingElement.getKind()) {
+    case MODULE:
+      return enclosingElement;
+    default:
+      throw new IllegalArgumentException("enclosingElement: " + enclosingElement);
+    }
   }
   
 }

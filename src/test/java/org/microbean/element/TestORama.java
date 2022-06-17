@@ -33,7 +33,13 @@ import javax.annotation.processing.RoundEnvironment;
 
 import javax.lang.model.SourceVersion;
 
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ModuleElement;
+import javax.lang.model.element.ModuleElement.Directive;
+import javax.lang.model.element.ModuleElement.ExportsDirective;
+import javax.lang.model.element.NestingKind;
+import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 
@@ -57,6 +63,7 @@ import static javax.tools.ToolProvider.getSystemJavaCompiler;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -124,6 +131,14 @@ final class TestORama {
       final TypeElement comparableElement = elements.getTypeElement("java.lang.Comparable");
       assertTrue(comparableElement.getSimpleName().contentEquals("Comparable"));
 
+      final PackageElement javaLang = (PackageElement)comparableElement.getEnclosingElement();
+      assertTrue(javaLang.getSimpleName().contentEquals("lang"));
+
+      final ModuleElement javaBase = (ModuleElement)javaLang.getEnclosingElement();
+      assertTrue(javaBase.getQualifiedName().contentEquals("java.base"));
+      assertTrue(javaBase.getSimpleName().contentEquals("base")); // this is stupid
+      assertNull(javaBase.getEnclosingElement());
+
       final DeclaredType comparableType = (DeclaredType)comparableElement.asType();
       assertSame(TypeKind.DECLARED, comparableType.getKind());
 
@@ -182,7 +197,7 @@ final class TestORama {
       // type argument simply is the TypeVariable type backing its
       // sole type parameter TypeParameterElement.
       assertSame(tType, comparableTypeTypeArguments.get(0));
-
+      
 
       /*
        * Let's see if we can replicate it.
@@ -192,31 +207,65 @@ final class TestORama {
       // Let's work inside out.  First the type variable.
       final DefaultTypeVariable defaultTType = DefaultTypeVariable.of();
 
-      // We can't do the TypeParameter yet, because of enclosing
-      // rules.  Its enclosing element will be Comparable.
+      // We can't do the TypeParameterElement representing (just) T
+      // yet, because of enclosing rules.  Its enclosing element will
+      // be a TypeElement representing (just) Comparable<T>.
 
-      // We can't do the Comparable TypeElement yet because it needs a
-      // type:
+      // We can't do the TypeElement representing (just) Comparable<T>
+      // yet because it needs a backing DeclaredType with defaultTType
+      // as its sole type argument.
       final DefaultDeclaredType defaultComparableType = new DefaultDeclaredType(List.of(defaultTType), List.of());
 
+      // We can't do the TypeElement representing (just) Comparable<T>
+      // yet because it needs an enclosing PackageElement.
+
+      // We can't do the PackageElement yet because we need a ModuleElement.
+      final DefaultModuleElement defaultJavaBase = new DefaultModuleElement(DefaultName.of("java.base"),
+                                                                            DefaultNoType.MODULE,
+                                                                            Set.of(),
+                                                                            false, // not open
+                                                                            List.of(), // directives
+                                                                            List.of());
+
+      
+      final DefaultPackageElement defaultJavaLang = new DefaultPackageElement(DefaultName.of("java.lang"),
+                                                                              DefaultNoType.PACKAGE,
+                                                                              Set.of(),
+                                                                              defaultJavaBase,
+                                                                              List.of());
+      
       // Now we can do the main Comparable element:
       final DefaultTypeElement defaultComparableElement =
         new DefaultTypeElement(DefaultName.of("java.lang.Comparable"),
                                ElementKind.INTERFACE,
-                               defaultComparableType,
-                               DefaultTypeElement.PUBLIC);
+                               defaultComparableType, // here's the backing type
+                               DefaultTypeElement.PUBLIC,
+                               defaultJavaLang,
+                               NestingKind.TOP_LEVEL,
+                               null,
+                               List.of(),
+                               List.of(),
+                               List.of(),
+                               List.of());
 
       // ...and now we can do a TypeParameterElement:
       final DefaultTypeParameterElement defaultTElement =
         new DefaultTypeParameterElement(DefaultName.of("T"),
-                                        defaultTType,
-                                        Set.of(),
-                                        defaultComparableElement,
+                                        defaultTType, // here's the backing type
+                                        Set.of(), // no modifiers
+                                        defaultComparableElement, // here's the enclosing TypeElement
                                         List.of());
 
       assertEquals(1, defaultComparableElement.getTypeParameters().size());
       assertSame(defaultTElement, defaultComparableElement.getTypeParameters().get(0));
 
+      // Let's see if Identity thinks this is good:
+      assertTrue(Identity.identical(tType, defaultTType, true));
+
+      // At the moment, this will fail because identity walks "up" the
+      // tree, including packages and modules.  Oops.
+      // assertTrue(Identity.identical(tElement, defaultTElement, true));
+      
 
       /*
        * On to Frob.

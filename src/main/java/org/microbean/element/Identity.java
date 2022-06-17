@@ -580,7 +580,7 @@ public final class Identity {
         return false;
       }
     }
-    return false;
+    return true;
   }
 
   @SuppressWarnings("unchecked")
@@ -803,80 +803,80 @@ public final class Identity {
       e1.isUnnamed() && e2.isUnnamed();
   }
 
-  private static final boolean identical(final ArrayType e1,
-                                         final ArrayType e2,
+  private static final boolean identical(final ArrayType t1,
+                                         final ArrayType t2,
                                          final boolean includeAnnotations) {
     return
-      identical(e1.getComponentType(), e2.getComponentType(), includeAnnotations);
+      identical(t1.getComponentType(), t2.getComponentType(), includeAnnotations);
   }
 
-  private static final boolean identical(final DeclaredType e1,
-                                         final DeclaredType e2,
+  private static final boolean identical(final DeclaredType t1,
+                                         final DeclaredType t2,
                                          final boolean includeAnnotations) {
     return
-      identical(e1.getTypeArguments(), e2.getTypeArguments(), includeAnnotations);
+      identical(t1.getTypeArguments(), t2.getTypeArguments(), includeAnnotations);
   }
 
-  private static final boolean identical(final ExecutableType e1,
-                                         final ExecutableType e2,
+  private static final boolean identical(final ExecutableType t1,
+                                         final ExecutableType t2,
                                          final boolean includeAnnotations) {
     return
-      identical(e1.getParameterTypes(), e2.getParameterTypes(), includeAnnotations) &&
-      identical(e1.getReceiverType(), e2.getReceiverType(), includeAnnotations) &&
-      identical(e1.getReturnType(), e2.getReturnType(), includeAnnotations) &&
-      identical(e1.getThrownTypes(), e2.getThrownTypes(), includeAnnotations) &&
-      identical(e1.getTypeVariables(), e2.getTypeVariables(), includeAnnotations);
+      identical(t1.getParameterTypes(), t2.getParameterTypes(), includeAnnotations) &&
+      identical(t1.getReceiverType(), t2.getReceiverType(), includeAnnotations) &&
+      identical(t1.getReturnType(), t2.getReturnType(), includeAnnotations) &&
+      identical(t1.getThrownTypes(), t2.getThrownTypes(), includeAnnotations) &&
+      identical(t1.getTypeVariables(), t2.getTypeVariables(), includeAnnotations);
   }
 
-  private static final boolean identical(final IntersectionType e1,
-                                         final IntersectionType e2,
+  private static final boolean identical(final IntersectionType t1,
+                                         final IntersectionType t2,
                                          final boolean includeAnnotations) {
     return
-      identical(e1.getBounds(), e2.getBounds(), includeAnnotations);
+      identical(t1.getBounds(), t2.getBounds(), includeAnnotations);
   }
 
-  private static final boolean identical(final NoType e1,
-                                         final NoType e2,
+  private static final boolean identical(final NoType t1,
+                                         final NoType t2,
                                          final boolean includeAnnotations) {
     return
-      e1.getKind() == e2.getKind(); // already checked
+      t1.getKind() == t2.getKind(); // already checked
   }
 
-  private static final boolean identical(final NullType e1,
-                                         final NullType e2,
+  private static final boolean identical(final NullType t1,
+                                         final NullType t2,
                                          final boolean includeAnnotations) {
     return
-      e1.getKind() == e2.getKind(); // already checked
+      t1.getKind() == t2.getKind(); // already checked
   }
 
-  private static final boolean identical(final PrimitiveType e1,
-                                         final PrimitiveType e2,
+  private static final boolean identical(final PrimitiveType t1,
+                                         final PrimitiveType t2,
                                          final boolean includeAnnotations) {
     return
-      e1.getKind() == e2.getKind(); // already checked
+      t1.getKind() == t2.getKind(); // already checked
   }
 
-  private static final boolean identical(final TypeVariable e1,
-                                         final TypeVariable e2,
+  private static final boolean identical(final TypeVariable t1,
+                                         final TypeVariable t2,
                                          final boolean includeAnnotations) {
     return
-      identical(e1.getLowerBound(), e2.getLowerBound(), includeAnnotations) &&
-      identical(e1.getUpperBound(), e2.getUpperBound(), includeAnnotations);
+      identical(t1.getLowerBound(), t2.getLowerBound(), includeAnnotations) &&
+      identical(t1.getUpperBound(), t2.getUpperBound(), includeAnnotations);
   }
 
-  private static final boolean identical(final UnionType e1,
-                                         final UnionType e2,
+  private static final boolean identical(final UnionType t1,
+                                         final UnionType t2,
                                          final boolean includeAnnotations) {
     return
-      identical(e1.getAlternatives(), e2.getAlternatives(), includeAnnotations);
+      identical(t1.getAlternatives(), t2.getAlternatives(), includeAnnotations);
   }
 
-  private static final boolean identical(final WildcardType e1,
-                                         final WildcardType e2,
+  private static final boolean identical(final WildcardType t1,
+                                         final WildcardType t2,
                                          final boolean includeAnnotations) {
     return
-      identical(e1.getExtendsBound(), e2.getExtendsBound(), includeAnnotations) &&
-      identical(e2.getSuperBound(), e2.getSuperBound(), includeAnnotations);
+      identical(t1.getExtendsBound(), t2.getExtendsBound(), includeAnnotations) &&
+      identical(t1.getSuperBound(), t2.getSuperBound(), includeAnnotations);
   }
 
 }

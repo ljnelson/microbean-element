@@ -16,6 +16,8 @@
  */
 package org.microbean.element;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Map;
@@ -29,6 +31,12 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.ModuleElement.Directive;
+import javax.lang.model.element.ModuleElement.DirectiveKind;
+import javax.lang.model.element.ModuleElement.ExportsDirective;
+import javax.lang.model.element.ModuleElement.OpensDirective;
+import javax.lang.model.element.ModuleElement.ProvidesDirective;
+import javax.lang.model.element.ModuleElement.RequiresDirective;
+import javax.lang.model.element.ModuleElement.UsesDirective;
 import javax.lang.model.element.ModuleElement;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.PackageElement;
@@ -55,6 +63,564 @@ final class Equality {
     super();
   }
 
+  static final int hashCode(final Object o, final boolean ia) {
+    if (o == null) {
+      return 0;
+    } else if (o instanceof AnnotationMirror am) {
+      return hashCode(am, ia);
+    } else if (o instanceof AnnotationValue av) {
+      return hashCode(av, ia);
+    } else if (o instanceof AnnotatedConstruct ac) {
+      return hashCode(ac, ia);
+    } else if (o instanceof CharSequence c) {
+      return hashCode(c);
+    } else if (o instanceof List<?> list) {
+      return hashCode(list, ia);
+    } else if (o instanceof int[] hashCodes) {
+      return hashCode(ia, hashCodes);
+    } else if (o instanceof Object[] array) {
+      return hashCode(array, ia);
+    } else if (o instanceof Directive d) {
+      return hashCode(d, ia);
+    } else {
+      return o.hashCode();
+    }
+  }
+
+  private static final int hashCode(final boolean includeAnnotations, final int... hashCodes) {
+    if (hashCodes == null) {
+      return 0;
+    } else if (hashCodes.length <= 0) {
+      return 1;
+    }
+    int result = 1;
+    for (final int hashCode : hashCodes) {
+      result = 31 * result + hashCode;
+    }
+    return result;
+  }
+
+  private static final int hashCode(final Object[] os, final boolean ia) {
+    if (os == null) {
+      return 0;
+    } else if (os.length <= 0) {
+      return 1;
+    }
+    int result = 1;
+    for (final Object o : os) {
+      result = 31 * result + (o == null ? 0 : hashCode(o, ia));
+    }
+    return result;
+  }
+
+  private static final int hashCode(final List<?> list, final boolean ia) {
+    if (list == null) {
+      return 0;
+    } else if (list.isEmpty()) {
+      return 1;
+    } else {
+      // This calculation is mandated by java.util.List#hashCode().
+      int hashCode = 1;
+      for (final Object o : list) {
+        hashCode = 31 * hashCode + (o == null ? 0 : hashCode(o, ia));
+      }
+      return hashCode;
+    }
+  }
+
+  static final int hashCode(final CharSequence c) {
+    if (c == null) {
+      return 0;
+    } else if (c instanceof Name) {
+      return c.toString().hashCode();
+    } else {
+      return c.hashCode();
+    }
+  }
+
+  static final int hashCode(final AnnotationMirror am, final boolean ia) {
+    if (am == null) {
+      return 0;
+    }
+    return hashCode(values(am), ia);
+  }
+
+  static final int hashCode(final AnnotationValue av, final boolean ia) {
+    if (av == null) {
+      return 0;
+    } else if (av instanceof AnnotationMirror am) {
+      return hashCode(am, ia);
+    } else if (av instanceof List<?> list) {
+      return hashCode(list, ia);
+    } else if (av instanceof TypeMirror t) {
+      return hashCode(t, ia);
+    } else if (av instanceof VariableElement e) {
+      return hashCode(e, ia);
+    } else {
+      return av.hashCode(); // illegal argument
+    }
+  }
+
+  static final int hashCode(final AnnotatedConstruct ac, final boolean ia) {
+    if (ac == null) {
+      return 0;
+    } else if (ac instanceof Element e) {
+      return hashCode(e, ia);
+    } else if (ac instanceof TypeMirror t) {
+      return hashCode(t, ia);
+    } else {
+      return ac.hashCode(); // illegal argument
+    }
+  }
+
+  static final int hashCode(final Element e, final boolean ia) {
+    if (e == null) {
+      return 0;
+    }
+    switch (e.getKind()) {
+
+    case ANNOTATION_TYPE:
+    case CLASS:
+    case ENUM:
+    case INTERFACE:
+    case RECORD:
+      return hashCode((TypeElement)e, ia);
+
+    case TYPE_PARAMETER:
+      return hashCode((TypeParameterElement)e, ia);
+
+    case BINDING_VARIABLE:
+    case ENUM_CONSTANT:
+    case EXCEPTION_PARAMETER:
+    case FIELD:
+    case LOCAL_VARIABLE:
+    case PARAMETER:
+    case RESOURCE_VARIABLE:
+      return hashCode((VariableElement)e, ia);
+
+    case RECORD_COMPONENT:
+      return hashCode((RecordComponentElement)e, ia);
+
+    case CONSTRUCTOR:
+    case INSTANCE_INIT:
+    case METHOD:
+    case STATIC_INIT:
+      return hashCode((ExecutableElement)e, ia);
+
+    case PACKAGE:
+      return hashCode((PackageElement)e, ia);
+
+    case MODULE:
+      return hashCode((ModuleElement)e, ia);
+
+    case OTHER:
+    default:
+      return System.identityHashCode(e); // basically illegal argument
+    }
+  }
+
+  static final int hashCode(final ExecutableElement e, final boolean ia) {
+    if (e == null) {
+      return 0;
+    }
+    switch (e.getKind()) {
+    case CONSTRUCTOR:
+    case INSTANCE_INIT:
+    case METHOD:
+    case STATIC_INIT:
+      break;
+    default:
+      return System.identityHashCode(e); // illegal argument
+    }
+    return
+      hashCode(ia,
+               e.getKind().hashCode(),
+               hashCode(e.getEnclosingElement(), ia),
+               hashCode(e.getSimpleName()),
+               hashCode(e.getParameters(), ia),
+               hashCode(e.getReturnType(), ia));
+  }
+
+  static final int hashCode(final ModuleElement e, final boolean ia) {
+    if (e == null) {
+      return 0;
+    } else if (e.getKind() != ElementKind.MODULE) {
+      return System.identityHashCode(e); // illegal argument
+    }
+    return
+      hashCode(ia,
+               e.getKind().hashCode(),
+               hashCode(e.getQualifiedName()));
+  }
+
+  static final int hashCode(final PackageElement e, final boolean ia) {
+    if (e == null) {
+      return 0;
+    } else if (e.getKind() != ElementKind.PACKAGE) {
+      return System.identityHashCode(e); // illegal argument
+    }
+    return
+      hashCode(ia,
+               e.getKind().hashCode(),
+               hashCode(e.getQualifiedName()));
+  }
+
+  static final int hashCode(final RecordComponentElement e, final boolean ia) {
+    if (e == null) {
+      return 0;
+    } else if (e.getKind() != ElementKind.RECORD_COMPONENT) {
+      return System.identityHashCode(e); // illegal argument
+    }
+    return
+      hashCode(ia,
+               e.getKind().hashCode(),
+               hashCode(e.getSimpleName(), ia),
+               hashCode(e.getEnclosingElement(), ia));
+  }
+
+  static final int hashCode(final TypeElement e, final boolean ia) {
+    if (e == null) {
+      return 0;
+    }
+    final ElementKind k = e.getKind();
+    switch (k) {
+    case ANNOTATION_TYPE:
+    case CLASS:
+    case ENUM:
+    case INTERFACE:
+    case RECORD:
+      break;
+    default:
+      return System.identityHashCode(e); // illegal argument
+    }
+    return
+      hashCode(ia,
+               k.hashCode(),
+               hashCode(e.getQualifiedName(), ia));
+  }
+
+  static final int hashCode(final TypeParameterElement e, final boolean ia) {
+    if (e == null) {
+      return 0;
+    } else if (e.getKind() != ElementKind.TYPE_PARAMETER) {
+      return System.identityHashCode(e); // illegal argument
+    }
+    return
+      hashCode(ia,
+               e.getKind().hashCode(),
+               hashCode(e.getGenericElement(), ia),
+               hashCode(e.getSimpleName(), ia));
+  }
+
+  static final int hashCode(final VariableElement e, final boolean ia) {
+    if (e == null) {
+      return 0;
+    }
+    final ElementKind k = e.getKind();
+    switch (k) {
+    case BINDING_VARIABLE:
+    case ENUM_CONSTANT:
+    case EXCEPTION_PARAMETER:
+    case FIELD:
+    case LOCAL_VARIABLE:
+    case PARAMETER:
+    case RESOURCE_VARIABLE:
+      break;
+    default:
+      return System.identityHashCode(e); // illegal argument
+    }
+    return
+      hashCode(ia,
+               k.hashCode(),
+               hashCode(e.getSimpleName(), ia),
+               hashCode(e.getEnclosingElement(), ia));
+  }
+
+  static final int hashCode(final TypeMirror t, final boolean ia) {
+    if (t == null) {
+      return 0;
+    }
+    switch(t.getKind()) {
+
+    case ARRAY:
+      return hashCode((ArrayType)t, ia);
+
+    case DECLARED:
+      return hashCode((DeclaredType)t, ia);
+
+    case EXECUTABLE:
+      return hashCode((ExecutableType)t, ia);
+
+    case INTERSECTION:
+      return hashCode((IntersectionType)t, ia);
+
+    case MODULE:
+    case NONE:
+    case PACKAGE:
+    case VOID:
+      return hashCode((NoType)t, ia);
+
+    case NULL:
+      return hashCode((NullType)t, ia);
+
+    case BOOLEAN:
+    case BYTE:
+    case CHAR:
+    case DOUBLE:
+    case FLOAT:
+    case INT:
+    case LONG:
+    case SHORT:
+      return hashCode((PrimitiveType)t, ia);
+
+    case TYPEVAR:
+      return hashCode((TypeVariable)t, ia);
+
+    case WILDCARD:
+      return hashCode((WildcardType)t, ia);
+
+    case ERROR:
+    case UNION:
+    case OTHER:
+    default:
+      return System.identityHashCode(t); // basically illegal argument
+    }
+  }
+
+  static final int hashCode(final ArrayType t, final boolean ia) {
+    if (t == null) {
+      return 0;
+    } else if (t.getKind() != TypeKind.ARRAY) {
+      return System.identityHashCode(t); // illegal argument
+    }
+    return
+      hashCode(ia,
+               t.getKind().hashCode(),
+               hashCode(t.getComponentType(), ia));
+  }
+
+  static final int hashCode(final DeclaredType t, final boolean ia) {
+    if (t == null) {
+      return 0;
+    } else if (t.getKind() != TypeKind.DECLARED) {
+      return System.identityHashCode(t); // illegal argument
+    }
+    return
+      hashCode(ia,
+               t.getKind().hashCode(),
+               hashCode(t.asElement(), ia),
+               hashCode(t.getTypeArguments(), ia));
+  }
+
+  static final int hashCode(final ExecutableType t, final boolean ia) {
+    if (t == null) {
+      return 0;
+    } else if (t.getKind() != TypeKind.EXECUTABLE) {
+      return System.identityHashCode(t); // illegal argument
+    }
+    return
+      hashCode(ia,
+               t.getKind().hashCode(),
+               hashCode(t.getParameterTypes(), ia),
+               hashCode(t.getReceiverType(), ia),
+               hashCode(t.getReturnType(), ia),
+               hashCode(t.getTypeVariables(), ia)); // not sure this is necessary
+  }
+
+  static final int hashCode(final IntersectionType t, final boolean ia) {
+    if (t == null) {
+      return 0;
+    } else if (t.getKind() != TypeKind.INTERSECTION) {
+      return System.identityHashCode(t); // illegal argument
+    }
+    return
+      hashCode(ia,
+               t.getKind().hashCode(),
+               hashCode(t.getBounds(), ia));
+  }
+
+  static final int hashCode(final NoType t, final boolean ia) {
+    if (t == null) {
+      return 0;
+    }
+    final TypeKind k = t.getKind();
+    switch (k) {
+    case MODULE:
+    case PACKAGE:
+    case NONE:
+    case VOID:
+      return k.hashCode();
+    default:
+      return System.identityHashCode(t); // illegal argument
+    }
+  }
+
+  static final int hashCode(final NullType t, final boolean ia) {
+    if (t == null) {
+      return 0;
+    }
+    final TypeKind k = t.getKind();
+    return k == TypeKind.NULL ? k.hashCode() : System.identityHashCode(t);
+  }
+
+  static final int hashCode(final PrimitiveType t, final boolean ia) {
+    if (t == null) {
+      return 0;
+    }
+    final TypeKind k = t.getKind();
+    switch (k) {
+    case BOOLEAN:
+    case BYTE:
+    case CHAR:
+    case DOUBLE:
+    case FLOAT:
+    case INT:
+    case LONG:
+    case SHORT:
+      return k.hashCode();
+    default:
+      return System.identityHashCode(t); // illegal argument
+    }
+  }
+
+  static final int hashCode(final TypeVariable t, final boolean ia) {
+    if (t == null) {
+      return 0;
+    }
+    final TypeKind k = t.getKind();
+    if (k != TypeKind.TYPEVAR) {
+      return System.identityHashCode(t); // illegal argument
+    }
+    return
+      hashCode(ia,
+               k.hashCode(),
+               hashCode(t.asElement(), ia),
+               hashCode(t.getUpperBound(), ia),
+               hashCode(t.getLowerBound(), ia));
+  }
+
+  static final int hashCode(final WildcardType t, final boolean ia) {
+    if (t == null) {
+      return 0;
+    }
+    final TypeKind k = t.getKind();
+    if (k != TypeKind.WILDCARD) {
+      return System.identityHashCode(t); // illegal argument;
+    }
+    return
+      hashCode(ia,
+               k.hashCode(),
+               hashCode(t.getExtendsBound(), ia),
+               hashCode(t.getSuperBound(), ia));
+  }
+
+  static final int hashCode(final Directive d, final boolean ia) {
+    if (d == null) {
+      return 0;
+    }
+    switch (d.getKind()) {
+
+    case EXPORTS:
+      return hashCode((ExportsDirective)d, ia);
+
+    case OPENS:
+      return hashCode((OpensDirective)d, ia);
+
+    case PROVIDES:
+      return hashCode((ProvidesDirective)d, ia);
+
+    case REQUIRES:
+      return hashCode((RequiresDirective)d, ia);
+
+    case USES:
+      return hashCode((UsesDirective)d, ia);
+
+    default:
+      return System.identityHashCode(d); // illegal argument
+    }
+  }
+
+  private static final int hashCode(final ExportsDirective d, final boolean ia) {
+    if (d == null) {
+      return 0;
+    }
+    final DirectiveKind k = d.getKind();
+    if (k != DirectiveKind.EXPORTS) {
+      return System.identityHashCode(d);
+    }
+    return
+      hashCode(ia,
+               k.hashCode(),
+               hashCode(d.getPackage(), ia),
+               hashCode(d.getTargetModules(), ia));
+  }
+
+  private static final int hashCode(final OpensDirective d, final boolean ia) {
+    if (d == null) {
+      return 0;
+    }
+    final DirectiveKind k = d.getKind();
+    if (k != DirectiveKind.OPENS) {
+      return System.identityHashCode(d);
+    }
+    return
+      hashCode(ia,
+               k.hashCode(),
+               hashCode(d.getPackage(), ia),
+               hashCode(d.getTargetModules(), ia));
+  }
+
+  private static final int hashCode(final ProvidesDirective d, final boolean ia) {
+    if (d == null) {
+      return 0;
+    }
+    final DirectiveKind k = d.getKind();
+    if (k != DirectiveKind.PROVIDES) {
+      return System.identityHashCode(d);
+    }
+    return
+      hashCode(ia,
+               k.hashCode(),
+               hashCode(d.getImplementations(), ia),
+               hashCode(d.getService(), ia));
+  }
+
+  private static final int hashCode(final RequiresDirective d, final boolean ia) {
+    if (d == null) {
+      return 0;
+    }
+    final DirectiveKind k = d.getKind();
+    if (k != DirectiveKind.REQUIRES) {
+      return System.identityHashCode(d);
+    }
+    return
+      hashCode(ia,
+               k.hashCode(),
+               hashCode(d.getDependency(), ia),
+               d.isStatic() ? 1 : 0,
+               d.isTransitive() ? 1 : 0);
+  }
+
+  private static final int hashCode(final UsesDirective d, final boolean ia) {
+    if (d == null) {
+      return 0;
+    }
+    final DirectiveKind k = d.getKind();
+    if (k != DirectiveKind.USES) {
+      return System.identityHashCode(d);
+    }
+    return
+      hashCode(ia,
+               k.hashCode(),
+               hashCode(d.getService(), ia));
+  }
+
+  
+
+  /*
+   * equals()
+   */
+
   static final boolean equals(final Object o1, final Object o2, final boolean ia) {
     if (o1 == o2) {
       return true;
@@ -66,6 +632,8 @@ final class Equality {
       return o2 instanceof AnnotationValue av2 && equals(av1, av2, ia);
     } else if (o1 instanceof AnnotatedConstruct ac1) {
       return o2 instanceof AnnotatedConstruct ac2 && equals(ac1, ac2, ia);
+    } else if (o1 instanceof CharSequence c1) {
+      return o2 instanceof CharSequence c2 && equals(c1, c2);
     } else if (o1 instanceof List<?> list1) {
       return o2 instanceof List<?> list2 && equals(list1, list2, ia);
     } else if (o1 instanceof Directive d1) {
@@ -107,62 +675,49 @@ final class Equality {
     }
   }
 
+  static final boolean equals(final Name n1, final Name n2) {
+    if (n1 == n2) {
+      return true;
+    } else if (n1 == null || n2 == null) {
+      return false;
+    }
+    return n1.contentEquals(n2);
+  }
+
   static final boolean equals(final AnnotationMirror am1, final AnnotationMirror am2, final boolean ia) {
     if (am1 == am2) {
       return true;
-    } else if (am1 == null || am2 == null) {
+    } else if (am1 == null || am2 == null || !equals(am1.getAnnotationType(), am2.getAnnotationType(), ia)) {
       return false;
     }
-    final DeclaredType t1 = am1.getAnnotationType();
-    final DeclaredType t2 = am2.getAnnotationType();
-    if (!equals(t1, t2, ia)) {
-      return false;
+    return equals(values(am1), values(am2), ia);
+  }
+
+  private static final Map<String, AnnotationValue> toMap(final AnnotationMirror am) {
+    if (am == null) {
+      return Map.of();
     }
-
-    // Make maps of the default values, if any.
-    //
-    // Because we know we're working with annotation interfaces, there
-    // won't be method overloads because there are no method
-    // parameters.  ExecutableElements in this case reduce to their
-    // names only.  That's convenient for sorting.
-    final Map<String, AnnotationValue> map1 = new TreeMap<>();
-    final Map<String, AnnotationValue> map2 = new TreeMap<>();
-
-    final List<? extends Element> enclosedElements1 = t1.asElement().getEnclosedElements();
-    final List<? extends Element> enclosedElements2 = t2.asElement().getEnclosedElements();
-    final int size = enclosedElements1.size();
-    assert enclosedElements2.size() == size;
-
-    for (int i = 0; i < size; i++) {
-      if (enclosedElements1.get(i) instanceof ExecutableElement ee1) {
-        final AnnotationValue dv1 = ee1.getDefaultValue();
-        if (dv1 != null) {
-          map1.put(ee1.getSimpleName().toString(), dv1);
-        }
-      }
-      if (enclosedElements2.get(i) instanceof ExecutableElement ee2) {
-        final AnnotationValue dv2 = ee2.getDefaultValue();
-        if (dv2 != null) {
-          map2.put(ee2.getSimpleName().toString(), dv2);
+    final DeclaredType at = am.getAnnotationType();
+    assert at.getKind() == TypeKind.DECLARED;
+    assert at.asElement().getKind() == ElementKind.ANNOTATION_TYPE;
+    final Map<String, AnnotationValue> map = new TreeMap<>();
+    for (final Object e : at.asElement().getEnclosedElements()) {
+      if (e instanceof ExecutableElement ee) {
+        final AnnotationValue dv = ee.getDefaultValue();
+        if (dv != null) {
+          map.put(ee.getSimpleName().toString(), dv);
         }
       }
     }
-
-    // Override default values as needed.
-    for (final Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : am1.getElementValues().entrySet()) {
-      map1.put(entry.getKey().getSimpleName().toString(), entry.getValue());
+    for (final Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : am.getElementValues().entrySet()) {
+      map.put(entry.getKey().getSimpleName().toString(), entry.getValue());
     }
-    for (final Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : am2.getElementValues().entrySet()) {
-      map2.put(entry.getKey().getSimpleName().toString(), entry.getValue());
-    }
+    return Collections.unmodifiableMap(map);
+  }
 
-    // Think hard, but the map sizes should be the same, because the
-    // annotation types are equal, so their ExecutableElements must be
-    // equal in number and kind.
-    assert map1.size() == map2.size();
-
-    // Compare values as simple Lists.
-    return equals(List.of(map1.values()), List.of(map2.values()), ia);
+  private static final List<AnnotationValue> values(final AnnotationMirror am) {
+    final Collection<AnnotationValue> v = toMap(am).values();
+    return v instanceof List ? Collections.unmodifiableList((List<AnnotationValue>)v) : List.copyOf(v);
   }
 
   static final boolean equals(final AnnotationValue av1, final AnnotationValue av2, final boolean ia) {
@@ -171,18 +726,17 @@ final class Equality {
     } else if (av1 == null || av2 == null) {
       return false;
     }
-    final Object v1 = av1.getValue(); // won't be null
-    final Object v2 = av2.getValue(); // won't be null
-    if (av1 instanceof AnnotationMirror am1) {
+    final Object v1 = av1.getValue(); // annotation elements cannot return null
+    if (v1 instanceof AnnotationMirror am1) {
       return av2.getValue() instanceof AnnotationMirror am2 && equals(am1, am2, ia);
-    } else if (av1 instanceof List<?> list1) {
+    } else if (v1 instanceof List<?> list1) {
       return av2.getValue() instanceof List<?> list2 && equals(list1, list2, ia);
-    } else if (av1 instanceof TypeMirror t1) {
+    } else if (v1 instanceof TypeMirror t1) {
       return av2.getValue() instanceof TypeMirror t2 && equals(t1, t2, ia);
     } else if (v1 instanceof VariableElement ve1) {
       return av2.getValue() instanceof VariableElement ve2 && equals(ve1, ve2, ia);
     } else {
-      return v1.equals(v2);
+      return v1.equals(av2.getValue());
     }
   }
 
@@ -196,7 +750,7 @@ final class Equality {
     } else if (ac1 instanceof TypeMirror t1) {
       return ac2 instanceof TypeMirror t2 && equals(t1, t2, ia);
     } else {
-      return false;
+      return false; // illegal state
     }
   }
 
@@ -255,7 +809,7 @@ final class Equality {
   static final boolean equals(final ExecutableElement e1, final ExecutableElement e2, final boolean ia) {
     if (e1 == e2) {
       return true;
-    } else if (e1 == null || e2 == null) {
+    } else if ((e1 == null || e2 == null) && ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
     switch (e1.getKind()) {
@@ -295,7 +849,7 @@ final class Equality {
   static final boolean equals(final ModuleElement e1, final ModuleElement e2, final boolean ia) {
     if (e1 == e2) {
       return true;
-    } else if (e1 == null || e2 == null) {
+    } else if ((e1 == null || e2 == null) && ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
     return
@@ -306,7 +860,7 @@ final class Equality {
   static final boolean equals(final PackageElement e1, final PackageElement e2, final boolean ia) {
     if (e1 == e2) {
       return true;
-    } else if (e1 == null || e2 == null) {
+    } else if ((e1 == null || e2 == null) && ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
     return
@@ -314,109 +868,109 @@ final class Equality {
       equals(e1.getQualifiedName(), e2.getQualifiedName());
   }
 
-  static final boolean equals(final RecordComponentElement r1, final RecordComponentElement r2, final boolean ia) {
-    if (r1 == r2) {
+  static final boolean equals(final RecordComponentElement e1, final RecordComponentElement e2, final boolean ia) {
+    if (e1 == e2) {
       return true;
-    } else if (r1 == null || r2 == null) {
+    } else if ((e1 == null || e2 == null) && ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
     return
-      r1.getKind() == ElementKind.RECORD_COMPONENT && r2.getKind() == ElementKind.RECORD_COMPONENT &&
-      equals(r1.getSimpleName(), r2.getSimpleName()) &&
-      equals(r1.getEnclosingElement(), r2.getEnclosingElement(), ia);
+      e1.getKind() == ElementKind.RECORD_COMPONENT && e2.getKind() == ElementKind.RECORD_COMPONENT &&
+      equals(e1.getSimpleName(), e2.getSimpleName()) &&
+      equals(e1.getEnclosingElement(), e2.getEnclosingElement(), ia);
   }
 
-  static final boolean equals(final TypeElement t1, final TypeElement t2, final boolean ia) {
-    if (t1 == t2) {
+  static final boolean equals(final TypeElement e1, final TypeElement e2, final boolean ia) {
+    if (e1 == e2) {
       return true;
-    } else if (t1 == null || t2 == null) {
+    } else if ((e1 == null || e2 == null) && ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
-    switch (t1.getKind()) {
+    switch (e1.getKind()) {
     case ANNOTATION_TYPE:
-      if (t2.getKind() != ElementKind.ANNOTATION_TYPE) {
+      if (e2.getKind() != ElementKind.ANNOTATION_TYPE) {
         return false;
       }
       break;
     case CLASS:
-            if (t2.getKind() != ElementKind.ANNOTATION_TYPE) {
+      if (e2.getKind() != ElementKind.ANNOTATION_TYPE) {
         return false;
       }
       break;
     case ENUM:
-            if (t2.getKind() != ElementKind.ANNOTATION_TYPE) {
+      if (e2.getKind() != ElementKind.ANNOTATION_TYPE) {
         return false;
       }
       break;
     case INTERFACE:
-            if (t2.getKind() != ElementKind.ANNOTATION_TYPE) {
+      if (e2.getKind() != ElementKind.ANNOTATION_TYPE) {
         return false;
       }
       break;
     case RECORD:
-            if (t2.getKind() != ElementKind.ANNOTATION_TYPE) {
+      if (e2.getKind() != ElementKind.ANNOTATION_TYPE) {
         return false;
       }
       break;
     default:
       return false; // illegal argument
     }
-    return equals(t1.getQualifiedName(), t2.getQualifiedName());
+    return equals(e1.getQualifiedName(), e2.getQualifiedName());
   }
 
-  static final boolean equals(final TypeParameterElement t1, final TypeParameterElement t2, final boolean ia) {
-    if (t1 == t2) {
+  static final boolean equals(final TypeParameterElement e1, final TypeParameterElement e2, final boolean ia) {
+    if (e1 == e2) {
       return true;
-    } else if (t1 == null || t2 == null) {
+    } else if ((e1 == null || e2 == null) && ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
     // This is the equality contract of
     // sun.reflect.generics.reflectiveObjects.TypeVariableImpl.
     return
-      t1.getKind() == ElementKind.TYPE_PARAMETER && t2.getKind() == ElementKind.TYPE_PARAMETER &&
-      equals(t1.getGenericElement(), t2.getGenericElement(), ia) &&
-      equals(t1.getSimpleName(), t2.getSimpleName());
+      e1.getKind() == ElementKind.TYPE_PARAMETER && e2.getKind() == ElementKind.TYPE_PARAMETER &&
+      equals(e1.getGenericElement(), e2.getGenericElement(), ia) &&
+      equals(e1.getSimpleName(), e2.getSimpleName());
   }
 
-  static final boolean equals(final VariableElement v1, final VariableElement v2, final boolean ia) {
-    if (v1 == v2) {
+  static final boolean equals(final VariableElement e1, final VariableElement e2, final boolean ia) {
+    if (e1 == e2) {
       return true;
-    } else if (v1 == null || v2 == null) {
+    } else if ((e1 == null || e2 == null) && ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
-    switch (v1.getKind()) {
+    switch (e1.getKind()) {
     case BINDING_VARIABLE:
-      if (v2.getKind() != ElementKind.BINDING_VARIABLE) {
+      if (e2.getKind() != ElementKind.BINDING_VARIABLE) {
         return false;
       }
       break;
     case ENUM_CONSTANT:
-      if (v2.getKind() != ElementKind.ENUM_CONSTANT) {
+      if (e2.getKind() != ElementKind.ENUM_CONSTANT) {
         return false;
       }
       break;
     case EXCEPTION_PARAMETER:
-      if (v2.getKind() != ElementKind.EXCEPTION_PARAMETER) {
+      if (e2.getKind() != ElementKind.EXCEPTION_PARAMETER) {
         return false;
       }
       break;
     case FIELD:
-      if (v2.getKind() != ElementKind.FIELD) {
+      if (e2.getKind() != ElementKind.FIELD) {
         return false;
       }
       break;
     case LOCAL_VARIABLE:
-      if (v2.getKind() != ElementKind.LOCAL_VARIABLE) {
+      if (e2.getKind() != ElementKind.LOCAL_VARIABLE) {
         return false;
       }
       break;
     case PARAMETER:
-      if (v2.getKind() != ElementKind.PARAMETER) {
+      if (e2.getKind() != ElementKind.PARAMETER) {
         return false;
       }
       break;
     case RESOURCE_VARIABLE:
-      if (v2.getKind() != ElementKind.RESOURCE_VARIABLE) {
+      if (e2.getKind() != ElementKind.RESOURCE_VARIABLE) {
         return false;
       }
       break;
@@ -424,8 +978,8 @@ final class Equality {
       return false; // illegal argument
     }
     return
-      equals(v1.getSimpleName(), v2.getSimpleName()) &&
-      equals(v1.getEnclosingElement(), v2.getEnclosingElement(), ia);
+      equals(e1.getSimpleName(), e2.getSimpleName()) &&
+      equals(e1.getEnclosingElement(), e2.getEnclosingElement(), ia);
   }
 
   static final boolean equals(final TypeMirror t1, final TypeMirror t2, final boolean ia) {
@@ -620,6 +1174,87 @@ final class Equality {
       t1.getKind() == TypeKind.WILDCARD && t2.getKind() == TypeKind.WILDCARD &&
       equals(t1.getExtendsBound(), t2.getExtendsBound(), ia) &&
       equals(t1.getSuperBound(), t2.getSuperBound(), ia);
+  }
+
+  static final boolean equals(final Directive d1, final Directive d2, final boolean ia) {
+    final DirectiveKind k = d1.getKind();
+    if (d2.getKind() != k) {
+      return false;
+    }
+    switch (k) {
+    case EXPORTS:
+      return equals((ExportsDirective)d1, (ExportsDirective)d2, ia);
+    case OPENS:
+      return equals((OpensDirective)d1, (OpensDirective)d2, ia);
+    case PROVIDES:
+      return equals((ProvidesDirective)d1, (ProvidesDirective)d2, ia);
+    case REQUIRES:
+      return equals((RequiresDirective)d1, (RequiresDirective)d2, ia);
+    case USES:
+      return equals((UsesDirective)d1, (UsesDirective)d2, ia);
+    default:
+      return false; // illegal state
+    }
+  }
+
+  static final boolean equals(final ExportsDirective d1, final ExportsDirective d2, final boolean ia) {
+    if (d1 == d2) {
+      return true;
+    } else if (d1 == null || d2 == null) {
+      return false;
+    }
+    return
+      d1.getKind() == DirectiveKind.EXPORTS && d2.getKind() == DirectiveKind.EXPORTS &&
+      equals(d1.getPackage(), d2.getPackage(), ia) &&
+      equals(d1.getTargetModules(), d2.getTargetModules(), ia);
+  }
+
+  static final boolean equals(final OpensDirective d1, final OpensDirective d2, final boolean ia) {
+    if (d1 == d2) {
+      return true;
+    } else if (d1 == null || d2 == null) {
+      return false;
+    }
+    return
+      d1.getKind() == DirectiveKind.OPENS && d2.getKind() == DirectiveKind.OPENS &&
+      equals(d1.getPackage(), d2.getPackage(), ia) &&
+      equals(d1.getTargetModules(), d2.getTargetModules(), ia);
+  }
+
+  static final boolean equals(final ProvidesDirective d1, final ProvidesDirective d2, final boolean ia) {
+    if (d1 == d2) {
+      return true;
+    } else if (d1 == null || d2 == null) {
+      return false;
+    }
+    return
+      d1.getKind() == DirectiveKind.PROVIDES && d2.getKind() == DirectiveKind.PROVIDES &&
+      equals(d1.getImplementations(), d2.getImplementations(), ia) &&
+      equals(d1.getService(), d2.getService(), ia);
+  }
+
+  static final boolean equals(final RequiresDirective d1, final RequiresDirective d2, final boolean ia) {
+    if (d1 == d2) {
+      return true;
+    } else if (d1 == null || d2 == null) {
+      return false;
+    }
+    return
+      d1.getKind() == DirectiveKind.REQUIRES && d2.getKind() == DirectiveKind.REQUIRES &&
+      equals(d1.getDependency(), d2.getDependency(), ia) &&
+      d1.isStatic() && d2.isStatic() &&
+      d1.isTransitive() && d2.isTransitive();
+  }
+
+  static final boolean equals(final UsesDirective d1, final UsesDirective d2, final boolean ia) {
+    if (d1 == d2) {
+      return true;
+    } else if (d1 == null || d2 == null) {
+      return false;
+    }
+    return
+      d1.getKind() == DirectiveKind.USES && d2.getKind() == DirectiveKind.USES &&
+      equals(d1.getService(), d2.getService(), ia);
   }
 
 }

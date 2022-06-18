@@ -115,7 +115,7 @@ public final class Identity {
     } else if (list.isEmpty()) {
       return 1;
     } else {
-      // This calculation is mandated by java.util.LIst#hashCode().
+      // This calculation is mandated by java.util.List#hashCode().
       int hashCode = 1;
       for (final Object o : list) {
         hashCode = 31 * hashCode + (o == null ? 0 : hashCode(o, includeAnnotations));

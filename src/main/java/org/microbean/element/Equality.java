@@ -77,7 +77,7 @@ final class Equality {
     } else if (o instanceof List<?> list) {
       return hashCode(list, ia);
     } else if (o instanceof int[] hashCodes) {
-      return hashCode(ia, hashCodes);
+      return hashCode(hashCodes);
     } else if (o instanceof Object[] array) {
       return hashCode(array, ia);
     } else if (o instanceof Directive d) {
@@ -87,7 +87,7 @@ final class Equality {
     }
   }
 
-  private static final int hashCode(final boolean includeAnnotations, final int... hashCodes) {
+  private static final int hashCode(final int... hashCodes) {
     if (hashCodes == null) {
       return 0;
     } else if (hashCodes.length <= 0) {
@@ -233,12 +233,12 @@ final class Equality {
       return System.identityHashCode(e); // illegal argument
     }
     return
-      hashCode(ia,
-               e.getKind().hashCode(),
+      hashCode(e.getKind().hashCode(),
                hashCode(e.getEnclosingElement(), ia),
                hashCode(e.getSimpleName()),
                hashCode(e.getParameters(), ia),
-               hashCode(e.getReturnType(), ia));
+               hashCode(e.getReturnType(), ia),
+               ia ? hashCode(e.getAnnotationMirrors(), ia) : 0);
   }
 
   static final int hashCode(final ModuleElement e, final boolean ia) {
@@ -248,9 +248,9 @@ final class Equality {
       return System.identityHashCode(e); // illegal argument
     }
     return
-      hashCode(ia,
-               e.getKind().hashCode(),
-               hashCode(e.getQualifiedName()));
+      hashCode(e.getKind().hashCode(),
+               hashCode(e.getQualifiedName()),
+               ia ? hashCode(e.getAnnotationMirrors(), ia) : 0);
   }
 
   static final int hashCode(final PackageElement e, final boolean ia) {
@@ -260,9 +260,9 @@ final class Equality {
       return System.identityHashCode(e); // illegal argument
     }
     return
-      hashCode(ia,
-               e.getKind().hashCode(),
-               hashCode(e.getQualifiedName()));
+      hashCode(e.getKind().hashCode(),
+               hashCode(e.getQualifiedName()),
+               ia ? hashCode(e.getAnnotationMirrors(), ia) : 0);
   }
 
   static final int hashCode(final RecordComponentElement e, final boolean ia) {
@@ -272,10 +272,10 @@ final class Equality {
       return System.identityHashCode(e); // illegal argument
     }
     return
-      hashCode(ia,
-               e.getKind().hashCode(),
+      hashCode(e.getKind().hashCode(),
                hashCode(e.getSimpleName(), ia),
-               hashCode(e.getEnclosingElement(), ia));
+               hashCode(e.getEnclosingElement(), ia),
+               ia ? hashCode(e.getAnnotationMirrors(), ia) : 0);
   }
 
   static final int hashCode(final TypeElement e, final boolean ia) {
@@ -294,9 +294,9 @@ final class Equality {
       return System.identityHashCode(e); // illegal argument
     }
     return
-      hashCode(ia,
-               k.hashCode(),
-               hashCode(e.getQualifiedName(), ia));
+      hashCode(k.hashCode(),
+               hashCode(e.getQualifiedName(), ia),
+               ia ? hashCode(e.getAnnotationMirrors(), ia) : 0);
   }
 
   static final int hashCode(final TypeParameterElement e, final boolean ia) {
@@ -306,10 +306,10 @@ final class Equality {
       return System.identityHashCode(e); // illegal argument
     }
     return
-      hashCode(ia,
-               e.getKind().hashCode(),
+      hashCode(e.getKind().hashCode(),
                hashCode(e.getGenericElement(), ia),
-               hashCode(e.getSimpleName(), ia));
+               hashCode(e.getSimpleName(), ia),
+               ia ? hashCode(e.getAnnotationMirrors(), ia) : 0);
   }
 
   static final int hashCode(final VariableElement e, final boolean ia) {
@@ -330,10 +330,10 @@ final class Equality {
       return System.identityHashCode(e); // illegal argument
     }
     return
-      hashCode(ia,
-               k.hashCode(),
+      hashCode(k.hashCode(),
                hashCode(e.getSimpleName(), ia),
-               hashCode(e.getEnclosingElement(), ia));
+               hashCode(e.getEnclosingElement(), ia),
+               ia ? hashCode(e.getAnnotationMirrors(), ia) : 0);
   }
 
   static final int hashCode(final TypeMirror t, final boolean ia) {
@@ -394,9 +394,9 @@ final class Equality {
       return System.identityHashCode(t); // illegal argument
     }
     return
-      hashCode(ia,
-               t.getKind().hashCode(),
-               hashCode(t.getComponentType(), ia));
+      hashCode(t.getKind().hashCode(),
+               hashCode(t.getComponentType(), ia),
+               ia ? hashCode(t.getAnnotationMirrors(), ia) : 0);
   }
 
   static final int hashCode(final DeclaredType t, final boolean ia) {
@@ -406,10 +406,10 @@ final class Equality {
       return System.identityHashCode(t); // illegal argument
     }
     return
-      hashCode(ia,
-               t.getKind().hashCode(),
+      hashCode(t.getKind().hashCode(),
                hashCode(t.asElement(), ia),
-               hashCode(t.getTypeArguments(), ia));
+               hashCode(t.getTypeArguments(), ia),
+               ia ? hashCode(t.getAnnotationMirrors(), ia) : 0);
   }
 
   static final int hashCode(final ExecutableType t, final boolean ia) {
@@ -419,12 +419,12 @@ final class Equality {
       return System.identityHashCode(t); // illegal argument
     }
     return
-      hashCode(ia,
-               t.getKind().hashCode(),
+      hashCode(t.getKind().hashCode(),
                hashCode(t.getParameterTypes(), ia),
                hashCode(t.getReceiverType(), ia),
                hashCode(t.getReturnType(), ia),
-               hashCode(t.getTypeVariables(), ia)); // not sure this is necessary
+               hashCode(t.getTypeVariables(), ia), // not sure this is necessary
+               ia ? hashCode(t.getAnnotationMirrors(), ia) : 0);
   }
 
   static final int hashCode(final IntersectionType t, final boolean ia) {
@@ -434,9 +434,9 @@ final class Equality {
       return System.identityHashCode(t); // illegal argument
     }
     return
-      hashCode(ia,
-               t.getKind().hashCode(),
-               hashCode(t.getBounds(), ia));
+      hashCode(t.getKind().hashCode(),
+               hashCode(t.getBounds(), ia),
+               ia ? hashCode(t.getAnnotationMirrors(), ia) : 0);
   }
 
   static final int hashCode(final NoType t, final boolean ia) {
@@ -449,6 +449,7 @@ final class Equality {
     case PACKAGE:
     case NONE:
     case VOID:
+      // No need to check ia because a NoType cannot have annotations.
       return k.hashCode();
     default:
       return System.identityHashCode(t); // illegal argument
@@ -460,6 +461,7 @@ final class Equality {
       return 0;
     }
     final TypeKind k = t.getKind();
+    // No need to check ia because a NullType cannot have annotations.
     return k == TypeKind.NULL ? k.hashCode() : System.identityHashCode(t);
   }
 
@@ -477,7 +479,7 @@ final class Equality {
     case INT:
     case LONG:
     case SHORT:
-      return k.hashCode();
+      return ia ? hashCode(k.hashCode(), hashCode(t.getAnnotationMirrors(), ia)) : k.hashCode();
     default:
       return System.identityHashCode(t); // illegal argument
     }
@@ -492,11 +494,11 @@ final class Equality {
       return System.identityHashCode(t); // illegal argument
     }
     return
-      hashCode(ia,
-               k.hashCode(),
+      hashCode(k.hashCode(),
                hashCode(t.asElement(), ia),
                hashCode(t.getUpperBound(), ia),
-               hashCode(t.getLowerBound(), ia));
+               hashCode(t.getLowerBound(), ia),
+               ia ? hashCode(t.getAnnotationMirrors(), ia) : 0);
   }
 
   static final int hashCode(final WildcardType t, final boolean ia) {
@@ -508,10 +510,10 @@ final class Equality {
       return System.identityHashCode(t); // illegal argument;
     }
     return
-      hashCode(ia,
-               k.hashCode(),
+      hashCode(k.hashCode(),
                hashCode(t.getExtendsBound(), ia),
-               hashCode(t.getSuperBound(), ia));
+               hashCode(t.getSuperBound(), ia),
+               ia ? hashCode(t.getAnnotationMirrors(), ia) : 0);
   }
 
   static final int hashCode(final Directive d, final boolean ia) {
@@ -549,10 +551,8 @@ final class Equality {
       return System.identityHashCode(d);
     }
     return
-      hashCode(ia,
-               k.hashCode(),
-               hashCode(d.getPackage(), ia),
-               hashCode(d.getTargetModules(), ia));
+      hashCode(k.hashCode(),
+               hashCode(d.getPackage(), ia));
   }
 
   private static final int hashCode(final OpensDirective d, final boolean ia) {
@@ -564,8 +564,7 @@ final class Equality {
       return System.identityHashCode(d);
     }
     return
-      hashCode(ia,
-               k.hashCode(),
+      hashCode(k.hashCode(),
                hashCode(d.getPackage(), ia),
                hashCode(d.getTargetModules(), ia));
   }
@@ -579,8 +578,7 @@ final class Equality {
       return System.identityHashCode(d);
     }
     return
-      hashCode(ia,
-               k.hashCode(),
+      hashCode(k.hashCode(),
                hashCode(d.getImplementations(), ia),
                hashCode(d.getService(), ia));
   }
@@ -594,8 +592,7 @@ final class Equality {
       return System.identityHashCode(d);
     }
     return
-      hashCode(ia,
-               k.hashCode(),
+      hashCode(k.hashCode(),
                hashCode(d.getDependency(), ia),
                d.isStatic() ? 1 : 0,
                d.isTransitive() ? 1 : 0);
@@ -610,8 +607,7 @@ final class Equality {
       return System.identityHashCode(d);
     }
     return
-      hashCode(ia,
-               k.hashCode(),
+      hashCode(k.hashCode(),
                hashCode(d.getService(), ia));
   }
 
@@ -809,7 +805,7 @@ final class Equality {
   static final boolean equals(final ExecutableElement e1, final ExecutableElement e2, final boolean ia) {
     if (e1 == e2) {
       return true;
-    } else if ((e1 == null || e2 == null) && ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
+    } else if (e1 == null || e2 == null || ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
     switch (e1.getKind()) {
@@ -849,7 +845,7 @@ final class Equality {
   static final boolean equals(final ModuleElement e1, final ModuleElement e2, final boolean ia) {
     if (e1 == e2) {
       return true;
-    } else if ((e1 == null || e2 == null) && ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
+    } else if (e1 == null || e2 == null || ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
     return
@@ -860,7 +856,7 @@ final class Equality {
   static final boolean equals(final PackageElement e1, final PackageElement e2, final boolean ia) {
     if (e1 == e2) {
       return true;
-    } else if ((e1 == null || e2 == null) && ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
+    } else if (e1 == null || e2 == null || ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
     return
@@ -871,7 +867,7 @@ final class Equality {
   static final boolean equals(final RecordComponentElement e1, final RecordComponentElement e2, final boolean ia) {
     if (e1 == e2) {
       return true;
-    } else if ((e1 == null || e2 == null) && ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
+    } else if (e1 == null || e2 == null || ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
     return
@@ -883,7 +879,7 @@ final class Equality {
   static final boolean equals(final TypeElement e1, final TypeElement e2, final boolean ia) {
     if (e1 == e2) {
       return true;
-    } else if ((e1 == null || e2 == null) && ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
+    } else if (e1 == null || e2 == null || ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
     switch (e1.getKind()) {
@@ -893,22 +889,22 @@ final class Equality {
       }
       break;
     case CLASS:
-      if (e2.getKind() != ElementKind.ANNOTATION_TYPE) {
+      if (e2.getKind() != ElementKind.CLASS) {
         return false;
       }
       break;
     case ENUM:
-      if (e2.getKind() != ElementKind.ANNOTATION_TYPE) {
+      if (e2.getKind() != ElementKind.ENUM) {
         return false;
       }
       break;
     case INTERFACE:
-      if (e2.getKind() != ElementKind.ANNOTATION_TYPE) {
+      if (e2.getKind() != ElementKind.INTERFACE) {
         return false;
       }
       break;
     case RECORD:
-      if (e2.getKind() != ElementKind.ANNOTATION_TYPE) {
+      if (e2.getKind() != ElementKind.RECORD) {
         return false;
       }
       break;
@@ -921,7 +917,7 @@ final class Equality {
   static final boolean equals(final TypeParameterElement e1, final TypeParameterElement e2, final boolean ia) {
     if (e1 == e2) {
       return true;
-    } else if ((e1 == null || e2 == null) && ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
+    } else if (e1 == null || e2 == null || ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
     // This is the equality contract of
@@ -935,7 +931,7 @@ final class Equality {
   static final boolean equals(final VariableElement e1, final VariableElement e2, final boolean ia) {
     if (e1 == e2) {
       return true;
-    } else if ((e1 == null || e2 == null) && ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
+    } else if (e1 == null || e2 == null || ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
     switch (e1.getKind()) {

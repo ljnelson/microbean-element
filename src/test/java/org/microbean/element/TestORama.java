@@ -197,7 +197,7 @@ final class TestORama {
       // type argument simply is the TypeVariable type backing its
       // sole type parameter TypeParameterElement.
       assertSame(tType, comparableTypeTypeArguments.get(0));
-      
+
 
       /*
        * Let's see if we can replicate it.
@@ -227,13 +227,13 @@ final class TestORama {
                                                                             List.of(), // directives
                                                                             List.of());
 
-      
+
       final DefaultPackageElement defaultJavaLang = new DefaultPackageElement(DefaultName.of("java.lang"),
                                                                               DefaultNoType.PACKAGE,
                                                                               Set.of(),
                                                                               defaultJavaBase,
                                                                               List.of());
-      
+
       // Now we can do the main Comparable element:
       final DefaultTypeElement defaultComparableElement =
         new DefaultTypeElement(DefaultName.of("java.lang.Comparable"),
@@ -261,11 +261,14 @@ final class TestORama {
 
       // Let's see if Identity thinks this is good:
       assertTrue(Identity.identical(tType, defaultTType, true));
-
+      assertTrue(Equality.equals(tType, defaultTType, true));
+      
       // At the moment, this will fail because identity walks "up" the
       // tree, including packages and modules.  Oops.
       // assertTrue(Identity.identical(tElement, defaultTElement, true));
-      
+
+      assertTrue(Equality.equals(tElement, defaultTElement, true));
+
 
       /*
        * On to Frob.

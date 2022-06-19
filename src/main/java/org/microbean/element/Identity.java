@@ -55,6 +55,7 @@ import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.UnionType;
 import javax.lang.model.type.WildcardType;
 
+@Deprecated
 public final class Identity {
 
   private Identity() {

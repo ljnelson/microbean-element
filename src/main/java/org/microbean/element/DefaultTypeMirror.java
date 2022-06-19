@@ -231,7 +231,7 @@ public final class DefaultTypeMirror implements ArrayType, ErrorType, Executable
 
   @Override // TypeMirror
   public final int hashCode() {
-    return Identity.hashCode(this.delegate, true);
+    return Equality.hashCode(this.delegate, true);
   }
 
   @Override // TypeMirror
@@ -239,7 +239,7 @@ public final class DefaultTypeMirror implements ArrayType, ErrorType, Executable
     if (this == other) {
       return true;
     } else if (other instanceof TypeMirror t) { // instanceof on purpose
-      return Identity.identical(this.delegate, t, true);
+      return Equality.equals(this.delegate, t, true);
     } else {
       return false;
     }

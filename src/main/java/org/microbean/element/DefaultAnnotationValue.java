@@ -79,7 +79,7 @@ public class DefaultAnnotationValue implements AnnotationValue {
 
   @Override // Object
   public int hashCode() {
-    return Identity.hashCode(this, true);
+    return Equality.hashCode(this, true);
   }
 
   @Override // Object
@@ -87,7 +87,7 @@ public class DefaultAnnotationValue implements AnnotationValue {
     if (this == other) {
       return true;
     } else if (other instanceof AnnotationValue her) { // instanceof is on purpose
-      return Identity.identical(this, her, true);
+      return Equality.equals(this, her, true);
     } else {
       return false;
     }

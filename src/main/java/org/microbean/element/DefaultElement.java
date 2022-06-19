@@ -311,7 +311,7 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
 
   @Override // Element
   public final int hashCode() {
-    return Identity.hashCode(this.delegate, true);
+    return Equality.hashCode(this.delegate, true);
   }
 
   @Override // Element
@@ -319,7 +319,7 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
     if (this == other) {
       return true;
     } else if (other instanceof Element e) { // instanceof on purpose
-      return Identity.identical(this.delegate, e, true);
+      return Equality.equals(this.delegate, e, true);
     } else {
       return false;
     }

@@ -188,7 +188,7 @@ final class Types {
     for (int i = 0; i < size; i++) {
       final TypeMirror val = mapping.get(asElement(from.get(i), true));
       // Note that there's no check on the size of to
-      if (val == null || i + 1 >= to.size() || !Identity.identical(val, to.get(i), true)) {
+      if (val == null || i + 1 >= to.size() || !Equality.equals(val, to.get(i), true)) {
         to.set(i, val);
       }
     }
@@ -410,7 +410,7 @@ final class Types {
                                             final TypeMirror s) {
     if (!ts.isEmpty()) {
       for (final TypeMirror t : ts) {
-        if (Identity.identical(t, s, false)) {
+        if (Equality.equals(t, s, false)) {
           return true;
         }
       }
@@ -679,7 +679,7 @@ final class Types {
 
   private static final TypeMirror asSuper0(final TypeMirror t, final Element e) {
     final Element te = asElement(t, true);
-    if (Identity.identical(te, e, true)) {
+    if (Equality.equals(te, e, true)) {
       return t;
     }
     if (t.getKind() == TypeKind.TYPEVAR) {
@@ -753,7 +753,7 @@ final class Types {
   
   private static final boolean canonical(final TypeMirror t) {
     final Element e = asElement(t);
-    return e == null || Identity.identical(t, e.asType(), true);
+    return e == null || Equality.equals(t, e.asType(), true);
   }
 
   @SuppressWarnings("unchecked")
@@ -876,7 +876,7 @@ final class Types {
     assert ct.getKind() == TypeKind.TYPEVAR;
     assert w.getKind() == TypeKind.WILDCARD;
     // isSameWildcard(), you'll note, does not check annotations.
-    return Identity.identical(w, ct.getWildcardType(), false);
+    return Equality.equals(w, ct.getWildcardType(), false);
   }
 
   // Returns a MODIFIABLE list
@@ -930,7 +930,7 @@ final class Types {
     if (headE == null) {
       throw new IllegalArgumentException("closure: " + closure);
     }
-    if (!Identity.identical(e, headE, true)) {
+    if (!Equality.equals(e, headE, true)) {
       if (precedes(e, headE)) {
         closure.add(0, t);
       } else {
@@ -957,7 +957,7 @@ final class Types {
     if (head2E == null) {
       throw new IllegalArgumentException("c2: " + c2);
     }
-    if (Identity.identical(head1E, head2E, true)) {
+    if (Equality.equals(head1E, head2E, true)) {
       closureUnion(c1.subList(1, c1.size()), c2.subList(1, c2.size())); // RECURSIVE
       return c1;
     } else if (precedes(head2E, head1E)) {
@@ -1028,7 +1028,7 @@ final class Types {
 
   private static final boolean contains(final WildcardType w, final TypeMirror s) {
     assert w.getKind() == TypeKind.WILDCARD;
-    if (Identity.identical(w, s, true)) {
+    if (Equality.equals(w, s, true)) {
       return true;
     }
     if (captures(s, w)) {
@@ -1729,7 +1729,7 @@ final class Types {
       return models((IntersectionType)t, s);
     case PACKAGE:
       // I wonder why this is called out/allowed.
-      return Identity.identical(t, s, true);
+      return Equality.equals(t, s, true);
     case TYPEVAR:
       return models((TypeVariable)t, s);
     case WILDCARD:
@@ -1759,7 +1759,7 @@ final class Types {
       return models(t, (WildcardType)s);
     default:
       return
-        Identity.identical(asElement(t, false), asElement(s, true), true) &&
+        Equality.equals(asElement(t, false), asElement(s, true), true) &&
         models(enclosingType(t), enclosingType(s)) &&
         containsEquivalent(typeArguments(t), typeArguments(s));
     case ERROR:
@@ -1778,7 +1778,7 @@ final class Types {
         models(t, wildcardLowerBound(s));
     }
     return
-      Identity.identical(asElement(t, false), asElement(s, true), true) &&
+      Equality.equals(asElement(t, false), asElement(s, true), true) &&
       models(enclosingType(t), enclosingType(s)) &&
       containsEquivalent(typeArguments(t), typeArguments(s));
   }
@@ -1805,7 +1805,7 @@ final class Types {
       return models(t, (IntersectionType)s);
     default:
       return
-        Identity.identical(asElement(t, false), asElement(s, true), true) &&
+        Equality.equals(asElement(t, false), asElement(s, true), true) &&
         models(enclosingType(t), enclosingType(s)) &&
         containsEquivalent(typeArguments(t), typeArguments(s));
     case ERROR:
@@ -1838,7 +1838,7 @@ final class Types {
     assert t.getKind() == TypeKind.TYPEVAR;
     switch (s.getKind()) {
     case TYPEVAR:
-      return Identity.identical(t, s, true);
+      return Equality.equals(t, s, true);
     case WILDCARD:
       return models(t, (WildcardType)s);
     default:
@@ -1944,7 +1944,7 @@ final class Types {
     case DECLARED:
       switch (s.getKind()) {
       case DECLARED:
-        if (Identity.identical(e, f, true)) {
+        if (Equality.equals(e, f, true)) {
           return false;
         }
         final int rt = rank(t);
@@ -1963,7 +1963,7 @@ final class Types {
     case TYPEVAR:
       switch (s.getKind()) {
       case TYPEVAR:
-        if (Identity.identical(e, f, true)) {
+        if (Equality.equals(e, f, true)) {
           return false;
         }
         return subtype(t, s, true);
@@ -2091,7 +2091,7 @@ final class Types {
     case WILDCARD:
       return references((WildcardType)t1, t2);
     default:
-      return Identity.identical(t1, t2, false);
+      return Equality.equals(t1, t2, false);
     case ERROR:
     case UNION:
       throw new IllegalArgumentException("t1: " + t1);
@@ -2102,7 +2102,7 @@ final class Types {
   private static final boolean references(final ArrayType t1, final TypeMirror t2) {
     assert t1.getKind() == TypeKind.ARRAY;
     return
-      Identity.identical(t1, t2, false) ||
+      Equality.equals(t1, t2, false) ||
       references(t1.getComponentType(), t2); // RECURSIVE
   }
 
@@ -2110,7 +2110,7 @@ final class Types {
   private static final boolean references(final DeclaredType t1, final TypeMirror t2) {
     assert t1.getKind() == TypeKind.DECLARED;
     return
-      Identity.identical(t1, t2, false) ||
+      Equality.equals(t1, t2, false) ||
       (hasTypeArguments(t1) && (references(t1.getEnclosingType(), t2) || anyIdentical(t1.getTypeArguments(), t2))); // RECURSIVE
   }
 
@@ -2118,7 +2118,7 @@ final class Types {
   private static final boolean references(final ExecutableType t1, final TypeMirror t2) {
     assert t1.getKind() == TypeKind.EXECUTABLE;
     return
-      Identity.identical(t1, t2, false) ||
+      Equality.equals(t1, t2, false) ||
       anyIdentical(t1.getParameterTypes(), t2) ||
       references(t1.getReturnType(), t2) || // RECURSIVE
       anyIdentical(t1.getThrownTypes(), t2);
@@ -2189,7 +2189,7 @@ final class Types {
             }
             break;
           default:
-            if (s != orig) { // Don't need Identity.identical() here
+            if (s != orig) { // Don't need Equality.equals() here
               // TODO: maybe need to somehow ensure this shows up as
               // non-canonical/synthetic
               s = upperBoundedWildcardType(wildcardUpperBound(s),
@@ -2465,7 +2465,7 @@ final class Types {
     assert size == to.size();
     for (int i = 0; i < size; i++) {
       final TypeMirror f = from.get(i);
-      if (Identity.identical(f, tv, false)) {
+      if (Equality.equals(f, tv, false)) {
         final TypeMirror t = to.get(i);
         return
           t.getKind() == TypeKind.WILDCARD ? wildcardTypeWithTypeVariableBound((WildcardType)t, tv) : t;
@@ -2592,7 +2592,7 @@ final class Types {
 
   // TypeRelation-based
   private static final boolean subtype(final TypeMirror t, final TypeMirror s, final boolean capture) {
-    if (Identity.identical(t, s, false)) {
+    if (Equality.equals(t, s, false)) {
       return true;
     }
     switch (s.getKind()) {
@@ -2722,7 +2722,7 @@ final class Types {
     case DECLARED:
     case INTERSECTION:
       return
-        Identity.identical(asElement(t), asElement(s), true) &&
+        Equality.equals(asElement(t), asElement(s), true) &&
         (!parameterized(s) || containsRecursive(s, sup)) &&
         subtype(enclosingType(sup), enclosingType(s), false);
     default:
@@ -3137,14 +3137,14 @@ final class Types {
     final TypeMirror upperBound = w.getExtendsBound();
     final TypeMirror lowerBound = w.getSuperBound();
     if (lowerBound == null) {
-      if (upperBound == null || !Identity.identical(tv, upperBound, false)) {
+      if (upperBound == null || !Equality.equals(tv, upperBound, false)) {
         // Return a (normally new) wildcard type whose upper bound is
         // the TypeVariable.
         return upperBoundedWildcardType(tv, w.getAnnotationMirrors());
       }
       return w;
     } else if (upperBound == null) {
-      if (Identity.identical(tv, lowerBound, false)) {
+      if (Equality.equals(tv, lowerBound, false)) {
         return w;
       }
       // Return a (normally new) wildcard type whose lower bound is

@@ -112,7 +112,7 @@ public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements Ty
 
   @Override // TypeMirror
   public int hashCode() {
-    return Identity.hashCode(this, true);
+    return Equality.hashCode(this, true);
   }
   
   @Override // TypeMirror
@@ -120,7 +120,7 @@ public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements Ty
     if (this == other) {
       return true;
     } else if (other instanceof TypeMirror tm) { // instanceof on purpose
-      return Identity.identical(this, tm, true);
+      return Equality.equals(this, tm, true);
     } else {
       return false;
     }

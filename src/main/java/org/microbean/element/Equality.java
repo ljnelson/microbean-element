@@ -981,7 +981,7 @@ final class Equality {
   static final boolean equals(final TypeMirror t1, final TypeMirror t2, final boolean ia) {
     if (t1 == t2) {
       return true;
-    } else if ((t1 == null || t2 == null) && ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
+    } else if (t1 == null || t2 == null || ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
       return false;
     }
     final TypeKind k = t1.getKind();
@@ -1040,7 +1040,7 @@ final class Equality {
   static final boolean equals(final ArrayType t1, final ArrayType t2, final boolean ia) {
     if (t1 == t2) {
       return true;
-    } else if ((t1 == null || t2 == null) && ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
+    } else if (t1 == null || t2 == null || ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
       return false;
     }
     return
@@ -1051,7 +1051,7 @@ final class Equality {
   static final boolean equals(final DeclaredType t1, final DeclaredType t2, final boolean ia) {
     if (t1 == t2) {
       return true;
-    } else if ((t1 == null || t2 == null) && ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
+    } else if (t1 == null || t2 == null || ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
       return false;
     }
     return
@@ -1063,7 +1063,7 @@ final class Equality {
   static final boolean equals(final ExecutableType t1, final ExecutableType t2, final boolean ia) {
     if (t1 == t2) {
       return true;
-    } else if ((t1 == null || t2 == null) && ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
+    } else if (t1 == null || t2 == null || ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
       return false;
     }
     return
@@ -1078,7 +1078,7 @@ final class Equality {
   static final boolean equals(final IntersectionType t1, final IntersectionType t2, final boolean ia) {
     if (t1 == t2) {
       return true;
-    } else if ((t1 == null || t2 == null) && ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
+    } else if (t1 == null || t2 == null || ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
       return false;
     }
     return
@@ -1089,7 +1089,7 @@ final class Equality {
   static final boolean equals(final NoType t1, final NoType t2, final boolean ia) {
     if (t1 == t2) {
       return true;
-    } else if ((t1 == null || t2 == null) && ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
+    } else if (t1 == null || t2 == null || ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
       return false;
     }
     switch (t1.getKind()) {
@@ -1118,7 +1118,7 @@ final class Equality {
   static final boolean equals(final PrimitiveType t1, final PrimitiveType t2, final boolean ia) {
     if (t1 == t2) {
       return true;
-    } else if ((t1 == null || t2 == null) && ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
+    } else if (t1 == null || t2 == null || ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
       return false;
     }
     switch (t1.getKind()) {
@@ -1146,7 +1146,7 @@ final class Equality {
   static final boolean equals(final TypeVariable t1, final TypeVariable t2, final boolean ia) {
     if (t1 == t2) {
       return true;
-    } else if ((t1 == null || t2 == null) && ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
+    } else if (t1 == null || t2 == null || ia && !equals(t1.getAnnotationMirrors(), t2.getAnnotationMirrors(), ia)) {
       return false;
     }
     return

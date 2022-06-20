@@ -259,14 +259,10 @@ final class TestORama {
       assertEquals(1, defaultComparableElement.getTypeParameters().size());
       assertSame(defaultTElement, defaultComparableElement.getTypeParameters().get(0));
 
-      // Let's see if Identity thinks this is good:
-      assertTrue(Identity.identical(tType, defaultTType, true));
-      assertTrue(Equality.equals(tType, defaultTType, true));
-      
-      // At the moment, this will fail because identity walks "up" the
-      // tree, including packages and modules.  Oops.
-      // assertTrue(Identity.identical(tElement, defaultTElement, true));
 
+
+      // Let's see if Equality thinks this is good:
+      assertTrue(Equality.equals(tType, defaultTType, true));
       assertTrue(Equality.equals(tElement, defaultTElement, true));
 
 
@@ -274,6 +270,8 @@ final class TestORama {
        * On to Frob.
        */
 
+
+      // The compiler's version:
 
       final TypeElement frobElement = elements.getTypeElement("Frob");
       assertNotNull(frobElement);
@@ -295,6 +293,38 @@ final class TestORama {
       // Comparable<Frob>, the sole type argument in Comparable<Frob>
       // is the DeclaredType defined by the Frob TypeElement.
       assertSame(frobType, comparableFrobType.getTypeArguments().get(0));
+
+      // Our version:
+
+      // First, let's do the very simple Frob type (remember,
+      // TypeMirrors don't have supertypes, even though in the JLS
+      // types have supertypes):
+      final DefaultDeclaredType defaultFrobType = new DefaultDeclaredType();
+
+      // Now we can do a TypeMirror representing Comparable<Frob>:
+      final DefaultDeclaredType defaultComparableFrobType = new DefaultDeclaredType(List.of(frobType), List.of());
+
+      final DefaultPackageElement unnamedPackage =
+        new DefaultPackageElement(DefaultName.of(),
+                                  DefaultNoType.PACKAGE,
+                                  Set.of(),
+                                  null,
+                                  List.of());
+
+      final DefaultTypeElement defaultFrobElement =
+        new DefaultTypeElement(DefaultName.of("Frob"),
+                               ElementKind.CLASS,
+                               defaultFrobType,
+                               DefaultTypeElement.PUBLIC,
+                               unnamedPackage,
+                               NestingKind.TOP_LEVEL,
+                               null, // no superclass,
+                               List.of(),
+                               List.of(defaultComparableFrobType), // interface types
+                               List.of(),
+                               List.of());
+
+      assertTrue(Equality.equals(frobElement, defaultFrobElement, true));
 
     }
 

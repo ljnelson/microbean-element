@@ -19,6 +19,8 @@ package org.microbean.element;
 import java.util.List;
 import java.util.Objects;
 
+import java.util.function.Supplier;
+
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
@@ -42,7 +44,7 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
 
   static final DefaultDeclaredType JAVA_LANG_COMPARABLE_BOOLEAN =
     new DefaultDeclaredType(List.of(JAVA_LANG_BOOLEAN),
-                            List.of()); // no annotations
+                            null); // no annotations
 
   static final DefaultDeclaredType JAVA_LANG_CONSTANT_CONSTABLE = new DefaultDeclaredType();
 
@@ -71,18 +73,26 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
   private final List<? extends TypeMirror> typeArguments;
 
   public DefaultDeclaredType() {
-    this(DefaultNoType.NONE, List.of(), List.of());
+    this(DefaultNoType.NONE, List.of(), null);
+  }
+
+  public DefaultDeclaredType(final TypeMirror soleTypeArgument) {
+    this(DefaultNoType.NONE, List.of(soleTypeArgument), null);
+  }
+  
+  public DefaultDeclaredType(final List<? extends TypeMirror> typeArguments) {
+    this(DefaultNoType.NONE, typeArguments, null);
   }
   
   public DefaultDeclaredType(final List<? extends TypeMirror> typeArguments,
-                             final List<? extends AnnotationMirror> annotationMirrors) {
-    this(DefaultNoType.NONE, typeArguments, annotationMirrors);
+                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    this(DefaultNoType.NONE, typeArguments, annotationMirrorsSupplier);
   }
 
   public DefaultDeclaredType(final TypeMirror enclosingType,
                              final List<? extends TypeMirror> typeArguments,
-                             final List<? extends AnnotationMirror> annotationMirrors) {
-    super(TypeKind.DECLARED, annotationMirrors);
+                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    super(TypeKind.DECLARED, annotationMirrorsSupplier);
     if (enclosingType == null) {
       this.enclosingType = DefaultNoType.NONE;
     } else {

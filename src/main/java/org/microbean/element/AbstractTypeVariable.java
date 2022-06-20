@@ -18,6 +18,8 @@ package org.microbean.element;
 
 import java.util.List;
 
+import java.util.function.Supplier;
+
 import javax.lang.model.element.AnnotationMirror;
 
 import javax.lang.model.type.TypeKind;
@@ -34,8 +36,8 @@ public abstract class AbstractTypeVariable extends AbstractReferenceType impleme
   protected AbstractTypeVariable(final TypeKind kind,
                                  final TypeMirror upperBound,
                                  final TypeMirror lowerBound, // only relevant for capture conversion
-                                 final List<? extends AnnotationMirror> annotationMirrors) {
-    super(kind, annotationMirrors);
+                                 final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    super(kind, annotationMirrorsSupplier);
     this.lowerBound = lowerBound == null ? DefaultNullType.INSTANCE : lowerBound;
     this.upperBound = upperBound == null ? DefaultDeclaredType.JAVA_LANG_OBJECT : upperBound;
   }

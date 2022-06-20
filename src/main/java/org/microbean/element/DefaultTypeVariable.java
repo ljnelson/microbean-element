@@ -18,6 +18,8 @@ package org.microbean.element;
 
 import java.util.List;
 
+import java.util.function.Supplier;
+
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeParameterElement;
@@ -33,8 +35,8 @@ public class DefaultTypeVariable extends AbstractTypeVariable {
 
   protected DefaultTypeVariable(final TypeMirror upperBound,
                                 final TypeMirror lowerBound,
-                                final List<? extends AnnotationMirror> annotationMirrors) {
-    super(TypeKind.TYPEVAR, upperBound, lowerBound, annotationMirrors);
+                                final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    super(TypeKind.TYPEVAR, upperBound, lowerBound, annotationMirrorsSupplier);
   }
   
   final void element(final TypeParameterElement e) {
@@ -57,16 +59,16 @@ public class DefaultTypeVariable extends AbstractTypeVariable {
   }
 
   public static DefaultTypeVariable of() {
-    return of(null, List.of());
+    return of(null, List::of);
   }
   
   public static DefaultTypeVariable of(final TypeMirror upperBound) {
-    return of(upperBound, List.of());
+    return of(upperBound, List::of);
   }
   
   public static DefaultTypeVariable of(final TypeMirror upperBound,
-                                       final List<? extends AnnotationMirror> annotationMirrors) {
-    return new DefaultTypeVariable(upperBound, null, annotationMirrors);
+                                       final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    return new DefaultTypeVariable(upperBound, null, annotationMirrorsSupplier);
   }
 
 }

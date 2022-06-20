@@ -31,7 +31,7 @@ final class WildcardElement extends AbstractElement {
           new DefaultDeclaredType(), // emulate javac
           Set.of(),
           null,
-          List.of());
+          List::of);
   }
   
 }

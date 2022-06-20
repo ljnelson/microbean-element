@@ -19,6 +19,8 @@ package org.microbean.element;
 import java.util.List;
 import java.util.Objects;
 
+import java.util.function.Supplier;
+
 import javax.lang.model.element.AnnotationMirror;
 
 import javax.lang.model.type.PrimitiveType;
@@ -28,29 +30,29 @@ import javax.lang.model.type.TypeVisitor;
 
 public class DefaultPrimitiveType extends AbstractTypeMirror implements PrimitiveType {
 
-  public static final DefaultPrimitiveType BOOLEAN = new DefaultPrimitiveType(TypeKind.BOOLEAN, List.of());
+  public static final DefaultPrimitiveType BOOLEAN = new DefaultPrimitiveType(TypeKind.BOOLEAN, null);
 
-  public static final DefaultPrimitiveType BYTE = new DefaultPrimitiveType(TypeKind.BYTE, List.of());
+  public static final DefaultPrimitiveType BYTE = new DefaultPrimitiveType(TypeKind.BYTE, null);
 
-  public static final DefaultPrimitiveType CHAR = new DefaultPrimitiveType(TypeKind.CHAR, List.of());
+  public static final DefaultPrimitiveType CHAR = new DefaultPrimitiveType(TypeKind.CHAR, null);
 
-  public static final DefaultPrimitiveType DOUBLE = new DefaultPrimitiveType(TypeKind.DOUBLE, List.of());
+  public static final DefaultPrimitiveType DOUBLE = new DefaultPrimitiveType(TypeKind.DOUBLE, null);
 
-  public static final DefaultPrimitiveType FLOAT = new DefaultPrimitiveType(TypeKind.FLOAT, List.of());
+  public static final DefaultPrimitiveType FLOAT = new DefaultPrimitiveType(TypeKind.FLOAT, null);
 
-  public static final DefaultPrimitiveType INT = new DefaultPrimitiveType(TypeKind.INT, List.of());
+  public static final DefaultPrimitiveType INT = new DefaultPrimitiveType(TypeKind.INT, null);
 
-  public static final DefaultPrimitiveType LONG = new DefaultPrimitiveType(TypeKind.LONG, List.of());
+  public static final DefaultPrimitiveType LONG = new DefaultPrimitiveType(TypeKind.LONG, null);
 
-  public static final DefaultPrimitiveType SHORT = new DefaultPrimitiveType(TypeKind.SHORT, List.of());
+  public static final DefaultPrimitiveType SHORT = new DefaultPrimitiveType(TypeKind.SHORT, null);
 
   public DefaultPrimitiveType(final TypeKind kind) {
-    this(kind, List.of());
+    this(kind, null);
   }
   
   public DefaultPrimitiveType(final TypeKind kind,
-                              final List<? extends AnnotationMirror> annotationMirrors) {
-    super(kind, annotationMirrors);
+                              final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    super(kind, annotationMirrorsSupplier);
     switch (kind) {
     case BOOLEAN:
     case BYTE:

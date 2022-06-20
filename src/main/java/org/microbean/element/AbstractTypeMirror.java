@@ -19,6 +19,8 @@ package org.microbean.element;
 import java.util.List;
 import java.util.Objects;
 
+import java.util.function.Supplier;
+
 import javax.lang.model.element.AnnotationMirror;
 
 import javax.lang.model.type.ArrayType;
@@ -46,8 +48,8 @@ public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements Ty
   // "Type" --> "TypeMirror"
   // "TypeMapping" --> "TypeVisitor"
   
-  public AbstractTypeMirror(final TypeKind kind, final List<? extends AnnotationMirror> annotationMirrors) {
-    super(annotationMirrors);
+  public AbstractTypeMirror(final TypeKind kind, final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    super(annotationMirrorsSupplier);
     this.kind = Objects.requireNonNull(kind, "kind");
   }
 

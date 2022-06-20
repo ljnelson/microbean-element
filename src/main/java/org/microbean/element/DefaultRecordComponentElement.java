@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import java.util.function.Supplier;
+
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ElementVisitor;
@@ -39,13 +41,13 @@ public class DefaultRecordComponentElement extends AbstractElement implements Re
                                        final Set<? extends Modifier> modifiers,
                                        final AbstractElement enclosingElement, // the record element; TODO change to DefaultRecordElement
                                        final ExecutableElement accessor,
-                                       final List<? extends AnnotationMirror> annotationMirrors) {
+                                       final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(simpleName,
           ElementKind.RECORD_COMPONENT,
           validate(type),
           modifiers,
           enclosingElement,
-          annotationMirrors);
+          annotationMirrorsSupplier);
     this.accessor = Objects.requireNonNull(accessor, "accessor");
   }
   

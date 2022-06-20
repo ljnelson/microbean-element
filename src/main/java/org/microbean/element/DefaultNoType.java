@@ -34,7 +34,7 @@ public final class DefaultNoType extends AbstractTypeMirror implements NoType {
   public static final DefaultNoType VOID = new DefaultNoType(TypeKind.VOID);
 
   private DefaultNoType(final TypeKind kind) {
-    super(kind, List.of());
+    super(kind, null);
     switch (kind) {
     case MODULE:
     case NONE:

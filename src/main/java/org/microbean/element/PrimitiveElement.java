@@ -48,7 +48,7 @@ final class PrimitiveElement extends AbstractElement {
           validate(type),
           Set.of(),
           null, // enclosing element
-          List.of());
+          null);
   }
 
   private static final PrimitiveType validate(final PrimitiveType t) {

@@ -43,7 +43,7 @@ import javax.lang.model.type.TypeMirror;
 
 public abstract class AbstractElement extends AbstractAnnotatedConstruct implements Element {
   
-  private final DefaultName name;
+  private final Name name;
 
   private final ElementKind kind;
 
@@ -51,7 +51,7 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
 
   private final Set<Modifier> modifiers;
 
-  private final AbstractElement enclosingElement;
+  private final Element enclosingElement;
 
   private final List<Element> enclosedElements;
 
@@ -61,9 +61,9 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
                             final ElementKind kind,
                             final TypeMirror type,
                             final Set<? extends Modifier> modifiers,
-                            final AbstractElement enclosingElement,
-                            final List<? extends AnnotationMirror> annotationMirrors) {
-    super(annotationMirrors);
+                            final Element enclosingElement,
+                            final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    super(annotationMirrorsSupplier);
     this.enclosedElements = new CopyOnWriteArrayList<>();
     this.readOnlyEnclosedElements = Collections.unmodifiableList(this.enclosedElements);
     this.name = name == null ? DefaultName.EMPTY : DefaultName.of(name);
@@ -71,8 +71,8 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
     this.type = type == null ? DefaultNoType.NONE : type;
     this.modifiers = modifiers == null || modifiers.isEmpty() ? Set.of() : Set.copyOf(modifiers);
     this.enclosingElement = enclosingElement;
-    if (enclosingElement != null) {
-      enclosingElement.enclose(this);
+    if (enclosingElement instanceof AbstractElement ae) {
+      ae.enclose(this);
     }
   }
 
@@ -151,7 +151,7 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
   }
 
   @Override // Element
-  public DefaultName getSimpleName() {
+  public Name getSimpleName() {
     return this.name;
   }
 

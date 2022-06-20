@@ -28,7 +28,7 @@ public final class DefaultNullType extends AbstractReferenceType implements Null
   public static final DefaultNullType INSTANCE = new DefaultNullType();
   
   private DefaultNullType() {
-    super(TypeKind.NULL, List.of());
+    super(TypeKind.NULL, List::of);
   }
   
 }

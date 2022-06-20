@@ -31,7 +31,7 @@ final class ArrayElement extends AbstractElement {
           new DefaultDeclaredType(), // emulate javac
           Set.of(),
           null,
-          List.of());
+          null);
   }
   
 }

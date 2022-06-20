@@ -19,6 +19,8 @@ package org.microbean.element;
 import java.util.List;
 import java.util.Set;
 
+import java.util.function.Supplier;
+
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
 import javax.lang.model.element.ElementKind;
@@ -54,7 +56,7 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
                                   final boolean varArgs,
                                   final boolean isDefault,
                                   final AnnotationValue defaultValue,
-                                  final List<? extends AnnotationMirror> annotationMirrors) {
+                                  final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(kind == ElementKind.CONSTRUCTOR ? DefaultName.of("<init>") :
           (kind == ElementKind.STATIC_INIT ? DefaultName.of("<clinit>") :
            (kind == ElementKind.INSTANCE_INIT ? DefaultName.EMPTY : simpleName)),
@@ -62,7 +64,7 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
           validate(type),
           modifiers,
           enclosingElement,
-          annotationMirrors);
+          annotationMirrorsSupplier);
     switch (kind) {
     case CONSTRUCTOR:
     case INSTANCE_INIT:
@@ -153,7 +155,7 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
                                    e.isVarArgs(),
                                    e.isDefault(),
                                    e.getDefaultValue(),
-                                   e.getAnnotationMirrors());
+                                   e::getAnnotationMirrors);
   }
   
 }

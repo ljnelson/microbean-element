@@ -34,7 +34,7 @@ public class DefaultIntersectionType extends AbstractTypeMirror implements Inter
   private final List<? extends TypeMirror> bounds;
   
   protected DefaultIntersectionType(final List<? extends TypeMirror> bounds) {
-    super(TypeKind.INTERSECTION, List.of());
+    super(TypeKind.INTERSECTION, List::of);
     if (bounds.isEmpty()) {
       // (Technically I think we could use Object...)
       throw new IllegalArgumentException("bounds.isEmpty()");

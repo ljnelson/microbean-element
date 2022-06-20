@@ -144,7 +144,7 @@ public final class DefaultTypes implements Types {
       }
     }
     if (captured) {
-      final DefaultDeclaredType returnValue = new DefaultDeclaredType(t.getEnclosingType(), S, List.of());
+      final DefaultDeclaredType returnValue = new DefaultDeclaredType(t.getEnclosingType(), S, null);
       returnValue.element(t.asElement());
       return returnValue;
     }
@@ -322,7 +322,7 @@ public final class DefaultTypes implements Types {
     final DefaultDeclaredType returnValue =
       new DefaultDeclaredType(enclosingType == null ? this.getNoType(TypeKind.NONE) : enclosingType,
                               typeArguments,
-                              List.of()); // TODO: what about the annotations?
+                              null); // TODO: what about the annotations?
     returnValue.element(typeElement);
     return returnValue;
   }
@@ -378,9 +378,9 @@ public final class DefaultTypes implements Types {
       if (extendsBound == null) {
         return DefaultWildcardType.unboundedWildcardType();
       }
-      return DefaultWildcardType.upperBoundedWildcardType(extendsBound, List.of());
+      return DefaultWildcardType.upperBoundedWildcardType(extendsBound, null);
     } else if (extendsBound == null) {
-      return DefaultWildcardType.lowerBoundedWildcardType(superBound, List.of());
+      return DefaultWildcardType.lowerBoundedWildcardType(superBound, null);
     } else {
       throw new IllegalArgumentException("extendsBound: " + extendsBound + "; superBound: " + superBound);
     }

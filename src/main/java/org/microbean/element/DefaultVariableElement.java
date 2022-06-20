@@ -19,6 +19,8 @@ package org.microbean.element;
 import java.util.List;
 import java.util.Set;
 
+import java.util.function.Supplier;
+
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -40,13 +42,13 @@ public final class DefaultVariableElement extends AbstractElement implements Var
                                 final Set<? extends Modifier> modifiers,
                                 final AbstractElement enclosingElement,
                                 final Object constantValue,
-                                final List<? extends AnnotationMirror> annotationMirrors) {
+                                final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(simpleName,
           validate(kind),
           validate(type),
           modifiers,
           validate(enclosingElement),
-          annotationMirrors);
+          annotationMirrorsSupplier);
     this.constantValue = constantValue;
   }
 

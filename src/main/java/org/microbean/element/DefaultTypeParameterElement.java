@@ -19,6 +19,8 @@ package org.microbean.element;
 import java.util.List;
 import java.util.Set;
 
+import java.util.function.Supplier;
+
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ElementVisitor;
@@ -36,20 +38,20 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
   private final TypeElement genericElement;
   
   public DefaultTypeParameterElement(final Name simpleName, final TypeVariable type) {
-    this(simpleName, type, Set.of(), null, List.of());
+    this(simpleName, type, Set.of(), null, null);
   }
   
   public DefaultTypeParameterElement(final Name simpleName,
                                      final TypeVariable type,
                                      final Set<? extends Modifier> modifiers,
                                      final TypeElement genericElement,
-                                     final List<? extends AnnotationMirror> annotationMirrors) {
+                                     final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(simpleName,
           ElementKind.TYPE_PARAMETER,
           type,
           modifiers,
           null,
-          annotationMirrors);
+          annotationMirrorsSupplier);
     if (type instanceof DefaultTypeVariable dtv) {
       dtv.element(this);
     }

@@ -19,6 +19,8 @@ package org.microbean.element;
 import java.util.List;
 import java.util.Objects;
 
+import java.util.function.Supplier;
+
 import javax.lang.model.element.AnnotationMirror;
 
 import javax.lang.model.type.ArrayType;
@@ -31,8 +33,8 @@ public class DefaultArrayType extends AbstractReferenceType implements ArrayType
   private final TypeMirror componentType;
   
   protected DefaultArrayType(final TypeMirror componentType,
-                             final List<? extends AnnotationMirror> annotationMirrors) {
-    super(TypeKind.ARRAY, annotationMirrors);
+                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    super(TypeKind.ARRAY, annotationMirrorsSupplier);
     this.componentType = Objects.requireNonNull(componentType);
   }
 
@@ -47,11 +49,12 @@ public class DefaultArrayType extends AbstractReferenceType implements ArrayType
   }
 
   public static DefaultArrayType of(final TypeMirror componentType) {
-    return of(componentType, List.of());
+    return of(componentType, null);
   }
 
-  public static DefaultArrayType of(final TypeMirror componentType, final List<? extends AnnotationMirror> annotationMirrors) {
-    return new DefaultArrayType(componentType, annotationMirrors);
+  public static DefaultArrayType of(final TypeMirror componentType,
+                                    final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    return new DefaultArrayType(componentType, annotationMirrorsSupplier);
   }
   
 }

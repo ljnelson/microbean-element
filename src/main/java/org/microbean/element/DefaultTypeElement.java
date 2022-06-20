@@ -258,7 +258,7 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
          List.of(),
          List.of(),
          List.of(),
-         List.of());
+         null);
   }
   
   DefaultTypeElement(final Name qualifiedName,
@@ -276,7 +276,7 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
          List.of(),
          interfaces,
          List.of(),
-         List.of());
+         null);
   }
 
   DefaultTypeElement(final Name qualifiedName,
@@ -293,7 +293,7 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
          List.of(),
          List.of(),
          List.of(),
-         List.of());
+         null);
   }
 
   public DefaultTypeElement(final Name qualifiedName,
@@ -306,13 +306,13 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
                             final List<? extends TypeMirror> permittedSubclasses,
                             final List<? extends TypeMirror> interfaces,
                             final List<? extends RecordComponentElement> recordComponents,
-                            final List<? extends AnnotationMirror> annotationMirrors) {
+                            final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(qualifiedName,
           validate(kind),
           type,
           modifiers,
           enclosingElement,
-          annotationMirrors);
+          annotationMirrorsSupplier);
     this.simpleName = DefaultName.ofSimple(qualifiedName);
     this.nestingKind = nestingKind == null ? NestingKind.TOP_LEVEL : nestingKind;
     this.mutableTypeParameters = new CopyOnWriteArrayList<>();
@@ -367,12 +367,12 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
   }
 
   @Override // TypeElement
-  public final DefaultName getSimpleName() {
+  public final Name getSimpleName() {
     return this.simpleName;
   }
 
   @Override // TypeElement
-  public final DefaultName getQualifiedName() {
+  public final Name getQualifiedName() {
     return super.getSimpleName();
   }
 

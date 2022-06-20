@@ -16,6 +16,8 @@
  */
 package org.microbean.element;
 
+import java.lang.module.ModuleDescriptor;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -36,6 +38,9 @@ public final class DefaultExportsDirective extends AbstractDirective implements 
     super(DirectiveKind.EXPORTS);
     this.pkg = Objects.requireNonNull(pkg, "pkg");
     this.targetModules = targetModules == null || targetModules.isEmpty() ? List.of() : List.copyOf(targetModules);
+    if (pkg.getEnclosingElement() instanceof DefaultModuleElement m) {
+      m.addDirective(this);
+    }
   }
 
   @Override // Directive
@@ -52,5 +57,5 @@ public final class DefaultExportsDirective extends AbstractDirective implements 
   public final List<? extends ModuleElement> getTargetModules() {
     return this.targetModules;
   }
-  
+
 }

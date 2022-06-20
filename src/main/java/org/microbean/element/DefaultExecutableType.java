@@ -19,6 +19,8 @@ package org.microbean.element;
 import java.util.List;
 import java.util.Objects;
 
+import java.util.function.Supplier;
+
 import javax.lang.model.element.AnnotationMirror;
 
 import javax.lang.model.type.ExecutableType;
@@ -44,8 +46,8 @@ public class DefaultExecutableType extends AbstractTypeMirror implements Executa
                                final TypeMirror returnType,
                                final List<? extends TypeMirror> thrownTypes,
                                final List<? extends TypeVariable> typeVariables,
-                               final List<? extends AnnotationMirror> annotationMirrors) {
-    super(TypeKind.EXECUTABLE, annotationMirrors);
+                               final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    super(TypeKind.EXECUTABLE, annotationMirrorsSupplier);
     this.parameterTypes = parameterTypes == null || parameterTypes.isEmpty() ? List.of() : List.copyOf(parameterTypes);
     this.receiverType = receiverType == null ? DefaultNoType.NONE : receiverType;
     this.returnType = returnType == null ? DefaultNoType.VOID : returnType;
@@ -93,7 +95,7 @@ public class DefaultExecutableType extends AbstractTypeMirror implements Executa
                                 e.getReturnType(),
                                 e.getThrownTypes(),
                                 e.getTypeVariables(),
-                                e.getAnnotationMirrors());
+                                e::getAnnotationMirrors);
   }
 
   public static DefaultExecutableType of(final List<? extends TypeMirror> parameterTypes,
@@ -101,13 +103,13 @@ public class DefaultExecutableType extends AbstractTypeMirror implements Executa
                                          final TypeMirror returnType,
                                          final List<? extends TypeMirror> thrownTypes,
                                          final List<? extends TypeVariable> typeVariables,
-                                         final List<? extends AnnotationMirror> annotationMirrors) {
+                                         final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     return new DefaultExecutableType(parameterTypes,
                                      receiverType,
                                      returnType,
                                      thrownTypes,
                                      typeVariables,
-                                     annotationMirrors);
+                                     annotationMirrorsSupplier);
   }
   
 }

@@ -57,9 +57,9 @@ public class DefaultCapturedType extends AbstractTypeVariable implements Capture
     super(TypeKind.TYPEVAR,
           wildcardType.getExtendsBound() == null ? DefaultTypeElement.JAVA_LANG_OBJECT.asType() : wildcardType.getExtendsBound(),
           null,
-          List.of());
+          null);
     this.wildcardType = wildcardType;
-    this.definingElement = new DefaultTypeParameterElement(name, this, Set.of(), null, List.of());
+    this.definingElement = new DefaultTypeParameterElement(name, this, Set.of(), null, null);
   }
   
   @Override // TypeVariable

@@ -19,6 +19,8 @@ package org.microbean.element;
 import java.util.List;
 import java.util.Set;
 
+import java.util.function.Supplier;
+
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -37,14 +39,14 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
   public DefaultPackageElement(final Name fullyQualifiedName,
                                final NoType packageType,
                                final Set<? extends Modifier> modifiers,
-                               final DefaultModuleElement enclosingElement,
-                               final List<? extends AnnotationMirror> annotationMirrors) {
+                               final ModuleElement enclosingElement,
+                               final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(fullyQualifiedName,
           ElementKind.PACKAGE,
           packageType,
           modifiers,
           validate(enclosingElement),
-          annotationMirrors);
+          annotationMirrorsSupplier);
     this.simpleName = DefaultName.ofSimple(fullyQualifiedName);
   }
 
@@ -59,7 +61,7 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
   }
 
   @Override // PackageElement
-  public final DefaultName getQualifiedName() {
+  public final Name getQualifiedName() {
     return super.getSimpleName();
   }
 
@@ -88,6 +90,15 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
     default:
       throw new IllegalArgumentException("enclosingElement: " + enclosingElement);
     }
+  }
+
+  public static final DefaultPackageElement of(final Name fullyQualifiedName,
+                                               final ModuleElement enclosingElement) {
+    return new DefaultPackageElement(fullyQualifiedName,
+                                     DefaultNoType.PACKAGE,
+                                     Set.of(),
+                                     enclosingElement,
+                                     List::of);
   }
   
 }

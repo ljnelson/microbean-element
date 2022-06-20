@@ -214,25 +214,22 @@ final class TestORama {
       // We can't do the TypeElement representing (just) Comparable<T>
       // yet because it needs a backing DeclaredType with defaultTType
       // as its sole type argument.
-      final DefaultDeclaredType defaultComparableType = new DefaultDeclaredType(List.of(defaultTType), List.of());
+      final DefaultDeclaredType defaultComparableType = new DefaultDeclaredType(defaultTType);
 
       // We can't do the TypeElement representing (just) Comparable<T>
       // yet because it needs an enclosing PackageElement.
 
       // We can't do the PackageElement yet because we need a ModuleElement.
-      final DefaultModuleElement defaultJavaBase = new DefaultModuleElement(DefaultName.of("java.base"),
-                                                                            DefaultNoType.MODULE,
-                                                                            Set.of(),
-                                                                            false, // not open
-                                                                            List.of(), // directives
-                                                                            List.of());
+      final DefaultModuleElement defaultJavaBase =
+        new DefaultModuleElement(DefaultName.of("java.base"));
 
 
-      final DefaultPackageElement defaultJavaLang = new DefaultPackageElement(DefaultName.of("java.lang"),
-                                                                              DefaultNoType.PACKAGE,
-                                                                              Set.of(),
-                                                                              defaultJavaBase,
-                                                                              List.of());
+      final DefaultPackageElement defaultJavaLang =
+        new DefaultPackageElement(DefaultName.of("java.lang"),
+                                  DefaultNoType.PACKAGE,
+                                  Set.of(),
+                                  defaultJavaBase,
+                                  null);
 
       // Now we can do the main Comparable element:
       final DefaultTypeElement defaultComparableElement =
@@ -246,7 +243,7 @@ final class TestORama {
                                List.of(),
                                List.of(),
                                List.of(),
-                               List.of());
+                               null);
 
       // ...and now we can do a TypeParameterElement:
       final DefaultTypeParameterElement defaultTElement =
@@ -254,12 +251,10 @@ final class TestORama {
                                         defaultTType, // here's the backing type
                                         Set.of(), // no modifiers
                                         defaultComparableElement, // here's the enclosing TypeElement
-                                        List.of());
+                                        null);
 
       assertEquals(1, defaultComparableElement.getTypeParameters().size());
       assertSame(defaultTElement, defaultComparableElement.getTypeParameters().get(0));
-
-
 
       // Let's see if Equality thinks this is good:
       assertTrue(Equality.equals(tType, defaultTType, true));
@@ -302,14 +297,14 @@ final class TestORama {
       final DefaultDeclaredType defaultFrobType = new DefaultDeclaredType();
 
       // Now we can do a TypeMirror representing Comparable<Frob>:
-      final DefaultDeclaredType defaultComparableFrobType = new DefaultDeclaredType(List.of(frobType), List.of());
+      final DefaultDeclaredType defaultComparableFrobType = new DefaultDeclaredType(frobType);
 
       final DefaultPackageElement unnamedPackage =
         new DefaultPackageElement(DefaultName.of(),
                                   DefaultNoType.PACKAGE,
                                   Set.of(),
                                   null,
-                                  List.of());
+                                  null);
 
       final DefaultTypeElement defaultFrobElement =
         new DefaultTypeElement(DefaultName.of("Frob"),
@@ -322,9 +317,14 @@ final class TestORama {
                                List.of(),
                                List.of(defaultComparableFrobType), // interface types
                                List.of(),
-                               List.of());
+                               null);
 
       assertTrue(Equality.equals(frobElement, defaultFrobElement, true));
+
+      // What's our module, incidentally?
+      final DefaultModuleElement orgMicrobeanElement = DefaultModuleElement.of(this.getClass().getModule());
+      System.out.println(orgMicrobeanElement.getQualifiedName());
+      System.out.println("*** module: " + this.getClass().getModule());
 
     }
 

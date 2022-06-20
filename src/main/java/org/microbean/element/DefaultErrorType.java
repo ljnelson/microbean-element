@@ -19,6 +19,8 @@ package org.microbean.element;
 import java.util.List;
 import java.util.Objects;
 
+import java.util.function.Supplier;
+
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 
@@ -31,8 +33,8 @@ public class DefaultErrorType extends DefaultDeclaredType implements ErrorType {
 
   public DefaultErrorType(final TypeMirror enclosingType,
                           final List<? extends TypeMirror> typeArguments,
-                          final List<? extends AnnotationMirror> annotationMirrors) {
-    super(enclosingType, typeArguments, annotationMirrors);
+                          final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    super(enclosingType, typeArguments, annotationMirrorsSupplier);
   }
 
   @Override // TypeMirror

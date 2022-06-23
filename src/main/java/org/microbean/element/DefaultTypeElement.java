@@ -18,6 +18,7 @@ package org.microbean.element;
 
 import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Executable;
+import java.lang.reflect.RecordComponent;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -233,6 +234,8 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
 
   private final List<? extends TypeMirror> permittedSubclasses;
 
+  private final List<RecordComponentElement> mutableRecordComponents;
+
   private final List<? extends RecordComponentElement> recordComponents;
 
   @Deprecated // you can use this, but you better know what you're doing.
@@ -264,7 +267,6 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
          superclass,
          List.of(),
          List.of(),
-         List.of(),
          null);
   }
   
@@ -282,7 +284,6 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
          superclass,
          List.of(),
          interfaces,
-         List.of(),
          null);
   }
 
@@ -299,7 +300,6 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
          null,
          List.of(),
          List.of(),
-         List.of(),
          null);
   }
 
@@ -312,7 +312,6 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
                             final TypeMirror superclass,
                             final List<? extends TypeMirror> permittedSubclasses,
                             final List<? extends TypeMirror> interfaces,
-                            final List<? extends RecordComponentElement> recordComponents,
                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(qualifiedName,
           validate(kind),
@@ -327,7 +326,8 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
     this.superclass = superclass == null ? DefaultNoType.NONE : superclass;
     this.interfaces = interfaces == null || interfaces.isEmpty() ? List.of() : List.copyOf(interfaces);
     this.permittedSubclasses = permittedSubclasses == null || permittedSubclasses.isEmpty() ? List.of() : List.copyOf(permittedSubclasses);
-    this.recordComponents = recordComponents == null || recordComponents.isEmpty() ? List.of() : List.copyOf(recordComponents);
+    this.mutableRecordComponents = new CopyOnWriteArrayList<>();
+    this.recordComponents = Collections.unmodifiableList(this.mutableRecordComponents);
     if (type instanceof DefaultDeclaredType ddt) {
       ddt.element(this);
     }
@@ -366,6 +366,16 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
   @Override // TypeElement
   public List<? extends RecordComponentElement> getRecordComponents() {
     return this.recordComponents;
+  }
+
+  final void addRecordComponent(final RecordComponentElement r) {
+    switch (r.getKind()) {
+    case RECORD_COMPONENT:
+      this.mutableRecordComponents.add(r);
+      break;
+    default:
+      throw new IllegalArgumentException();
+    }
   }
 
   @Override // TypeElement
@@ -480,19 +490,7 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
         interfaceTypeMirrors.add(DefaultDeclaredType.of(t));
       }
     }
-    /* TODO: same deal as default type element, i.e. children add parent
-    final List<RecordComponentElement> recordComponentElements;
-    if (c.isRecord()) {
-      final RecordComponent[] recordComponents = c.getRecordComponents();
-      if (recordComponents.length <= 0) {
-        recordComponentElements = List.of();
-      } else {
-        recordComponentElements = new ArrayList<>(recordComponents.length);
-        for (final RecordComponent r : recordComponents) {
-          recordComponentElements.add(DefaultRecordComponentElement
-        }
-    */
-    return
+    final DefaultTypeElement returnValue =
       new DefaultTypeElement(qualifiedName,
                              kind,
                              type,
@@ -502,8 +500,11 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
                              superclass,
                              permittedSubclassTypeMirrors,
                              interfaceTypeMirrors,
-                             null, // TODO: remove this parameter
                              null);
+    for (final RecordComponent rc : c.getRecordComponents()) {
+      DefaultRecordComponentElement.of(returnValue, rc); // side effect: will get added
+    }
+    return returnValue;
   }
 
 }

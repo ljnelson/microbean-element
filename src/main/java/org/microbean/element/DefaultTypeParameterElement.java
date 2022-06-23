@@ -101,27 +101,8 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
     case DECLARED:
     case TYPEVAR:
       return List.of(upperBound);
-    case BOOLEAN:
-    case BYTE:
-    case CHAR:
-    case DOUBLE:
-    case ERROR:
-    case EXECUTABLE:
-    case FLOAT:
-    case INT:
-    case LONG:
-    case MODULE:
-    case NONE:
-    case NULL:
-    case OTHER:
-    case PACKAGE:
-    case SHORT:
-    case UNION:
-    case VOID:
-    case WILDCARD:
-      throw new IllegalArgumentException("typeVariable: " + typeVariable);      
     default:
-      throw new AssertionError();
+      throw new IllegalArgumentException("typeVariable: " + typeVariable);      
     }
   }
   
@@ -146,5 +127,5 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
     // TODO: verify: what modifiers could possibly exist on a TypeParameterElement?
     return new DefaultTypeParameterElement(simpleName, type, Set.of(), genericElement, null);
   }
-  
+
 }

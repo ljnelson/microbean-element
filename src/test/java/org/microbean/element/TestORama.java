@@ -41,6 +41,7 @@ import javax.lang.model.element.ModuleElement.Directive;
 import javax.lang.model.element.ModuleElement.ExportsDirective;
 import javax.lang.model.element.NestingKind;
 import javax.lang.model.element.PackageElement;
+import javax.lang.model.element.RecordComponentElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 
@@ -83,7 +84,9 @@ final class TestORama {
                null,
                List.of("-d", System.getProperty("project.build.testOutputDirectory")),
                null,
-               List.of(new FrobFile(), new AnnotatedTypeVariableCheck()));
+               List.of(new FrobFile(),
+                       new AnnotatedTypeVariableCheck(),
+                       new Record()));
     task.setProcessors(List.of(new StupidProcessor()));
     assertTrue(task.call());
   }
@@ -140,6 +143,22 @@ final class TestORama {
             }
             """);
     }
+  }
+
+  private static final class Record extends StringFile {
+
+    private Record() {
+      super("Record",
+            """
+            public record Record(String foo) {
+              @Override
+              public final String foo() {
+                return this.foo;
+              }
+            }
+            """);
+    }
+
   }
 
   private static final class StupidProcessor extends AbstractProcessor {
@@ -277,7 +296,6 @@ final class TestORama {
                                null,
                                List.of(),
                                List.of(),
-                               List.of(),
                                null);
 
       // ...and now we can do a TypeParameterElement:
@@ -349,9 +367,8 @@ final class TestORama {
                                unnamedPackage,
                                NestingKind.TOP_LEVEL,
                                null, // no superclass,
-                               List.of(),
+                               List.of(), // permitted subclass types
                                List.of(defaultComparableFrobType), // interface types
-                               List.of(),
                                null);
 
       assertTrue(Equality.equals(frobElement, defaultFrobElement, true));
@@ -377,6 +394,16 @@ final class TestORama {
           final ExecutableType t = (ExecutableType)stringsMethod.asType();
           final TypeMirror returnType = t.getReturnType();
           System.out.println("*** strings return type kind: " + returnType.getKind());
+        }
+      }
+
+      final TypeElement record = elements.getTypeElement("Record");
+      for (final Element e : record.getEnclosedElements()) {
+        if (e.getKind() == ElementKind.RECORD_COMPONENT) {
+          final RecordComponentElement rce = (RecordComponentElement)e;
+          final TypeMirror rceType = rce.asType();
+          System.out.println("*** rceType: " + rceType);
+          System.out.println("    modifiers: " + rce.getModifiers());
         }
       }
 

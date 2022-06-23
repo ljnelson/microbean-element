@@ -16,6 +16,10 @@
  */
 package org.microbean.element;
 
+import java.lang.reflect.AnnotatedParameterizedType;
+import java.lang.reflect.AnnotatedType;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -28,6 +32,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.TypeVisitor;
 
 public class DefaultDeclaredType extends AbstractReferenceType implements DeclaredType {
@@ -146,6 +151,48 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
   @Override // DeclaredType
   public final List<? extends TypeMirror> getTypeArguments() {
     return this.typeArguments;
+  }
+
+  public static final DefaultDeclaredType of(final AnnotatedType t) {    
+    if (t instanceof AnnotatedParameterizedType p) {
+      return of(p);
+    }
+    throw new IllegalArgumentException("t: " + t);
+  }
+  
+  public static final DefaultDeclaredType of(final Class<?> c) {
+    if (c == void.class || c.isArray() || c.isPrimitive()) {
+      throw new IllegalArgumentException("c: " + c);
+    }
+    final Class<?> enclosingClass = c.getEnclosingClass();
+    final TypeMirror enclosingType = enclosingClass == null ? null : of(enclosingClass);
+    final java.lang.reflect.TypeVariable<?>[] typeParameters = c.getTypeParameters();
+    final List<TypeVariable> typeArguments;
+    if (typeParameters.length <= 0) {
+      typeArguments = List.of();
+    } else {
+      typeArguments = new ArrayList<>(typeParameters.length);
+      for (final java.lang.reflect.TypeVariable<?> t : typeParameters) {
+        typeArguments.add(DefaultTypeVariable.of(t));
+      }
+    }
+    return new DefaultDeclaredType(enclosingType, typeArguments, null);
+  }
+
+  public static final DefaultDeclaredType of(final AnnotatedParameterizedType p) {
+    final AnnotatedType ownerType = p.getAnnotatedOwnerType();
+    final TypeMirror enclosingType = ownerType == null ? null : of(ownerType);
+    final List<TypeMirror> typeArguments;
+    final AnnotatedType[] actualTypeArguments = p.getAnnotatedActualTypeArguments();
+    if (actualTypeArguments.length <= 0) {
+      typeArguments = List.of();
+    } else {
+      typeArguments = new ArrayList<>(actualTypeArguments.length);
+      for (final AnnotatedType t : actualTypeArguments) {
+        typeArguments.add(AbstractTypeMirror.of(t));
+      }
+    }
+    return new DefaultDeclaredType(enclosingType, typeArguments, null);
   }
 
 }

@@ -16,6 +16,8 @@
  */
 package org.microbean.element;
 
+import java.lang.reflect.Parameter;
+
 import java.util.List;
 import java.util.Set;
 
@@ -84,6 +86,12 @@ public final class DefaultVariableElement extends AbstractElement implements Var
 
   private static final TypeMirror validate(final TypeMirror type) {
     return type;
+  }
+
+  public static final DefaultVariableElement of(final Parameter p) {
+    
+    // TODO: resume
+    throw new UnsupportedOperationException("TODO: implement");
   }
   
 }

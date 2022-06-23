@@ -16,8 +16,14 @@
  */
 package org.microbean.element;
 
+import java.lang.reflect.AnnotatedType;
+import java.lang.reflect.Executable;
+
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -27,6 +33,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ElementVisitor;
 import javax.lang.model.element.Modifier;
@@ -300,7 +307,7 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
                             final ElementKind kind,
                             final TypeMirror type,
                             final Set<? extends Modifier> modifiers,
-                            final AbstractElement enclosingElement,
+                            final Element enclosingElement,
                             final NestingKind nestingKind,
                             final TypeMirror superclass,
                             final List<? extends TypeMirror> permittedSubclasses,
@@ -392,6 +399,111 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
     default:
       throw new IllegalArgumentException("Not a type element kind: " + kind);
     }
+  }
+
+  public static final DefaultTypeElement of(final Element enclosingElement, final Class<?> c) {
+    if (c == void.class || c.isArray() || c.isPrimitive()) {
+      throw new IllegalArgumentException("c: " + c);
+    }
+    final Name qualifiedName = DefaultName.of(c.getName());
+    final ElementKind kind;
+    if (c.isAnnotation()) {
+      kind = ElementKind.ANNOTATION_TYPE;
+    } else if (c.isInterface()) {
+      kind = ElementKind.INTERFACE;
+    } else if (c.isEnum()) {
+      kind = ElementKind.ENUM;
+    } else if (c.isRecord()) {
+      kind = ElementKind.RECORD;
+    } else {
+      kind = ElementKind.CLASS;
+    }
+    final TypeMirror type = DefaultDeclaredType.of(c);
+    final Collection<Modifier> modifierSet = new HashSet<>();
+    final int modifiers = c.getModifiers();
+    if (java.lang.reflect.Modifier.isAbstract(modifiers)) {
+      modifierSet.add(Modifier.ABSTRACT);
+    }
+    if (java.lang.reflect.Modifier.isFinal(modifiers)) {
+      modifierSet.add(Modifier.FINAL);
+    }
+    if (java.lang.reflect.Modifier.isPrivate(modifiers)) {
+      modifierSet.add(Modifier.PRIVATE);
+    }
+    if (java.lang.reflect.Modifier.isProtected(modifiers)) {
+      modifierSet.add(Modifier.PROTECTED);
+    }
+    if (java.lang.reflect.Modifier.isPublic(modifiers)) {
+      modifierSet.add(Modifier.PUBLIC);
+    }
+    if (c.isSealed()) {
+      modifierSet.add(Modifier.SEALED);
+    }
+    if (java.lang.reflect.Modifier.isStatic(modifiers)) {
+      modifierSet.add(Modifier.STATIC);
+    }
+    final EnumSet<Modifier> finalModifiers = EnumSet.copyOf(modifierSet);
+    final NestingKind nestingKind;
+    if (enclosingElement == null) {
+      nestingKind = NestingKind.TOP_LEVEL;
+    } else if (c.isAnonymousClass()) {
+      nestingKind = NestingKind.ANONYMOUS;
+    } else if (c.isLocalClass()) {
+      nestingKind = NestingKind.LOCAL;
+    } else if (c.isMemberClass()) {
+      nestingKind = NestingKind.MEMBER;
+    } else {
+      throw new AssertionError();
+    }
+    final DeclaredType superclass = DefaultDeclaredType.of(c.getAnnotatedSuperclass());
+    final List<TypeMirror> permittedSubclassTypeMirrors;
+    if (c.isSealed()) {
+      final Class<?>[] permittedSubclasses = c.getPermittedSubclasses();
+      if (permittedSubclasses.length <= 0) {
+        permittedSubclassTypeMirrors = List.of();
+      } else {
+        permittedSubclassTypeMirrors = new ArrayList<>(permittedSubclasses.length);
+        for (final Class<?> psc : permittedSubclasses) {
+          permittedSubclassTypeMirrors.add(DefaultDeclaredType.of(psc));
+        }
+      }
+    } else {
+      permittedSubclassTypeMirrors = List.of();
+    }
+    final List<TypeMirror> interfaceTypeMirrors;
+    final AnnotatedType[] annotatedInterfaces = c.getAnnotatedInterfaces();
+    if (annotatedInterfaces.length <= 0) {
+      interfaceTypeMirrors = List.of();
+    } else {
+      interfaceTypeMirrors = new ArrayList<>(annotatedInterfaces.length);
+      for (final AnnotatedType t : annotatedInterfaces) {
+        interfaceTypeMirrors.add(DefaultDeclaredType.of(t));
+      }
+    }
+    /* TODO: same deal as default type element, i.e. children add parent
+    final List<RecordComponentElement> recordComponentElements;
+    if (c.isRecord()) {
+      final RecordComponent[] recordComponents = c.getRecordComponents();
+      if (recordComponents.length <= 0) {
+        recordComponentElements = List.of();
+      } else {
+        recordComponentElements = new ArrayList<>(recordComponents.length);
+        for (final RecordComponent r : recordComponents) {
+          recordComponentElements.add(DefaultRecordComponentElement
+        }
+    */
+    return
+      new DefaultTypeElement(qualifiedName,
+                             kind,
+                             type,
+                             finalModifiers,
+                             enclosingElement,
+                             nestingKind,
+                             superclass,
+                             permittedSubclassTypeMirrors,
+                             interfaceTypeMirrors,
+                             null, // TODO: remove this parameter
+                             null);
   }
 
 }

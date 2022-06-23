@@ -3097,10 +3097,6 @@ final class Types {
     throw new UnsupportedOperationException();
   }
   
-  private static final UnionType unionType(final List<? extends TypeMirror> alternatives) {
-    return DefaultUnionType.of(alternatives);
-  }
-
   private static final WildcardType upperBoundedWildcardType(final TypeMirror upperBound,
                                                              final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     return DefaultWildcardType.upperBoundedWildcardType(upperBound, annotationMirrorsSupplier);

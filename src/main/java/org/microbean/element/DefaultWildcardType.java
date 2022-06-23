@@ -16,6 +16,12 @@
  */
 package org.microbean.element;
 
+import java.lang.reflect.AnnotatedType;
+import java.lang.reflect.AnnotatedWildcardType;
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+
 import java.util.List;
 
 import java.util.function.Supplier;
@@ -90,6 +96,10 @@ public class DefaultWildcardType extends AbstractTypeMirror implements WildcardT
     return this.superBound;
   }
 
+  public static DefaultWildcardType upperBoundedWildcardType(final TypeMirror extendsBound) {
+    return upperBoundedWildcardType(extendsBound, null);
+  }
+  
   public static DefaultWildcardType upperBoundedWildcardType(final TypeMirror extendsBound,
                                                              final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     if (extendsBound == null && annotationMirrorsSupplier == null) {
@@ -98,6 +108,10 @@ public class DefaultWildcardType extends AbstractTypeMirror implements WildcardT
     return new DefaultWildcardType(extendsBound, null, annotationMirrorsSupplier);
   }
 
+  public static DefaultWildcardType lowerBoundedWildcardType(final TypeMirror superBound) {
+    return lowerBoundedWildcardType(superBound, null);
+  }
+  
   public static DefaultWildcardType lowerBoundedWildcardType(final TypeMirror superBound,
                                                              final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     if (superBound == null && annotationMirrorsSupplier == null) {
@@ -112,6 +126,22 @@ public class DefaultWildcardType extends AbstractTypeMirror implements WildcardT
   
   public static DefaultWildcardType unboundedWildcardType(final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     return annotationMirrorsSupplier == null ? UNBOUNDED : new DefaultWildcardType(null, null, annotationMirrorsSupplier);
+  }
+
+  public static DefaultWildcardType of(final AnnotatedWildcardType w) {
+    final AnnotatedType[] lowerBounds = w.getAnnotatedLowerBounds();
+    if (lowerBounds.length > 0) {
+      return lowerBoundedWildcardType(AbstractTypeMirror.of(lowerBounds[0]));
+    } else {
+      final AnnotatedType[] upperBounds = w.getAnnotatedUpperBounds();
+      final AnnotatedType soleUpperBound = upperBounds[0];
+      if (soleUpperBound.getType() == Object.class) {
+        // Unbounded.
+        return unboundedWildcardType(); // TODO: annotations
+      } else {
+        return upperBoundedWildcardType(AbstractTypeMirror.of(soleUpperBound));
+      }
+    }
   }
   
 }

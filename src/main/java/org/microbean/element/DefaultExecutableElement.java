@@ -16,18 +16,32 @@
  */
 package org.microbean.element;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Executable;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import java.util.function.Supplier;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ElementVisitor;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
 
@@ -35,6 +49,8 @@ import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeMirror;
 
 public class DefaultExecutableElement extends AbstractElement implements ExecutableElement {
+
+  private final List<TypeParameterElement> mutableTypeParameters;
 
   private final List<? extends TypeParameterElement> typeParameters;
 
@@ -45,13 +61,13 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
   private final boolean varArgs;
 
   private final AnnotationValue defaultValue;
-  
+
   public DefaultExecutableElement(final Name simpleName,
                                   final ElementKind kind,
                                   final ExecutableType type,
                                   final Set<? extends Modifier> modifiers,
-                                  final AbstractElement enclosingElement,
-                                  final List<? extends TypeParameterElement> typeParameters,
+                                  final TypeElement enclosingElement,
+                                  // final List<? extends TypeParameterElement> typeParameters,
                                   final List<? extends VariableElement> parameters,
                                   final boolean varArgs,
                                   final boolean isDefault,
@@ -74,9 +90,10 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
     default:
       throw new IllegalArgumentException("Not an executable kind: " + kind);
     }
-    this.typeParameters = typeParameters == null || typeParameters.isEmpty() ? List.of() : List.copyOf(typeParameters);
+    this.mutableTypeParameters = new CopyOnWriteArrayList<>();
+    this.typeParameters = Collections.unmodifiableList(this.mutableTypeParameters);
     this.parameters = parameters == null || parameters.isEmpty() ? List.of() : List.copyOf(parameters);
-    this.varArgs = varArgs;    
+    this.varArgs = varArgs;
     this.isDefault = isDefault;
     this.defaultValue = defaultValue;
   }
@@ -116,6 +133,16 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
     return this.typeParameters;
   }
 
+  final void addTypeParameter(final TypeParameterElement tp) {
+    switch (tp.getKind()) {
+    case TYPE_PARAMETER:
+      this.mutableTypeParameters.add(tp);
+      break;
+    default:
+      throw new IllegalArgumentException();
+    }
+  }
+
   @Override // ExecutableElement
   public final List<? extends TypeMirror> getThrownTypes() {
     return this.asType().getThrownTypes();
@@ -139,23 +166,76 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
       throw new IllegalArgumentException("t: " + t);
     }
   }
-  
-  public static final DefaultExecutableElement of(final ExecutableElement e) {
-    if (e instanceof DefaultExecutableElement de) {
-      return de;
+
+  public static final DefaultExecutableElement of(final TypeElement enclosingElement, final Executable e) {
+    final Name simpleName = DefaultName.of(e.getName());
+    final ElementKind kind = e instanceof Method ? ElementKind.METHOD : ElementKind.CONSTRUCTOR;
+    final ExecutableType type = DefaultExecutableType.of(e);
+    final Collection<Modifier> modifierSet = new HashSet<>();
+    final int modifiers = e.getModifiers();
+    if (java.lang.reflect.Modifier.isAbstract(modifiers)) {
+      modifierSet.add(Modifier.ABSTRACT);
     }
-    return
-      new DefaultExecutableElement(e.getSimpleName(),
-                                   e.getKind(),
-                                   (ExecutableType)e.asType(),
-                                   e.getModifiers(),
-                                   (AbstractElement)e.getEnclosingElement(),
-                                   e.getTypeParameters(),
-                                   e.getParameters(),
-                                   e.isVarArgs(),
-                                   e.isDefault(),
-                                   e.getDefaultValue(),
-                                   e::getAnnotationMirrors);
+    final boolean isDefault = e instanceof Method m && m.isDefault();
+    if (isDefault) {
+      modifierSet.add(Modifier.DEFAULT);
+    }
+    if (java.lang.reflect.Modifier.isFinal(modifiers)) {
+      modifierSet.add(Modifier.FINAL);
+    }
+    if (java.lang.reflect.Modifier.isNative(modifiers)) {
+      modifierSet.add(Modifier.NATIVE);
+    }
+    if (java.lang.reflect.Modifier.isPrivate(modifiers)) {
+      modifierSet.add(Modifier.PRIVATE);
+    }
+    if (java.lang.reflect.Modifier.isProtected(modifiers)) {
+      modifierSet.add(Modifier.PROTECTED);
+    }
+    if (java.lang.reflect.Modifier.isPublic(modifiers)) {
+      modifierSet.add(Modifier.PUBLIC);
+    }
+    if (java.lang.reflect.Modifier.isStatic(modifiers)) {
+      modifierSet.add(Modifier.STATIC);
+    }
+    if (java.lang.reflect.Modifier.isSynchronized(modifiers)) {
+      modifierSet.add(Modifier.SYNCHRONIZED);
+    }
+    final EnumSet<Modifier> finalModifiers = EnumSet.copyOf(modifierSet);
+    final Class<?> declaringClass = e.getDeclaringClass();
+
+    final List<VariableElement> parameterElements;
+    final Parameter[] parameters = e.getParameters();
+    if (parameters.length <= 0) {
+      parameterElements = List.of();
+    } else {
+      parameterElements = new ArrayList<>(parameters.length);
+      for (final Parameter p : parameters) {
+        parameterElements.add(DefaultVariableElement.of(p));
+      }
+    }
+
+    // TODO: no real way to handle default value
+
+    final boolean varArgs = e.isVarArgs();
+
+    final DefaultExecutableElement returnValue =
+      new DefaultExecutableElement(simpleName,
+                                   kind,
+                                   type,
+                                   finalModifiers,
+                                   enclosingElement,
+                                   parameterElements,
+                                   varArgs,
+                                   isDefault,
+                                   null,
+                                   null);
+
+    for (final java.lang.reflect.TypeVariable<?> t : e.getTypeParameters()) {
+      DefaultTypeParameterElement.of(returnValue, t); // side effect: adds the new DefaultTypeParameterElement to this DefaultExecutableElement's collection
+    }
+
+    return returnValue;
   }
-  
+
 }

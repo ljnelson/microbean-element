@@ -16,6 +16,8 @@
  */
 package org.microbean.element;
 
+import java.lang.reflect.AnnotatedArrayType;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -55,6 +57,23 @@ public class DefaultArrayType extends AbstractReferenceType implements ArrayType
   public static DefaultArrayType of(final TypeMirror componentType,
                                     final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     return new DefaultArrayType(componentType, annotationMirrorsSupplier);
+  }
+
+  public static DefaultArrayType of(final Class<?> c) {
+    final Class<?> ct = c.getComponentType();
+    if (ct == null) {
+      throw new IllegalArgumentException("c: " + c);
+    } else if (ct.isArray()) {
+      return of(of(ct));
+    } else if (ct.isPrimitive()) {
+      return of(DefaultPrimitiveType.of(ct));
+    } else {
+      return of(DefaultDeclaredType.of(ct));
+    }
+  }
+  
+  public static DefaultArrayType of(final AnnotatedArrayType t) {
+    return of(DefaultDeclaredType.of(t.getAnnotatedGenericComponentType()));
   }
   
 }

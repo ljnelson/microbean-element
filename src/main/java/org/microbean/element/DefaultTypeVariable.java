@@ -16,6 +16,11 @@
  */
 package org.microbean.element;
 
+import java.lang.reflect.AnnotatedType;
+import java.lang.reflect.AnnotatedTypeVariable;
+import java.lang.reflect.GenericArrayType;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import java.util.function.Supplier;
@@ -59,16 +64,65 @@ public class DefaultTypeVariable extends AbstractTypeVariable {
   }
 
   public static DefaultTypeVariable of() {
-    return of(null, List::of);
+    return of(null, null);
   }
   
   public static DefaultTypeVariable of(final TypeMirror upperBound) {
-    return of(upperBound, List::of);
+    return of(upperBound, null);
   }
   
   public static DefaultTypeVariable of(final TypeMirror upperBound,
                                        final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     return new DefaultTypeVariable(upperBound, null, annotationMirrorsSupplier);
+  }
+
+  // Weirdly, nothing in the JDK actually uses AnnotatedTypeVariable.
+  public static DefaultTypeVariable of(final AnnotatedTypeVariable tv) {
+    final AnnotatedType[] bounds = tv.getAnnotatedBounds();
+    // If a java.lang.reflect.TypeVariable has a
+    // java.lang.reflect.TypeVariable as its first bound, it is
+    // required that this first bound be its only bound.
+    switch (bounds.length) {
+    case 0:
+      return of();
+    case 1:
+      // Class, interface, or type variable
+      final AnnotatedType soleBound = bounds[0];
+      if (soleBound instanceof AnnotatedTypeVariable tvBound) {
+        return of(of(tvBound));
+      }
+      return of(DefaultDeclaredType.of(soleBound));
+    default:
+      final List<TypeMirror> intersectionTypeBounds = new ArrayList<>(bounds.length);
+      for (final AnnotatedType bound : bounds) {
+        intersectionTypeBounds.add(AbstractTypeMirror.of(bound));
+      }
+      return of(DefaultIntersectionType.of(intersectionTypeBounds));
+    }
+  }
+
+  public static DefaultTypeVariable of(final java.lang.reflect.TypeVariable<?> tv) {
+    final AnnotatedType[] bounds = tv.getAnnotatedBounds();
+    // If a java.lang.reflect.TypeVariable has a
+    // java.lang.reflect.TypeVariable as its first bound, it is
+    // required that this first bound be its only bound.
+    switch (bounds.length) {
+    case 0:
+      return of();
+    case 1:
+      // Class, interface, or type variable
+      final AnnotatedType soleBound = bounds[0];
+      if (soleBound instanceof AnnotatedTypeVariable tvBound) {
+        return of(of(tvBound));
+      }
+      return of(DefaultDeclaredType.of(soleBound));
+    default:
+      final List<TypeMirror> intersectionTypeBounds = new ArrayList<>(bounds.length);
+      for (final AnnotatedType bound : bounds) {
+        intersectionTypeBounds.add(AbstractTypeMirror.of(bound));
+      }
+      return of(DefaultIntersectionType.of(intersectionTypeBounds));
+    }
   }
 
 }

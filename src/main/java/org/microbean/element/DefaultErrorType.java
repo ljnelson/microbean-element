@@ -29,6 +29,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVisitor;
 
+@Deprecated
 public class DefaultErrorType extends DefaultDeclaredType implements ErrorType {
 
   public DefaultErrorType(final TypeMirror enclosingType,

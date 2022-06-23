@@ -16,7 +16,10 @@
  */
 package org.microbean.element;
 
+import java.lang.reflect.Type;
+
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import java.util.function.Supplier;
@@ -46,6 +49,16 @@ public class DefaultPrimitiveType extends AbstractTypeMirror implements Primitiv
 
   public static final DefaultPrimitiveType SHORT = new DefaultPrimitiveType(TypeKind.SHORT, null);
 
+  private static final Map<Type, DefaultPrimitiveType> defaultPrimitiveTypes =
+    Map.of(boolean.class, BOOLEAN,
+           byte.class, BYTE,
+           char.class, CHAR,
+           double.class, DOUBLE,
+           float.class, FLOAT,
+           int.class, INT,
+           long.class, LONG,
+           short.class, SHORT);
+  
   public DefaultPrimitiveType(final TypeKind kind) {
     this(kind, null);
   }
@@ -71,6 +84,14 @@ public class DefaultPrimitiveType extends AbstractTypeMirror implements Primitiv
   @Override // TypeMirror
   public <R, P> R accept(final TypeVisitor<R, P> v, P p) {
     return v.visitPrimitive(this, p);
+  }
+
+  public static DefaultPrimitiveType of(final Class<?> c) {
+    final DefaultPrimitiveType returnValue = defaultPrimitiveTypes.get(c);
+    if (returnValue == null) {
+      throw new IllegalArgumentException("c: " + c);
+    }
+    return returnValue;
   }
   
 }

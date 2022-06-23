@@ -35,6 +35,7 @@ import javax.lang.model.SourceVersion;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.ModuleElement;
 import javax.lang.model.element.ModuleElement.Directive;
 import javax.lang.model.element.ModuleElement.ExportsDirective;
@@ -44,6 +45,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
@@ -81,30 +83,63 @@ final class TestORama {
                null,
                List.of("-d", System.getProperty("project.build.testOutputDirectory")),
                null,
-               List.of(new FrobFile()));
+               List.of(new FrobFile(), new AnnotatedTypeVariableCheck()));
     task.setProcessors(List.of(new StupidProcessor()));
     assertTrue(task.call());
   }
 
-  private static final class FrobFile extends SimpleJavaFileObject {
+  private static class StringFile extends SimpleJavaFileObject {
 
-    private FrobFile() {
-      super(URI.create("string:///Frob.java"), SimpleJavaFileObject.Kind.SOURCE);
+    private final String sourceCode;
+
+    protected StringFile(final String className, final String sourceCode) {
+      super(URI.create("string:///" + className.replace('.', '/') + ".java"), SimpleJavaFileObject.Kind.SOURCE);
+      this.sourceCode = sourceCode;
     }
 
     @Override
     public final CharSequence getCharContent(final boolean ignoreEncodingErrors) {
-      return
-        """
-        public class Frob implements Comparable<Frob> {
-          @Override
-          public final int compareTo(final Frob other) {
-            return 0;
-          }
-        }
-      """;
+      return this.sourceCode;
     }
 
+  }
+
+  private static final class FrobFile extends StringFile {
+
+    private FrobFile() {
+      super("Frob",
+            """
+            public class Frob implements Comparable<Frob> {
+              @Override
+              public final int compareTo(final Frob other) {
+                return 0;
+              }
+            }
+            """);
+    }
+  }
+
+  private static final class AnnotatedTypeVariableCheck extends StringFile {
+
+    private AnnotatedTypeVariableCheck() {
+      super("AnnotatedTypeVariableCheck",
+            """
+            class AnnotatedTypeVariableCheck {
+
+              private static String[] strings() {
+                return new String[0];
+              }
+
+              private static <@Gorp T> T frob() {
+                return null;
+              }
+
+              @java.lang.annotation.Target(java.lang.annotation.ElementType.TYPE_USE)
+              private static @interface Gorp {}
+
+            }
+            """);
+    }
   }
 
   private static final class StupidProcessor extends AbstractProcessor {
@@ -325,6 +360,27 @@ final class TestORama {
       final DefaultModuleElement orgMicrobeanElement = DefaultModuleElement.of(this.getClass().getModule());
       System.out.println(orgMicrobeanElement.getQualifiedName());
       System.out.println("*** module: " + this.getClass().getModule());
+
+      final TypeElement annotatedTypeVariableCheck = elements.getTypeElement("AnnotatedTypeVariableCheck");
+      assertNotNull(annotatedTypeVariableCheck);
+      for (final Element e : annotatedTypeVariableCheck.getEnclosedElements()) {
+        if (e.getSimpleName().contentEquals("frob")) {
+          final ExecutableElement frobMethod = (ExecutableElement)e;
+          final ExecutableType t = (ExecutableType)frobMethod.asType();
+          final List<? extends TypeVariable> tvs = t.getTypeVariables();
+          for (final TypeVariable tv : tvs) {
+            System.out.println("*** frob type variable: " + tv);
+            System.out.println("    frob type variable annotations: " + tv.getAnnotationMirrors());
+          }
+        } else if (e.getSimpleName().contentEquals("strings")) {
+          final ExecutableElement stringsMethod = (ExecutableElement)e;
+          final ExecutableType t = (ExecutableType)stringsMethod.asType();
+          final TypeMirror returnType = t.getReturnType();
+          System.out.println("*** strings return type kind: " + returnType.getKind());
+        }
+      }
+
+
 
     }
 

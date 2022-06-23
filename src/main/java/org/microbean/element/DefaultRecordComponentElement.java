@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ElementVisitor;
 import javax.lang.model.element.ExecutableElement;
@@ -36,17 +37,17 @@ public class DefaultRecordComponentElement extends AbstractElement implements Re
 
   private final ExecutableElement accessor;
 
-   public DefaultRecordComponentElement(final Name simpleName,
+  public DefaultRecordComponentElement(final Name simpleName,
                                        final TypeMirror type,
                                        final Set<? extends Modifier> modifiers,
-                                       final AbstractElement enclosingElement, // the record element; TODO change to DefaultRecordElement
+                                       final Element enclosingElement, // the record element
                                        final ExecutableElement accessor,
                                        final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(simpleName,
           ElementKind.RECORD_COMPONENT,
           validate(type),
           modifiers,
-          enclosingElement,
+          validate(enclosingElement),
           annotationMirrorsSupplier);
     this.accessor = Objects.requireNonNull(accessor, "accessor");
   }
@@ -61,8 +62,22 @@ public class DefaultRecordComponentElement extends AbstractElement implements Re
     return this.accessor;
   }
 
-  private static final TypeMirror validate(final TypeMirror type) {
-    return type;
+  private static final <T extends TypeMirror> T validate(final T type) {
+    switch (type.getKind()) {
+    case DECLARED:
+      return type;
+    default:
+      throw new IllegalArgumentException("type: " + type);
+    }
+  }
+
+  private static final <E extends Element> E validate(final E enclosingElement) {
+    switch (enclosingElement.getKind()) {
+    case RECORD:
+      return enclosingElement;
+    default:
+      throw new IllegalArgumentException("enclosingElement: " + enclosingElement);
+    }
   }
   
 }

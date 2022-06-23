@@ -16,6 +16,10 @@
  */
 package org.microbean.element;
 
+import java.lang.reflect.AnnotatedType;
+import java.lang.reflect.Executable;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -111,5 +115,41 @@ public class DefaultExecutableType extends AbstractTypeMirror implements Executa
                                      typeVariables,
                                      annotationMirrorsSupplier);
   }
-  
+
+  public static DefaultExecutableType of(final Executable e) {
+    final AnnotatedType[] parameterTypes = e.getAnnotatedParameterTypes();
+    final List<TypeMirror> parameterTypeMirrors;
+    if (parameterTypes.length <= 0) {
+      parameterTypeMirrors = List.of();
+    } else {
+      parameterTypeMirrors = new ArrayList<>(parameterTypes.length);
+      for (final AnnotatedType t : parameterTypes) {
+        parameterTypeMirrors.add(AbstractTypeMirror.of(t));
+      }
+    }
+    final TypeMirror receiverType = AbstractTypeMirror.of(e.getAnnotatedReceiverType());
+    final TypeMirror returnType = AbstractTypeMirror.of(e.getAnnotatedReturnType());
+    final AnnotatedType[] exceptionTypes = e.getAnnotatedExceptionTypes();
+    final List<TypeMirror> thrownTypes;
+    if (exceptionTypes.length <= 0) {
+      thrownTypes = List.of();
+    } else {
+      thrownTypes = new ArrayList<>(exceptionTypes.length);
+      for (final AnnotatedType t : exceptionTypes) {
+        thrownTypes.add(AbstractTypeMirror.of(t));
+      }
+    }
+    final List<TypeVariable> typeVariables;
+    final java.lang.reflect.TypeVariable<?>[] typeParameters = e.getTypeParameters();
+    if (typeParameters.length <= 0) {
+      typeVariables = List.of();
+    } else {
+      typeVariables = new ArrayList<>(typeParameters.length);
+      for (final java.lang.reflect.TypeVariable<?> t : typeParameters) {
+        typeVariables.add(DefaultTypeVariable.of(t));
+      }
+    }
+    return of(parameterTypeMirrors, receiverType, returnType, thrownTypes, typeVariables, null);
+  }
+
 }

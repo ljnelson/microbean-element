@@ -25,6 +25,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVisitor;
 import javax.lang.model.type.UnionType;
 
+@Deprecated
 public class DefaultUnionType extends AbstractTypeMirror implements UnionType {
 
   // I don't even know if this is legal.

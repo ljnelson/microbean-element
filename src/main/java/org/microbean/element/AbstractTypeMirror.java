@@ -16,6 +16,15 @@
  */
 package org.microbean.element;
 
+import java.lang.reflect.AnnotatedArrayType;
+import java.lang.reflect.AnnotatedParameterizedType;
+import java.lang.reflect.AnnotatedType;
+import java.lang.reflect.AnnotatedTypeVariable;
+import java.lang.reflect.AnnotatedWildcardType;
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -125,6 +134,34 @@ public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements Ty
       return Equality.equals(this, tm, true);
     } else {
       return false;
+    }
+  }
+
+  public static AbstractTypeMirror of(final Class<?> c) {
+    if (c == void.class) {
+      return DefaultNoType.VOID;
+    } else if (c.isArray()) {
+      return DefaultArrayType.of(c);
+    } else if (c.isPrimitive()) {
+      return DefaultPrimitiveType.of(c);
+    } else {
+      return DefaultDeclaredType.of(c);
+    }
+  }
+  
+  public static AbstractTypeMirror of(final AnnotatedType t) {
+    if (t instanceof AnnotatedParameterizedType p) {
+      return DefaultDeclaredType.of(p);
+    } else if (t instanceof AnnotatedArrayType a) {
+      return DefaultArrayType.of(a);
+    } else if (t instanceof AnnotatedTypeVariable tv) {
+      return DefaultTypeVariable.of(tv);
+    } else if (t instanceof AnnotatedWildcardType w) {
+      return DefaultWildcardType.of(w);
+    } else if (t.getType() instanceof Class<?> c) {
+      return of(c);
+    } else {
+      throw new IllegalArgumentException("t: " + t);
     }
   }
 

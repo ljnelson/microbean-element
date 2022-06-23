@@ -149,7 +149,7 @@ public class DefaultExecutableType extends AbstractTypeMirror implements Executa
         typeVariables.add(DefaultTypeVariable.of(t));
       }
     }
-    return of(parameterTypeMirrors, receiverType, returnType, thrownTypes, typeVariables, null);
+    return DefaultExecutableType.of(parameterTypeMirrors, receiverType, returnType, thrownTypes, typeVariables, null);
   }
 
 }

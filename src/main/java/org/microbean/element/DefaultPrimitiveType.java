@@ -16,6 +16,9 @@
  */
 package org.microbean.element;
 
+import java.lang.annotation.Annotation;
+
+import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.Type;
 
 import java.util.List;
@@ -87,11 +90,22 @@ public class DefaultPrimitiveType extends AbstractTypeMirror implements Primitiv
   }
 
   public static DefaultPrimitiveType of(final Class<?> c) {
-    final DefaultPrimitiveType returnValue = defaultPrimitiveTypes.get(c);
-    if (returnValue == null) {
-      throw new IllegalArgumentException("c: " + c);
+    if (c.isPrimitive()) {
+      return defaultPrimitiveTypes.get(c);
     }
-    return returnValue;
+    throw new IllegalArgumentException("c: " + c);
+  }
+
+  public static DefaultPrimitiveType of(final AnnotatedType at) {
+    final Type t = at.getType();
+    if (t instanceof Class<?> c && c.isPrimitive()) {
+      final Annotation[] declaredAnnotations = c.getDeclaredAnnotations();
+      if (declaredAnnotations.length <= 0) {
+        return of(c);
+      }
+      return new DefaultPrimitiveType(defaultPrimitiveTypes.get(c).getKind(), null);
+    }
+    throw new IllegalArgumentException("at: " + at);
   }
   
 }

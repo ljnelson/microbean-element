@@ -16,6 +16,9 @@
  */
 package org.microbean.element;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Target;
+
 import java.lang.reflect.AnnotatedArrayType;
 import java.lang.reflect.AnnotatedParameterizedType;
 import java.lang.reflect.AnnotatedType;
@@ -51,8 +54,13 @@ final class TestReflective {
     return new String[0];
   }
 
-  private static final int number() {
+  private static final @Gorp int number() {
     return 42;
+  }
+
+  @Target(ElementType.TYPE_USE)
+  @interface Gorp {
+
   }
   
 }

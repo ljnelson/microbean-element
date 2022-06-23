@@ -84,20 +84,20 @@ public class DefaultTypeVariable extends AbstractTypeVariable {
     // required that this first bound be its only bound.
     switch (bounds.length) {
     case 0:
-      return of();
+      return DefaultTypeVariable.of();
     case 1:
       // Class, interface, or type variable
       final AnnotatedType soleBound = bounds[0];
       if (soleBound instanceof AnnotatedTypeVariable tvBound) {
-        return of(of(tvBound));
+        return DefaultTypeVariable.of(DefaultTypeVariable.of(tvBound));
       }
-      return of(DefaultDeclaredType.of(soleBound));
+      return DefaultTypeVariable.of(DefaultDeclaredType.of(soleBound));
     default:
       final List<TypeMirror> intersectionTypeBounds = new ArrayList<>(bounds.length);
       for (final AnnotatedType bound : bounds) {
         intersectionTypeBounds.add(AbstractTypeMirror.of(bound));
       }
-      return of(DefaultIntersectionType.of(intersectionTypeBounds));
+      return DefaultTypeVariable.of(DefaultIntersectionType.of(intersectionTypeBounds));
     }
   }
 
@@ -108,20 +108,20 @@ public class DefaultTypeVariable extends AbstractTypeVariable {
     // required that this first bound be its only bound.
     switch (bounds.length) {
     case 0:
-      return of();
+      return DefaultTypeVariable.of();
     case 1:
       // Class, interface, or type variable
       final AnnotatedType soleBound = bounds[0];
       if (soleBound instanceof AnnotatedTypeVariable tvBound) {
-        return of(of(tvBound));
+        return DefaultTypeVariable.of(DefaultTypeVariable.of(tvBound));
       }
-      return of(DefaultDeclaredType.of(soleBound));
+      return DefaultTypeVariable.of(DefaultDeclaredType.of(soleBound));
     default:
       final List<TypeMirror> intersectionTypeBounds = new ArrayList<>(bounds.length);
       for (final AnnotatedType bound : bounds) {
         intersectionTypeBounds.add(AbstractTypeMirror.of(bound));
       }
-      return of(DefaultIntersectionType.of(intersectionTypeBounds));
+      return DefaultTypeVariable.of(DefaultIntersectionType.of(intersectionTypeBounds));
     }
   }
 

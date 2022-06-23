@@ -18,6 +18,8 @@ package org.microbean.element;
 
 import java.lang.reflect.AnnotatedParameterizedType;
 import java.lang.reflect.AnnotatedType;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -179,9 +181,25 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
     return new DefaultDeclaredType(enclosingType, typeArguments, null);
   }
 
+  public static final DefaultDeclaredType of(final ParameterizedType p) {
+    final Type ownerType = p.getOwnerType();
+    final TypeMirror enclosingType = ownerType == null ? null : AbstractTypeMirror.of(ownerType);
+    final List<TypeMirror> typeArguments;
+    final Type[] actualTypeArguments = p.getActualTypeArguments();
+    if (actualTypeArguments.length <= 0) {
+      typeArguments = List.of();
+    } else {
+      typeArguments = new ArrayList<>(actualTypeArguments.length);
+      for (final Type t : actualTypeArguments) {
+        typeArguments.add(AbstractTypeMirror.of(t));
+      }
+    }
+    return new DefaultDeclaredType(enclosingType, typeArguments, null);
+  }
+  
   public static final DefaultDeclaredType of(final AnnotatedParameterizedType p) {
     final AnnotatedType ownerType = p.getAnnotatedOwnerType();
-    final TypeMirror enclosingType = ownerType == null ? null : of(ownerType);
+    final TypeMirror enclosingType = ownerType == null ? null : AbstractTypeMirror.of(ownerType);
     final List<TypeMirror> typeArguments;
     final AnnotatedType[] actualTypeArguments = p.getAnnotatedActualTypeArguments();
     if (actualTypeArguments.length <= 0) {

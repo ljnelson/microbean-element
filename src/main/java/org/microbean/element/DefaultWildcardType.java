@@ -143,5 +143,21 @@ public class DefaultWildcardType extends AbstractTypeMirror implements WildcardT
       }
     }
   }
-  
+
+  public static DefaultWildcardType of(final java.lang.reflect.WildcardType w) {
+    final Type[] lowerBounds = w.getLowerBounds();
+    if (lowerBounds.length > 0) {
+      return lowerBoundedWildcardType(AbstractTypeMirror.of(lowerBounds[0]));
+    } else {
+      final Type[] upperBounds = w.getUpperBounds();
+      final Type soleUpperBound = upperBounds[0];
+      if (soleUpperBound == Object.class) {
+        // Unbounded.
+        return unboundedWildcardType(); // TODO: annotations
+      } else {
+        return upperBoundedWildcardType(AbstractTypeMirror.of(soleUpperBound));
+      }
+    }
+  }
+
 }

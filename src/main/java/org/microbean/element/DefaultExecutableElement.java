@@ -53,7 +53,9 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
   private final List<TypeParameterElement> mutableTypeParameters;
 
   private final List<? extends TypeParameterElement> typeParameters;
-
+  
+  private final List<VariableElement> mutableParameters;
+  
   private final List<? extends VariableElement> parameters;
 
   private final boolean isDefault;
@@ -67,8 +69,6 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
                                   final ExecutableType type,
                                   final Set<? extends Modifier> modifiers,
                                   final TypeElement enclosingElement,
-                                  // final List<? extends TypeParameterElement> typeParameters,
-                                  final List<? extends VariableElement> parameters,
                                   final boolean varArgs,
                                   final boolean isDefault,
                                   final AnnotationValue defaultValue,
@@ -92,7 +92,8 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
     }
     this.mutableTypeParameters = new CopyOnWriteArrayList<>();
     this.typeParameters = Collections.unmodifiableList(this.mutableTypeParameters);
-    this.parameters = parameters == null || parameters.isEmpty() ? List.of() : List.copyOf(parameters);
+    this.mutableParameters = new CopyOnWriteArrayList<>();
+    this.parameters = Collections.unmodifiableList(this.mutableParameters);
     this.varArgs = varArgs;
     this.isDefault = isDefault;
     this.defaultValue = defaultValue;
@@ -128,6 +129,16 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
     return this.parameters;
   }
 
+  final void addParameter(final VariableElement p) {
+    switch (p.getKind()) {
+    case PARAMETER:
+      this.mutableParameters.add(p);
+      break;
+    default:
+      throw new IllegalArgumentException();
+    }
+  }
+  
   @Override // Parameterizable
   public final List<? extends TypeParameterElement> getTypeParameters() {
     return this.typeParameters;
@@ -204,17 +215,6 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
     final EnumSet<Modifier> finalModifiers = EnumSet.copyOf(modifierSet);
     final Class<?> declaringClass = e.getDeclaringClass();
 
-    final List<VariableElement> parameterElements;
-    final Parameter[] parameters = e.getParameters();
-    if (parameters.length <= 0) {
-      parameterElements = List.of();
-    } else {
-      parameterElements = new ArrayList<>(parameters.length);
-      for (final Parameter p : parameters) {
-        parameterElements.add(DefaultVariableElement.of(p));
-      }
-    }
-
     // TODO: no real way to handle default value
 
     final boolean varArgs = e.isVarArgs();
@@ -225,7 +225,7 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
                                    type,
                                    finalModifiers,
                                    enclosingElement,
-                                   parameterElements,
+                                   // parameterElements,
                                    varArgs,
                                    isDefault,
                                    null,
@@ -233,6 +233,10 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
 
     for (final java.lang.reflect.TypeVariable<?> t : e.getTypeParameters()) {
       DefaultTypeParameterElement.of(returnValue, t); // side effect: adds the new DefaultTypeParameterElement to this DefaultExecutableElement's collection
+    }
+
+    for (final Parameter p : e.getParameters()) {
+      DefaultVariableElement.of(returnValue, p); // side effect as above
     }
 
     return returnValue;

@@ -137,6 +137,22 @@ public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements Ty
     }
   }
 
+  public static AbstractTypeMirror of(final Type t) {
+    if (t instanceof Class<?> c) {
+      return AbstractTypeMirror.of(c);
+    } else if (t instanceof ParameterizedType p) {
+      return DefaultDeclaredType.of(p);
+    } else if (t instanceof GenericArrayType g) {
+      return DefaultArrayType.of(g);
+    } else if (t instanceof java.lang.reflect.TypeVariable<?> tv) {
+      return DefaultTypeVariable.of(tv);
+    } else if (t instanceof java.lang.reflect.WildcardType w) {
+      return DefaultWildcardType.of(w);
+    } else {
+      throw new IllegalArgumentException("t: " + t);
+    }
+  }
+  
   public static AbstractTypeMirror of(final Class<?> c) {
     if (c == void.class) {
       return DefaultNoType.VOID;
@@ -159,7 +175,7 @@ public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements Ty
     } else if (t instanceof AnnotatedWildcardType w) {
       return DefaultWildcardType.of(w);
     } else if (t.getType() instanceof Class<?> c) {
-      return of(c);
+      return AbstractTypeMirror.of(c);
     } else {
       throw new IllegalArgumentException("t: " + t);
     }

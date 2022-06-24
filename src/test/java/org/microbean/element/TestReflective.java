@@ -25,6 +25,10 @@ import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.AnnotatedTypeVariable;
 import java.lang.reflect.AnnotatedWildcardType;
 
+import javax.lang.model.element.TypeElement;
+
+import javax.lang.model.type.DeclaredType;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -50,6 +54,14 @@ final class TestReflective {
     assertTrue(returnType.getType() instanceof Class<?>);
   }
 
+  @Test
+  final void testObject() {
+    final TypeElement o = DefaultTypeElement.of(null, Object.class);
+    assertTrue(o.getQualifiedName().contentEquals("java.lang.Object"));
+    final DeclaredType otype = (DeclaredType)o.asType();
+
+  }
+
   private static final String[] strings() {
     return new String[0];
   }
@@ -62,5 +74,5 @@ final class TestReflective {
   @interface Gorp {
 
   }
-  
+
 }

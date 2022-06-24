@@ -465,7 +465,8 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
     } else {
       throw new AssertionError();
     }
-    final DeclaredType superclass = DefaultDeclaredType.of(c.getAnnotatedSuperclass());
+    final AnnotatedType annotatedSuperclass = c.getAnnotatedSuperclass();
+    final DeclaredType superclass = annotatedSuperclass == null ? null : DefaultDeclaredType.of(annotatedSuperclass);
     final List<TypeMirror> permittedSubclassTypeMirrors;
     if (c.isSealed()) {
       final Class<?>[] permittedSubclasses = c.getPermittedSubclasses();
@@ -501,8 +502,11 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
                              permittedSubclassTypeMirrors,
                              interfaceTypeMirrors,
                              null);
-    for (final RecordComponent rc : c.getRecordComponents()) {
-      DefaultRecordComponentElement.of(returnValue, rc); // side effect: will get added
+    final RecordComponent[] recordComponents = c.getRecordComponents();
+    if (recordComponents != null) {
+      for (final RecordComponent rc : recordComponents) {
+        DefaultRecordComponentElement.of(returnValue, rc); // side effect: will get added
+      }
     }
     return returnValue;
   }

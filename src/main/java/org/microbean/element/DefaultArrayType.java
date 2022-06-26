@@ -54,7 +54,7 @@ public class DefaultArrayType extends AbstractReferenceType implements ArrayType
   public static DefaultArrayType of(final TypeMirror componentType) {
     return DefaultArrayType.of(componentType, null);
   }
-
+  
   public static DefaultArrayType of(final TypeMirror componentType,
                                     final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     return new DefaultArrayType(componentType, annotationMirrorsSupplier);

@@ -16,8 +16,10 @@
  */
 package org.microbean.element;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Map.Entry;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
@@ -27,15 +29,29 @@ import javax.lang.model.type.DeclaredType;
 
 public class DefaultAnnotationMirror implements AnnotationMirror {
 
-  private final DeclaredType annotationType;
+  private final DefaultDeclaredType annotationType;
 
-  private final Map<? extends ExecutableElement, ? extends AnnotationValue> elementValues;
+  private final Map<? extends DefaultExecutableElement, ? extends DefaultAnnotationValue> elementValues;
   
   public DefaultAnnotationMirror(final DeclaredType annotationType,
                                  final Map<? extends ExecutableElement, ? extends AnnotationValue> elementValues) {
     super();
-    this.annotationType = Objects.requireNonNull(annotationType, "annotationType");
-    this.elementValues = elementValues == null ? Map.of() : Map.copyOf(elementValues);
+    switch (annotationType.asElement().getKind()) {
+    case ANNOTATION_TYPE:
+      this.annotationType = DefaultDeclaredType.of(annotationType);
+      break;
+    default:
+      throw new IllegalArgumentException("annotationType: " + annotationType);
+    }
+    if (elementValues == null || elementValues.isEmpty()) {
+      this.elementValues = Map.of();
+    } else {
+      final Map<DefaultExecutableElement, DefaultAnnotationValue> map = new HashMap<>();
+      for (final Entry<? extends ExecutableElement, ? extends AnnotationValue> e : elementValues.entrySet()) {
+        map.put(DefaultExecutableElement.of(e.getKey()), DefaultAnnotationValue.of(e.getValue()));
+      }
+      this.elementValues = Collections.unmodifiableMap(map);
+    }
   }
 
   @Override // AnnotationMirror
@@ -62,6 +78,18 @@ public class DefaultAnnotationMirror implements AnnotationMirror {
     } else {
       return false;
     }
+  }
+
+  public static final DefaultAnnotationMirror of(final AnnotationMirror am) {
+    if (am instanceof DefaultAnnotationMirror dam) {
+      return dam;
+    }
+    return of(am.getAnnotationType(), am.getElementValues());
+  }
+
+  public static final DefaultAnnotationMirror of(final DeclaredType annotationType,
+                                                 final Map<? extends ExecutableElement, ? extends AnnotationValue> elementValues) {
+    return new DefaultAnnotationMirror(annotationType, elementValues);
   }
   
 }

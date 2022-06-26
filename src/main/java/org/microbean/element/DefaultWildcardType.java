@@ -128,6 +128,22 @@ public class DefaultWildcardType extends AbstractTypeMirror implements WildcardT
     return annotationMirrorsSupplier == null ? UNBOUNDED : new DefaultWildcardType(null, null, annotationMirrorsSupplier);
   }
 
+  public static DefaultWildcardType of(final TypeMirror extendsBound,
+                                       final TypeMirror superBound,
+                                       final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    if (extendsBound == null) {
+      if (superBound == null) {
+        return unboundedWildcardType(annotationMirrorsSupplier);
+      } else {
+        return lowerBoundedWildcardType(superBound, annotationMirrorsSupplier);
+      }
+    } else if (superBound == null) {
+      return upperBoundedWildcardType(extendsBound, annotationMirrorsSupplier);
+    } else {
+      throw new IllegalArgumentException("extendsBound: " + extendsBound + "; superBound: " + superBound);
+    }    
+  }
+
   public static DefaultWildcardType of(final AnnotatedWildcardType w) {
     final AnnotatedType[] lowerBounds = w.getAnnotatedLowerBounds();
     if (lowerBounds.length > 0) {

@@ -16,12 +16,17 @@
  */
 package org.microbean.element;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.invoke.VarHandle;
+
 import java.lang.reflect.AnnotatedParameterizedType;
 import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -39,6 +44,17 @@ import javax.lang.model.type.TypeVisitor;
 
 public class DefaultDeclaredType extends AbstractReferenceType implements DeclaredType {
 
+  private static final VarHandle ENCLOSING_TYPE;
+  
+  static {
+    final Lookup lookup = MethodHandles.lookup();
+    try {
+      ENCLOSING_TYPE = lookup.findVarHandle(DefaultDeclaredType.class, "enclosingType", TypeMirror.class);
+    } catch (final NoSuchFieldException | IllegalAccessException reflectiveOperationException) {
+      throw (Error)new ExceptionInInitializerError(reflectiveOperationException.getMessage()).initCause(reflectiveOperationException);
+    }
+  }
+  
   static final DefaultDeclaredType JAVA_IO_SERIALIZABLE = new DefaultDeclaredType();
 
   static final DefaultDeclaredType JAVA_LANG_BOOLEAN = new DefaultDeclaredType();
@@ -72,8 +88,10 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
   static final DefaultDeclaredType JAVA_LANG_SHORT = new DefaultDeclaredType();
 
   static final DefaultDeclaredType JAVA_LANG_VOID = new DefaultDeclaredType();
+
+  private final Supplier<? extends TypeMirror> enclosingTypeSupplier;
   
-  private final TypeMirror enclosingType;
+  private volatile TypeMirror enclosingType;
 
   private Element definingElement;
 
@@ -100,19 +118,36 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
                              final List<? extends TypeMirror> typeArguments,
                              final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(TypeKind.DECLARED, annotationMirrorsSupplier);
-    if (enclosingType == null) {
-      this.enclosingType = DefaultNoType.NONE;
+    this.enclosingTypeSupplier = null; // will never be dereferenced
+    this.enclosingType = validateEnclosingType(enclosingType);
+    if (typeArguments == null || typeArguments.isEmpty()) {
+      this.typeArguments = List.of();
     } else {
-      switch (enclosingType.getKind()) {
-      case DECLARED:
-      case NONE:
-        this.enclosingType = enclosingType;
-        break;
-      default:
-        throw new IllegalArgumentException("enclosingType: " + enclosingType);
+      final List<AbstractTypeMirror> list = new ArrayList<>(typeArguments.size());
+      for (final TypeMirror t : typeArguments) {
+        list.add(AbstractTypeMirror.of(t));
       }
+      this.typeArguments = Collections.unmodifiableList(list);
     }
-    this.typeArguments = typeArguments == null || typeArguments.isEmpty() ? List.of() : List.copyOf(typeArguments);
+  }
+  
+  public DefaultDeclaredType(final Supplier<? extends TypeMirror> enclosingTypeSupplier,
+                             final List<? extends TypeMirror> typeArguments,
+                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    super(TypeKind.DECLARED, annotationMirrorsSupplier);
+    this.enclosingTypeSupplier = enclosingTypeSupplier;
+    if (enclosingTypeSupplier == null) {
+      this.enclosingType = DefaultNoType.NONE;
+    }
+    if (typeArguments == null || typeArguments.isEmpty()) {
+      this.typeArguments = List.of();
+    } else {
+      final List<AbstractTypeMirror> list = new ArrayList<>(typeArguments.size());
+      for (final TypeMirror t : typeArguments) {
+        list.add(AbstractTypeMirror.of(t));
+      }
+      this.typeArguments = Collections.unmodifiableList(list);
+    }
   }
 
   final void element(final Element e) {
@@ -147,6 +182,13 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
 
   @Override // DeclaredType
   public final TypeMirror getEnclosingType() {
+    TypeMirror enclosingType = this.enclosingType; // volatile read
+    if (enclosingType == null) {
+      enclosingType = validateEnclosingType(this.enclosingTypeSupplier.get());
+      if (!ENCLOSING_TYPE.compareAndSet(this, null, enclosingType)) { // volatile write
+        return this.enclosingType; // volatile read
+      }
+    }
     return this.enclosingType;
   }
 
@@ -155,6 +197,32 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
     return this.typeArguments;
   }
 
+  private static final <T extends TypeMirror> T validateEnclosingType(final T t) {
+    if (t == null) {
+      return null;
+    }
+    switch (t.getKind()) {
+    case DECLARED:
+    case NONE:
+      return t;
+    default:
+      throw new IllegalArgumentException("t: " + t);
+    }
+  }
+
+  public static final DefaultDeclaredType of(final DeclaredType t) {
+    if (t instanceof DefaultDeclaredType ddt) {
+      return ddt;
+    }
+    return of(t.getEnclosingType(), t.getTypeArguments(), t::getAnnotationMirrors);
+  }
+
+  public static final DefaultDeclaredType of(final TypeMirror enclosingType,
+                                             final List<? extends TypeMirror> typeArguments,
+                                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    return new DefaultDeclaredType(enclosingType, typeArguments, annotationMirrorsSupplier);
+  }
+  
   public static final DefaultDeclaredType of(final AnnotatedType t) {    
     if (t instanceof AnnotatedParameterizedType p) {
       return of(p);

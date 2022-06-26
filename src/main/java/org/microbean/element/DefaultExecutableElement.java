@@ -178,6 +178,41 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
     }
   }
 
+  public static final DefaultExecutableElement of(final ExecutableElement e) {
+    if (e instanceof DefaultExecutableElement dee) {
+      return dee;
+    }
+    return of(e.getSimpleName(),
+              e.getKind(),
+              (ExecutableType)e.asType(),
+              e.getModifiers(),
+              (TypeElement)e.getEnclosingElement(),
+              e.isVarArgs(),
+              e.isDefault(),
+              e.getDefaultValue(),
+              e::getAnnotationMirrors);
+  }
+  
+  public static final DefaultExecutableElement of(final Name simpleName,
+                                                  final ElementKind kind,
+                                                  final ExecutableType type,
+                                                  final Set<? extends Modifier> modifiers,
+                                                  final TypeElement enclosingElement,
+                                                  final boolean varArgs,
+                                                  final boolean isDefault,
+                                                  final AnnotationValue defaultValue,
+                                                  final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    return new DefaultExecutableElement(simpleName,
+                                        kind,
+                                        type,
+                                        modifiers,
+                                        enclosingElement,
+                                        varArgs,
+                                        isDefault,
+                                        defaultValue,
+                                        annotationMirrorsSupplier);
+  }
+  
   public static final DefaultExecutableElement of(final TypeElement enclosingElement, final Executable e) {
     final Name simpleName = DefaultName.of(e.getName());
     final ElementKind kind = e instanceof Method ? ElementKind.METHOD : ElementKind.CONSTRUCTOR;

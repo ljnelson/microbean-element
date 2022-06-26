@@ -75,7 +75,6 @@ public abstract class AbstractAnnotatedConstruct implements AnnotatedConstruct {
     List<? extends AnnotationMirror> annotationMirrors = this.annotationMirrors; // volatile read
     if (annotationMirrors == null) {
       annotationMirrors = this.annotationMirrorsSupplier.get();
-      annotationMirrors = annotationMirrors == null ? List.of() : List.copyOf(annotationMirrors);
       if (!ANNOTATION_MIRRORS.compareAndSet(this, null, annotationMirrors)) { // volatile write
         return this.annotationMirrors; // volatile read
       }

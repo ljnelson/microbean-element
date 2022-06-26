@@ -76,6 +76,12 @@ public class DefaultTypeVariable extends AbstractTypeVariable {
     return new DefaultTypeVariable(upperBound, null, annotationMirrorsSupplier);
   }
 
+  public static DefaultTypeVariable of(final TypeMirror upperBound,
+                                       final TypeMirror lowerBound,
+                                       final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    return new DefaultTypeVariable(upperBound, lowerBound, annotationMirrorsSupplier);
+  }
+
   // Weirdly, nothing in the JDK actually uses AnnotatedTypeVariable.
   public static DefaultTypeVariable of(final AnnotatedTypeVariable tv) {
     final AnnotatedType[] bounds = tv.getAnnotatedBounds();

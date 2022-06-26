@@ -89,6 +89,29 @@ public class DefaultPrimitiveType extends AbstractTypeMirror implements Primitiv
     return v.visitPrimitive(this, p);
   }
 
+  public static DefaultPrimitiveType of(final TypeKind kind) {
+    switch (kind) {
+    case BOOLEAN:
+      return BOOLEAN;
+    case BYTE:
+      return BYTE;
+    case CHAR:
+      return CHAR;
+    case DOUBLE:
+      return DOUBLE;
+    case FLOAT:
+      return FLOAT;
+    case INT:
+      return INT;
+    case LONG:
+      return LONG;
+    case SHORT:
+      return SHORT;
+    default:
+      throw new IllegalArgumentException("kind: " + kind);
+    }
+  }
+
   public static DefaultPrimitiveType of(final Class<?> c) {
     if (c.isPrimitive()) {
       return defaultPrimitiveTypes.get(c);

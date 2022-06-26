@@ -137,6 +137,83 @@ public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements Ty
     }
   }
 
+  public static AbstractTypeMirror of(final TypeMirror t) {
+    if (t instanceof AbstractTypeMirror atm) {
+      return atm;
+    }
+    switch (t.getKind()) {
+    case ARRAY:
+      final ArrayType at = (ArrayType)t;
+      return
+        DefaultArrayType.of(at.getComponentType(),
+                            at::getAnnotationMirrors);
+    case DECLARED:
+      final DeclaredType dt = (DeclaredType)t;
+      return
+        DefaultDeclaredType.of(dt.getEnclosingType(),
+                               dt.getTypeArguments(),
+                               dt::getAnnotationMirrors);
+    case EXECUTABLE:
+      final ExecutableType et = (ExecutableType)t;
+      return
+        DefaultExecutableType.of(et.getParameterTypes(),
+                                 et.getReceiverType(),
+                                 et.getReturnType(),
+                                 et.getThrownTypes(),
+                                 et.getTypeVariables(),
+                                 et::getAnnotationMirrors);
+    case INTERSECTION:
+      final IntersectionType it = (IntersectionType)t;
+      return
+        DefaultIntersectionType.of(it.getBounds());
+
+    case MODULE:
+        return DefaultNoType.MODULE;
+    case NONE:
+      return DefaultNoType.NONE;
+    case PACKAGE:
+      return DefaultNoType.PACKAGE;
+    case VOID:
+      return DefaultNoType.VOID;
+
+    case NULL:
+      return DefaultNullType.INSTANCE;
+
+    case BOOLEAN:
+      return DefaultPrimitiveType.BOOLEAN;
+    case BYTE:
+      return DefaultPrimitiveType.BYTE;
+    case CHAR:
+      return DefaultPrimitiveType.CHAR;
+    case DOUBLE:
+      return DefaultPrimitiveType.DOUBLE;
+    case FLOAT:
+      return DefaultPrimitiveType.FLOAT;
+    case INT:
+      return DefaultPrimitiveType.INT;
+    case LONG:
+      return DefaultPrimitiveType.LONG;
+    case SHORT:
+      return DefaultPrimitiveType.SHORT;
+
+    case TYPEVAR:
+      final TypeVariable tv = (TypeVariable)t;
+      return
+        DefaultTypeVariable.of(tv.getUpperBound(),
+                               tv.getLowerBound(),
+                               tv::getAnnotationMirrors);
+    case WILDCARD:
+      final WildcardType w = (WildcardType)t;
+      return
+        DefaultWildcardType.of(w.getExtendsBound(),
+                               w.getSuperBound(),
+                               w.getAnnotationMirrors().isEmpty() ? null : w::getAnnotationMirrors);
+
+    default:
+      throw new IllegalArgumentException("t: " + t);
+    }
+  }
+  
   public static AbstractTypeMirror of(final Type t) {
     if (t instanceof Class<?> c) {
       return AbstractTypeMirror.of(c);

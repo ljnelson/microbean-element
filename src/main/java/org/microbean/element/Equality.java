@@ -689,7 +689,7 @@ final class Equality {
     return equals(values(am1), values(am2), ia);
   }
 
-  private static final Map<String, AnnotationValue> toMap(final AnnotationMirror am) {
+  static final Map<String, AnnotationValue> toMap(final AnnotationMirror am) {
     if (am == null) {
       return Map.of();
     }
@@ -699,14 +699,22 @@ final class Equality {
     final Map<String, AnnotationValue> map = new TreeMap<>();
     for (final Object e : at.asElement().getEnclosedElements()) {
       if (e instanceof ExecutableElement ee) {
-        final AnnotationValue dv = ee.getDefaultValue();
-        if (dv != null) {
-          map.put(ee.getSimpleName().toString(), dv);
+        switch (ee.getKind()) {
+        case METHOD:
+          final AnnotationValue dv = ee.getDefaultValue();
+          map.put(((TypeElement)ee.getEnclosingElement()).getQualifiedName().toString() + '.' + ee.getSimpleName().toString(),
+                  dv instanceof DefaultAnnotationValue dav ? dav : DefaultAnnotationValue.of(dv.getValue()));
+          break;
+        default:
+          break;
         }
       }
     }
     for (final Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : am.getElementValues().entrySet()) {
-      map.put(entry.getKey().getSimpleName().toString(), entry.getValue());
+      final ExecutableElement ee = entry.getKey();
+      final AnnotationValue av = entry.getValue();
+      map.put(((TypeElement)ee.getEnclosingElement()).getQualifiedName().toString() + '.' + ee.getSimpleName().toString(),
+              av instanceof DefaultAnnotationValue dav ? dav : DefaultAnnotationValue.of(av.getValue()));
     }
     return Collections.unmodifiableMap(map);
   }
@@ -808,24 +816,13 @@ final class Equality {
     } else if (e1 == null || e2 == null || ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
-    switch (e1.getKind()) {
+    final ElementKind k1 = e1.getKind();
+    switch (k1) {
     case CONSTRUCTOR:
-      if (e2.getKind() != ElementKind.CONSTRUCTOR) {
-        return false;
-      }
-      break;
     case INSTANCE_INIT:
-      if (e2.getKind() != ElementKind.CONSTRUCTOR) {
-        return false;
-      }
-      break;
     case METHOD:
-      if (e2.getKind() != ElementKind.CONSTRUCTOR) {
-        return false;
-      }
-      break;
     case STATIC_INIT:
-      if (e2.getKind() != ElementKind.CONSTRUCTOR) {
+      if (k1 != e2.getKind()) {
         return false;
       }
       break;
@@ -836,10 +833,10 @@ final class Equality {
     // java.lang.reflect.Method.  Note in particular that
     // TypeParameterElements are not evaluated.
     return
-      equals(e1.getEnclosingElement(), e2.getEnclosingElement(), ia) &&
       equals(e1.getSimpleName(), e2.getSimpleName()) &&
       equals(e1.getParameters(), e2.getParameters(), ia) &&
-      equals(e1.getReturnType(), e2.getReturnType(), ia);
+      equals(e1.getReturnType(), e2.getReturnType(), ia) &&
+      equals(e1.getEnclosingElement(), e2.getEnclosingElement(), ia);
   }
 
   static final boolean equals(final ModuleElement e1, final ModuleElement e2, final boolean ia) {
@@ -882,29 +879,14 @@ final class Equality {
     } else if (e1 == null || e2 == null || ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
-    switch (e1.getKind()) {
+    final ElementKind k1 = e1.getKind();
+    switch (k1) {
     case ANNOTATION_TYPE:
-      if (e2.getKind() != ElementKind.ANNOTATION_TYPE) {
-        return false;
-      }
-      break;
     case CLASS:
-      if (e2.getKind() != ElementKind.CLASS) {
-        return false;
-      }
-      break;
     case ENUM:
-      if (e2.getKind() != ElementKind.ENUM) {
-        return false;
-      }
-      break;
     case INTERFACE:
-      if (e2.getKind() != ElementKind.INTERFACE) {
-        return false;
-      }
-      break;
     case RECORD:
-      if (e2.getKind() != ElementKind.RECORD) {
+      if (k1 != e2.getKind()) {
         return false;
       }
       break;
@@ -934,39 +916,16 @@ final class Equality {
     } else if (e1 == null || e2 == null || ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
-    switch (e1.getKind()) {
+    final ElementKind k1 = e1.getKind();
+    switch (k1) {
     case BINDING_VARIABLE:
-      if (e2.getKind() != ElementKind.BINDING_VARIABLE) {
-        return false;
-      }
-      break;
     case ENUM_CONSTANT:
-      if (e2.getKind() != ElementKind.ENUM_CONSTANT) {
-        return false;
-      }
-      break;
     case EXCEPTION_PARAMETER:
-      if (e2.getKind() != ElementKind.EXCEPTION_PARAMETER) {
-        return false;
-      }
-      break;
     case FIELD:
-      if (e2.getKind() != ElementKind.FIELD) {
-        return false;
-      }
-      break;
     case LOCAL_VARIABLE:
-      if (e2.getKind() != ElementKind.LOCAL_VARIABLE) {
-        return false;
-      }
-      break;
     case PARAMETER:
-      if (e2.getKind() != ElementKind.PARAMETER) {
-        return false;
-      }
-      break;
     case RESOURCE_VARIABLE:
-      if (e2.getKind() != ElementKind.RESOURCE_VARIABLE) {
+      if (k1 != e2.getKind()) {
         return false;
       }
       break;

@@ -29,7 +29,7 @@ import javax.lang.model.type.TypeMirror;
 public class DefaultAnnotationValue implements AnnotationValue {
 
   private final Object value;
-  
+
   protected DefaultAnnotationValue(final Object value) {
     super();
     this.value = Objects.requireNonNull(value, "value");
@@ -71,7 +71,7 @@ public class DefaultAnnotationValue implements AnnotationValue {
       return v.visitUnknown(this, p);
     }
   }
-  
+
   @Override // AnnotationValue
   public final Object getValue() {
     return this.value;
@@ -96,5 +96,5 @@ public class DefaultAnnotationValue implements AnnotationValue {
   public static DefaultAnnotationValue of(final Object value) {
     return new DefaultAnnotationValue(value);
   }
-  
+
 }

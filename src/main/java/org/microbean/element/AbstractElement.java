@@ -72,6 +72,8 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
 
   private volatile Element enclosingElement;
 
+  private final Supplier<List<? extends Element>> enclosedElementsSupplier;
+  
   private volatile List<Element> enclosedElements;
 
   private volatile List<Element> readOnlyEnclosedElements;
@@ -84,8 +86,11 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(annotationMirrorsSupplier);
     if (enclosedElementsSupplier == null) {
+      this.enclosedElementsSupplier = null;
       this.enclosedElements = new CopyOnWriteArrayList<>();
       this.readOnlyEnclosedElements = Collections.unmodifiableList(this.enclosedElements);
+    } else {
+      this.enclosedElementsSupplier = enclosedElementsSupplier;
     }
     this.name = name == null ? DefaultName.EMPTY : DefaultName.of(name);
     this.kind = Objects.requireNonNull(kind, "kind");
@@ -150,7 +155,16 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
 
   @Override // Element
   public final List<? extends Element> getEnclosedElements() {
-    return this.readOnlyEnclosedElements == null ? List.of() : this.readOnlyEnclosedElements;
+    List<Element> readOnlyEnclosedElements = this.readOnlyEnclosedElements; // volatile read
+    if (readOnlyEnclosedElements == null) {
+      readOnlyEnclosedElements = Collections.unmodifiableList(this.enclosedElementsSupplier.get());
+      if (ENCLOSED_ELEMENTS.compareAndSet(this, null, readOnlyEnclosedElements)) { // volatile write
+        this.readOnlyEnclosedElements = readOnlyEnclosedElements; // volatile write and read
+      } else {
+        readOnlyEnclosedElements = this.readOnlyEnclosedElements; // volatile read
+      }
+    }
+    return readOnlyEnclosedElements;
   }
 
   @Override // Element, Encloseable

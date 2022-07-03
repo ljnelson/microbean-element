@@ -189,7 +189,7 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
         return this.enclosingType; // volatile read
       }
     }
-    return this.enclosingType;
+    return enclosingType;
   }
 
   @Override // DeclaredType

@@ -59,7 +59,7 @@ public class DefaultCapturedType extends AbstractTypeVariable implements Capture
           null,
           null);
     this.wildcardType = wildcardType;
-    this.definingElement = new DefaultTypeParameterElement(name, this, Set.of(), null, null);
+    this.definingElement = new DefaultTypeParameterElement(name, this, Set.of(), null);
   }
   
   @Override // TypeVariable

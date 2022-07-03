@@ -48,12 +48,8 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeMirror;
 
-public class DefaultExecutableElement extends AbstractElement implements ExecutableElement {
+public class DefaultExecutableElement extends AbstractParameterizableElement implements ExecutableElement {
 
-  private final List<TypeParameterElement> mutableTypeParameters;
-
-  private final List<? extends TypeParameterElement> typeParameters;
-  
   private final List<VariableElement> mutableParameters;
   
   private final List<? extends VariableElement> parameters;
@@ -68,7 +64,6 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
                                   final ElementKind kind,
                                   final ExecutableType type,
                                   final Set<? extends Modifier> modifiers,
-                                  final TypeElement enclosingElement,
                                   final boolean varArgs,
                                   final boolean isDefault,
                                   final AnnotationValue defaultValue,
@@ -79,7 +74,6 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
           kind,
           validate(type),
           modifiers,
-          enclosingElement,
           annotationMirrorsSupplier);
     switch (kind) {
     case CONSTRUCTOR:
@@ -90,8 +84,6 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
     default:
       throw new IllegalArgumentException("Not an executable kind: " + kind);
     }
-    this.mutableTypeParameters = new CopyOnWriteArrayList<>();
-    this.typeParameters = Collections.unmodifiableList(this.mutableTypeParameters);
     this.mutableParameters = new CopyOnWriteArrayList<>();
     this.parameters = Collections.unmodifiableList(this.mutableParameters);
     this.varArgs = varArgs;
@@ -129,7 +121,7 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
     return this.parameters;
   }
 
-  final void addParameter(final VariableElement p) {
+  public final void addParameter(final VariableElement p) {
     switch (p.getKind()) {
     case PARAMETER:
       this.mutableParameters.add(p);
@@ -139,21 +131,6 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
     }
   }
   
-  @Override // Parameterizable
-  public final List<? extends TypeParameterElement> getTypeParameters() {
-    return this.typeParameters;
-  }
-
-  final void addTypeParameter(final TypeParameterElement tp) {
-    switch (tp.getKind()) {
-    case TYPE_PARAMETER:
-      this.mutableTypeParameters.add(tp);
-      break;
-    default:
-      throw new IllegalArgumentException();
-    }
-  }
-
   @Override // ExecutableElement
   public final List<? extends TypeMirror> getThrownTypes() {
     return this.asType().getThrownTypes();
@@ -169,6 +146,12 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
     return this.asType().getReturnType();
   }
 
+
+  /*
+   * Static methods.
+   */
+
+  
   private static final ExecutableType validate(final ExecutableType t) {
     switch (t.getKind()) {
     case EXECUTABLE:
@@ -186,7 +169,6 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
               e.getKind(),
               (ExecutableType)e.asType(),
               e.getModifiers(),
-              (TypeElement)e.getEnclosingElement(),
               e.isVarArgs(),
               e.isDefault(),
               e.getDefaultValue(),
@@ -197,7 +179,6 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
                                                   final ElementKind kind,
                                                   final ExecutableType type,
                                                   final Set<? extends Modifier> modifiers,
-                                                  final TypeElement enclosingElement,
                                                   final boolean varArgs,
                                                   final boolean isDefault,
                                                   final AnnotationValue defaultValue,
@@ -206,14 +187,13 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
                                         kind,
                                         type,
                                         modifiers,
-                                        enclosingElement,
                                         varArgs,
                                         isDefault,
                                         defaultValue,
                                         annotationMirrorsSupplier);
   }
   
-  public static final DefaultExecutableElement of(final TypeElement enclosingElement, final Executable e) {
+  public static final DefaultExecutableElement of(final Executable e) {
     final Name simpleName = DefaultName.of(e.getName());
     final ElementKind kind = e instanceof Method ? ElementKind.METHOD : ElementKind.CONSTRUCTOR;
     final ExecutableType type = DefaultExecutableType.of(e);
@@ -259,7 +239,6 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
                                    kind,
                                    type,
                                    finalModifiers,
-                                   enclosingElement,
                                    // parameterElements,
                                    varArgs,
                                    isDefault,
@@ -267,11 +246,11 @@ public class DefaultExecutableElement extends AbstractElement implements Executa
                                    null);
 
     for (final java.lang.reflect.TypeVariable<?> t : e.getTypeParameters()) {
-      DefaultTypeParameterElement.of(returnValue, t); // side effect: adds the new DefaultTypeParameterElement to this DefaultExecutableElement's collection
+      returnValue.addEnclosedElement(DefaultTypeParameterElement.of(t));
     }
 
     for (final Parameter p : e.getParameters()) {
-      DefaultVariableElement.of(returnValue, p); // side effect as above
+      returnValue.addParameter(DefaultVariableElement.of(p));
     }
 
     return returnValue;

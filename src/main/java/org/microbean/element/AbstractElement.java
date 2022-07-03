@@ -16,9 +16,14 @@
  */
 package org.microbean.element;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.invoke.VarHandle;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -41,7 +46,18 @@ import javax.lang.model.element.VariableElement;
 
 import javax.lang.model.type.TypeMirror;
 
-public abstract class AbstractElement extends AbstractAnnotatedConstruct implements Element {
+public abstract class AbstractElement extends AbstractAnnotatedConstruct implements Element, Encloseable {
+
+  private static final VarHandle ENCLOSING_ELEMENT;
+
+  static {
+    final Lookup lookup = MethodHandles.lookup();
+    try {
+      ENCLOSING_ELEMENT = lookup.findVarHandle(AbstractElement.class, "enclosingElement", Element.class);
+    } catch (final NoSuchFieldException | IllegalAccessException reflectiveOperationException) {
+      throw (Error)new ExceptionInInitializerError(reflectiveOperationException.getMessage()).initCause(reflectiveOperationException);
+    }
+  }
   
   private final Name name;
 
@@ -51,17 +67,16 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
 
   private final Set<Modifier> modifiers;
 
-  private final Element enclosingElement;
+  private volatile Element enclosingElement;
 
   private final List<Element> enclosedElements;
 
-  private final List<? extends Element> readOnlyEnclosedElements;
+  private final List<Element> readOnlyEnclosedElements;
 
   protected AbstractElement(final Name name,
                             final ElementKind kind,
                             final TypeMirror type,
                             final Set<? extends Modifier> modifiers,
-                            final Element enclosingElement,
                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(annotationMirrorsSupplier);
     this.enclosedElements = new CopyOnWriteArrayList<>();
@@ -69,11 +84,7 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
     this.name = name == null ? DefaultName.EMPTY : DefaultName.of(name);
     this.kind = Objects.requireNonNull(kind, "kind");
     this.type = type == null ? DefaultNoType.NONE : type;
-    this.modifiers = modifiers == null || modifiers.isEmpty() ? Set.of() : Set.copyOf(modifiers);
-    this.enclosingElement = enclosingElement;
-    if (enclosingElement instanceof AbstractElement ae) {
-      ae.enclose(this);
-    }
+    this.modifiers = modifiers == null || modifiers.isEmpty() ? Set.of() : Set.copyOf(modifiers);    
   }
 
   @Override
@@ -126,8 +137,9 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
     }
   }
 
-  final void enclose(final Element e) {
+  public final <E extends Element & Encloseable> void addEnclosedElement(final E e) {
     this.enclosedElements.add(e);
+    e.setEnclosingElement(this);
   }
 
   @Override // Element
@@ -135,9 +147,16 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
     return this.readOnlyEnclosedElements;
   }
 
-  @Override // Element
+  @Override // Element, Encloseable
   public Element getEnclosingElement() {
     return this.enclosingElement;
+  }
+
+  @Override // Encloseable
+  public void setEnclosingElement(final Element enclosingElement) {
+    if (!ENCLOSING_ELEMENT.compareAndSet(this, null, enclosingElement)) {
+      throw new IllegalStateException();
+    }
   }
 
   @Override // Element

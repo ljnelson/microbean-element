@@ -30,7 +30,6 @@ final class ArrayElement extends AbstractElement {
           ElementKind.CLASS,
           new DefaultDeclaredType(), // emulate javac
           Set.of(),
-          null,
           null);
   }
   

@@ -44,19 +44,14 @@ public class DefaultRecordComponentElement extends AbstractElement implements Re
   public DefaultRecordComponentElement(final Name simpleName,
                                        final TypeMirror type,
                                        final Set<? extends Modifier> modifiers,
-                                       final TypeElement enclosingElement, // the record element
                                        final ExecutableElement accessor,
                                        final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(simpleName,
           ElementKind.RECORD_COMPONENT,
           validate(type),
           modifiers,
-          validate(enclosingElement),
           annotationMirrorsSupplier);
     this.accessor = Objects.requireNonNull(accessor, "accessor");
-    if (enclosingElement instanceof DefaultTypeElement dte) {
-      dte.addRecordComponent(this);
-    }
   }
   
   @Override // AbstractElement
@@ -69,6 +64,11 @@ public class DefaultRecordComponentElement extends AbstractElement implements Re
     return this.accessor;
   }
 
+  @Override // AbstractElement
+  public final void setEnclosingElement(final Element enclosingElement) {
+    super.setEnclosingElement(validate(enclosingElement));
+  }
+  
   private static final <T extends TypeMirror> T validate(final T type) {
     switch (type.getKind()) {
     case DECLARED:
@@ -87,18 +87,15 @@ public class DefaultRecordComponentElement extends AbstractElement implements Re
     }
   }
 
-  public static final DefaultRecordComponentElement of(final TypeElement enclosingElement, final RecordComponent r) {
-    if (enclosingElement.getKind() != ElementKind.RECORD) {
-      throw new IllegalArgumentException("enclosingElement: " + enclosingElement);
-    }
+  public static final DefaultRecordComponentElement of(final RecordComponent r) {
     final Name simpleName = DefaultName.of(r.getName());
     final TypeMirror type = AbstractTypeMirror.of(r.getAnnotatedType());
     // The compiler will say "record components cannot have modifiers"
     // and then if you actually ask the compiler's version of all this
     // it will return [public].
     final Set<Modifier> modifiers = EnumSet.of(Modifier.PUBLIC);
-    final ExecutableElement accessor = DefaultExecutableElement.of(enclosingElement, r.getAccessor());
-    return new DefaultRecordComponentElement(simpleName, type, modifiers, enclosingElement, accessor, null);
+    final ExecutableElement accessor = DefaultExecutableElement.of(r.getAccessor());
+    return new DefaultRecordComponentElement(simpleName, type, modifiers, accessor, null);
   }
   
 }

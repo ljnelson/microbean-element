@@ -16,21 +16,11 @@
  */
 package org.microbean.element;
 
-import java.util.List;
-import java.util.Set;
+import javax.lang.model.element.Parameterizable;
+import javax.lang.model.element.TypeParameterElement;
 
-import javax.lang.model.element.ElementKind;
+public interface MutablyParameterizable extends Parameterizable {
 
-final class WildcardElement extends AbstractElement {
-
-  static final WildcardElement INSTANCE = new WildcardElement();
-  
-  private WildcardElement() {
-    super(DefaultName.of("Bound"), // emulate javac
-          ElementKind.CLASS,
-          new DefaultDeclaredType(), // emulate javac
-          Set.of(),
-          List::of);
-  }
+  public <T extends TypeParameterElement & Encloseable> void addTypeParameter(final T tp);
   
 }

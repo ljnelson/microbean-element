@@ -39,13 +39,11 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
   public DefaultPackageElement(final Name fullyQualifiedName,
                                final NoType packageType,
                                final Set<? extends Modifier> modifiers,
-                               final ModuleElement enclosingElement,
                                final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(fullyQualifiedName,
           ElementKind.PACKAGE,
           packageType,
           modifiers,
-          validate(enclosingElement),
           annotationMirrorsSupplier);
     this.simpleName = DefaultName.ofSimple(fullyQualifiedName);
   }
@@ -75,12 +73,17 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
     return (ModuleElement)super.getEnclosingElement();
   }
 
+  @Override // AbstractElement
+  public final void setEnclosingElement(final Element moduleElement) {
+    super.setEnclosingElement(validate(moduleElement));
+  }
+
   @Override // PackageElement
   public final boolean isUnnamed() {
     return this.getSimpleName().length() <= 0;
   }
 
-  private static final <E extends ModuleElement> E validate(final E enclosingElement) {
+  private static final <E extends Element> E validate(final E enclosingElement) {
     if (enclosingElement == null) {
       return null;
     }
@@ -92,12 +95,10 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
     }
   }
 
-  public static final DefaultPackageElement of(final Name fullyQualifiedName,
-                                               final ModuleElement enclosingElement) {
+  public static final DefaultPackageElement of(final Name fullyQualifiedName) {
     return new DefaultPackageElement(fullyQualifiedName,
                                      DefaultNoType.PACKAGE,
                                      Set.of(),
-                                     enclosingElement,
                                      List::of);
   }
   

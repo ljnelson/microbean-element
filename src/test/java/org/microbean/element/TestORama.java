@@ -282,8 +282,8 @@ final class TestORama {
         new DefaultPackageElement(DefaultName.of("java.lang"),
                                   DefaultNoType.PACKAGE,
                                   Set.of(),
-                                  defaultJavaBase,
                                   null);
+      defaultJavaBase.addEnclosedElement(defaultJavaLang);
 
       // Now we can do the main Comparable element:
       final DefaultTypeElement defaultComparableElement =
@@ -291,20 +291,20 @@ final class TestORama {
                                ElementKind.INTERFACE,
                                defaultComparableType, // here's the backing type
                                DefaultTypeElement.PUBLIC,
-                               defaultJavaLang,
                                NestingKind.TOP_LEVEL,
                                null,
                                List.of(),
                                List.of(),
                                null);
+      defaultJavaLang.addEnclosedElement(defaultComparableElement);
 
       // ...and now we can do a TypeParameterElement:
       final DefaultTypeParameterElement defaultTElement =
         new DefaultTypeParameterElement(DefaultName.of("T"),
                                         defaultTType, // here's the backing type
                                         Set.of(), // no modifiers
-                                        defaultComparableElement, // here's the enclosing TypeElement
                                         null);
+      defaultComparableElement.addTypeParameter(defaultTElement);
 
       assertEquals(1, defaultComparableElement.getTypeParameters().size());
       assertSame(defaultTElement, defaultComparableElement.getTypeParameters().get(0));
@@ -356,7 +356,6 @@ final class TestORama {
         new DefaultPackageElement(DefaultName.of(),
                                   DefaultNoType.PACKAGE,
                                   Set.of(),
-                                  null,
                                   null);
 
       final DefaultTypeElement defaultFrobElement =
@@ -364,12 +363,12 @@ final class TestORama {
                                ElementKind.CLASS,
                                defaultFrobType,
                                DefaultTypeElement.PUBLIC,
-                               unnamedPackage,
                                NestingKind.TOP_LEVEL,
                                null, // no superclass,
                                List.of(), // permitted subclass types
                                List.of(defaultComparableFrobType), // interface types
                                null);
+      unnamedPackage.addEnclosedElement(defaultFrobElement);
 
       assertTrue(Equality.equals(frobElement, defaultFrobElement, true));
 

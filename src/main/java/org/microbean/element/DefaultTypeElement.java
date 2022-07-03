@@ -48,7 +48,7 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
-public class DefaultTypeElement extends AbstractElement implements TypeElement {
+public class DefaultTypeElement extends AbstractParameterizableElement implements TypeElement {
 
   // TODO: clean these up
 
@@ -224,19 +224,11 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
 
   private final NestingKind nestingKind;
 
-  private final List<TypeParameterElement> mutableTypeParameters;
-  
-  private final List<? extends TypeParameterElement> typeParameters;
-
   private final TypeMirror superclass;
 
   private final List<? extends TypeMirror> interfaces;
 
   private final List<? extends TypeMirror> permittedSubclasses;
-
-  private final List<RecordComponentElement> mutableRecordComponents;
-
-  private final List<? extends RecordComponentElement> recordComponents;
 
   @Deprecated // you can use this, but you better know what you're doing.
   DefaultTypeElement() {
@@ -263,7 +255,6 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
          type,
          modifiers,
          null,
-         null,
          superclass,
          List.of(),
          List.of(),
@@ -279,7 +270,6 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
          ElementKind.CLASS,
          type,
          modifiers,
-         null,
          null,
          superclass,
          List.of(),
@@ -297,7 +287,6 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
          modifiers,
          null,
          null,
-         null,
          List.of(),
          List.of(),
          null);
@@ -307,7 +296,6 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
                             final ElementKind kind,
                             final TypeMirror type,
                             final Set<? extends Modifier> modifiers,
-                            final Element enclosingElement,
                             final NestingKind nestingKind,
                             final TypeMirror superclass,
                             final List<? extends TypeMirror> permittedSubclasses,
@@ -317,17 +305,12 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
           validate(kind),
           type,
           modifiers,
-          enclosingElement,
           annotationMirrorsSupplier);
     this.simpleName = DefaultName.ofSimple(qualifiedName);
     this.nestingKind = nestingKind == null ? NestingKind.TOP_LEVEL : nestingKind;
-    this.mutableTypeParameters = new CopyOnWriteArrayList<>();
-    this.typeParameters = Collections.unmodifiableList(this.mutableTypeParameters);
     this.superclass = superclass == null ? DefaultNoType.NONE : superclass;
     this.interfaces = interfaces == null || interfaces.isEmpty() ? List.of() : List.copyOf(interfaces);
     this.permittedSubclasses = permittedSubclasses == null || permittedSubclasses.isEmpty() ? List.of() : List.copyOf(permittedSubclasses);
-    this.mutableRecordComponents = new CopyOnWriteArrayList<>();
-    this.recordComponents = Collections.unmodifiableList(this.mutableRecordComponents);
     if (type instanceof DefaultDeclaredType ddt) {
       ddt.element(this);
     }
@@ -336,21 +319,6 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
   @Override // TypeElement
   public <R, P> R accept(final ElementVisitor<R, P> v, final P p) {
     return v.visitType(this, p);
-  }
-
-  @Override // TypeElement
-  public List<? extends TypeParameterElement> getTypeParameters() {
-    return this.typeParameters;
-  }
-
-  final void addTypeParameter(final TypeParameterElement tp) {
-    switch (tp.getKind()) {
-    case TYPE_PARAMETER:
-      this.mutableTypeParameters.add(tp);
-      break;
-    default:
-      throw new IllegalArgumentException();
-    }
   }
 
   @Override // TypeElement
@@ -365,17 +333,8 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
 
   @Override // TypeElement
   public List<? extends RecordComponentElement> getRecordComponents() {
-    return this.recordComponents;
-  }
-
-  final void addRecordComponent(final RecordComponentElement r) {
-    switch (r.getKind()) {
-    case RECORD_COMPONENT:
-      this.mutableRecordComponents.add(r);
-      break;
-    default:
-      throw new IllegalArgumentException();
-    }
+    // TODO: resume; they're just a subset of the enclosed elements
+    throw new UnsupportedOperationException();
   }
 
   @Override // TypeElement
@@ -411,7 +370,7 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
     }
   }
 
-  public static final DefaultTypeElement of(final Element enclosingElement, final Class<?> c) {
+  public static final DefaultTypeElement of(final Class<?> c) {
     if (c == void.class || c.isArray() || c.isPrimitive()) {
       throw new IllegalArgumentException("c: " + c);
     }
@@ -454,16 +413,14 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
     }
     final EnumSet<Modifier> finalModifiers = EnumSet.copyOf(modifierSet);
     final NestingKind nestingKind;
-    if (enclosingElement == null) {
-      nestingKind = NestingKind.TOP_LEVEL;
-    } else if (c.isAnonymousClass()) {
+    if (c.isAnonymousClass()) {
       nestingKind = NestingKind.ANONYMOUS;
     } else if (c.isLocalClass()) {
       nestingKind = NestingKind.LOCAL;
     } else if (c.isMemberClass()) {
       nestingKind = NestingKind.MEMBER;
     } else {
-      throw new AssertionError();
+      nestingKind = NestingKind.TOP_LEVEL;
     }
     final AnnotatedType annotatedSuperclass = c.getAnnotatedSuperclass();
     final DeclaredType superclass = annotatedSuperclass == null ? null : DefaultDeclaredType.of(annotatedSuperclass);
@@ -496,7 +453,6 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
                              kind,
                              type,
                              finalModifiers,
-                             enclosingElement,
                              nestingKind,
                              superclass,
                              permittedSubclassTypeMirrors,
@@ -505,7 +461,7 @@ public class DefaultTypeElement extends AbstractElement implements TypeElement {
     final RecordComponent[] recordComponents = c.getRecordComponents();
     if (recordComponents != null) {
       for (final RecordComponent rc : recordComponents) {
-        DefaultRecordComponentElement.of(returnValue, rc); // side effect: will get added
+        returnValue.addEnclosedElement(DefaultRecordComponentElement.of(rc));
       }
     }
     return returnValue;

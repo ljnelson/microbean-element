@@ -16,6 +16,10 @@
  */
 package org.microbean.element;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.invoke.VarHandle;
+
 import java.lang.reflect.Executable;
 import java.lang.reflect.GenericDeclaration;
 
@@ -39,32 +43,43 @@ import javax.lang.model.type.TypeVariable;
 
 public final class DefaultTypeParameterElement extends AbstractElement implements TypeParameterElement {
 
-  private final Element genericElement;
+  private static final VarHandle GENERIC_ELEMENT;
+
+  static {
+    final Lookup lookup = MethodHandles.lookup();
+    try {
+      GENERIC_ELEMENT = lookup.findVarHandle(DefaultTypeParameterElement.class, "genericElement", Element.class);
+    } catch (final NoSuchFieldException | IllegalAccessException reflectiveOperationException) {
+      throw (Error)new ExceptionInInitializerError(reflectiveOperationException.getMessage()).initCause(reflectiveOperationException);
+    }
+  }
+  
+  private volatile Element genericElement;
   
   public DefaultTypeParameterElement(final Name simpleName, final TypeVariable type) {
-    this(simpleName, type, Set.of(), null, null);
+    this(simpleName, type, Set.of(), null);
   }
   
   public DefaultTypeParameterElement(final Name simpleName,
                                      final TypeVariable type,
                                      final Set<? extends Modifier> modifiers,
-                                     final Element genericElement,
                                      final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(simpleName,
           ElementKind.TYPE_PARAMETER,
           type,
           modifiers,
-          null,
           annotationMirrorsSupplier);
     if (type instanceof DefaultTypeVariable dtv) {
       dtv.element(this);
     }
+    /*
     this.genericElement = validate(genericElement);
     if (genericElement instanceof DefaultTypeElement dte) {
       dte.addTypeParameter(this);
     } else if (genericElement instanceof DefaultExecutableElement dee) {
       dee.addTypeParameter(this);
     }
+    */
   }
   
   @Override // AbstractElement
@@ -87,9 +102,20 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
     return this.getGenericElement();
   }
 
+  @Override // AbstractElement
+  public final void setEnclosingElement(final Element enclosingElement) {
+    this.setGenericElement(enclosingElement);
+  }
+
   @Override // TypeParameterElement
   public final Element getGenericElement() {
     return this.genericElement;
+  }
+
+  private final void setGenericElement(final Element genericElement) {
+    if (!GENERIC_ELEMENT.compareAndSet(this, null, validate(genericElement))) {
+      throw new IllegalStateException();
+    }
   }
 
   private static final List<? extends TypeMirror> boundsFrom(final TypeVariable typeVariable) {
@@ -121,11 +147,12 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
     return element;
   }
 
-  public static DefaultTypeParameterElement of(final Element genericElement, final java.lang.reflect.TypeVariable<?> tv) {
-    final Name simpleName = DefaultName.of(tv.getName());
-    final TypeVariable type = DefaultTypeVariable.of(tv);
-    // TODO: verify: what modifiers could possibly exist on a TypeParameterElement?
-    return new DefaultTypeParameterElement(simpleName, type, Set.of(), genericElement, null);
+  public static DefaultTypeParameterElement of(final java.lang.reflect.TypeVariable<?> tv) {
+    return
+      new DefaultTypeParameterElement(DefaultName.of(tv.getName()),
+                                      DefaultTypeVariable.of(tv),
+                                      Set.of(), // TODO: verify: what modifiers could possibly exist on a TypeParameterElement?
+                                      null);
   }
 
 }

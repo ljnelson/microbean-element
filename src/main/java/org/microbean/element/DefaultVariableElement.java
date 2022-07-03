@@ -43,32 +43,14 @@ public final class DefaultVariableElement extends AbstractElement implements Var
                                 final ElementKind kind,
                                 final TypeMirror type,
                                 final Set<? extends Modifier> modifiers,
-                                final Element enclosingElement,
                                 final Object constantValue,
                                 final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(simpleName,
           validate(kind),
           validate(type),
           modifiers,
-          validate(enclosingElement),
           annotationMirrorsSupplier);
     this.constantValue = constantValue;
-    switch (enclosingElement.getKind()) {
-    case CONSTRUCTOR:
-    case METHOD:
-      switch (kind) {
-      case PARAMETER:
-        if (enclosingElement instanceof DefaultExecutableElement dee) {
-          dee.addParameter(this);
-        }
-        break;
-      default:
-        break;
-      }
-      break;
-    default:
-      break;
-    }
   }
 
   @Override // AbstractElement
@@ -79,6 +61,11 @@ public final class DefaultVariableElement extends AbstractElement implements Var
   @Override // VariableElement
   public final Object getConstantValue() {
     return this.constantValue;
+  }
+
+  @Override // AbstractElement
+  public final void setEnclosingElement(final Element enclosingElement) {
+    super.setEnclosingElement(validate(enclosingElement));
   }
   
   private static final ElementKind validate(final ElementKind kind) {
@@ -105,10 +92,10 @@ public final class DefaultVariableElement extends AbstractElement implements Var
     return type;
   }
 
-  public static final DefaultVariableElement of(final ExecutableElement enclosingElement, final Parameter p) {
+  public static final DefaultVariableElement of(final Parameter p) {
     final Name simpleName = DefaultName.of(p.getName());
     final TypeMirror type = AbstractTypeMirror.of(p.getParameterizedType());
-    return new DefaultVariableElement(simpleName, ElementKind.PARAMETER, type, Set.of(), enclosingElement, null, null);
+    return new DefaultVariableElement(simpleName, ElementKind.PARAMETER, type, Set.of(), null, null);
   }
   
 }

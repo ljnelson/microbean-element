@@ -64,7 +64,6 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
           ElementKind.MODULE,
           DefaultNoType.MODULE,
           Set.of(),
-          null,
           annotationMirrorsSupplier);
     this.simpleName = DefaultName.ofSimple(fullyQualifiedName);
     this.open = open;
@@ -124,7 +123,8 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
     
     final Set<ModuleDescriptor.Exports> exports = new TreeSet<>(md.exports());
     for (final ModuleDescriptor.Exports export : exports) {
-      final DefaultPackageElement packageElement = DefaultPackageElement.of(DefaultName.of(export.source()), returnValue);
+      final DefaultPackageElement packageElement = DefaultPackageElement.of(DefaultName.of(export.source()));
+      returnValue.addEnclosedElement(packageElement);
       final List<DefaultModuleElement> targetModuleElements;
       if (export.isQualified()) {
         final ModuleLayer layer = m.getLayer();

@@ -74,6 +74,7 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
           kind,
           validate(type),
           modifiers,
+          null,
           annotationMirrorsSupplier);
     switch (kind) {
     case CONSTRUCTOR:

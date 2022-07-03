@@ -25,6 +25,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
@@ -43,8 +44,9 @@ public abstract class AbstractParameterizableElement extends AbstractElement imp
                                            final ElementKind kind,
                                            final TypeMirror type,
                                            final Set<? extends Modifier> modifiers,
+                                           final Supplier<List<? extends Element>> enclosedElementsSupplier,
                                            final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    super(name, kind, type, modifiers, annotationMirrorsSupplier);
+    super(name, kind, type, modifiers, enclosedElementsSupplier, annotationMirrorsSupplier);
     this.mutableTypeParameters = new CopyOnWriteArrayList<>();
     this.typeParameters = Collections.unmodifiableList(this.mutableTypeParameters);
   }

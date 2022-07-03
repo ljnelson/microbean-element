@@ -48,14 +48,17 @@ import javax.lang.model.type.TypeMirror;
 
 public abstract class AbstractElement extends AbstractAnnotatedConstruct implements Element, Encloseable {
 
+  private static final VarHandle ENCLOSED_ELEMENTS;
+
   private static final VarHandle ENCLOSING_ELEMENT;
 
   static {
     final Lookup lookup = MethodHandles.lookup();
     try {
+      ENCLOSED_ELEMENTS = lookup.findVarHandle(AbstractElement.class, "enclosedElements", List.class);
       ENCLOSING_ELEMENT = lookup.findVarHandle(AbstractElement.class, "enclosingElement", Element.class);
     } catch (final NoSuchFieldException | IllegalAccessException reflectiveOperationException) {
-      throw (Error)new ExceptionInInitializerError(reflectiveOperationException.getMessage()).initCause(reflectiveOperationException);
+      throw new ExceptionInInitializerError(reflectiveOperationException);
     }
   }
   
@@ -69,18 +72,29 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
 
   private volatile Element enclosingElement;
 
-  private final List<Element> enclosedElements;
+  private volatile List<Element> enclosedElements;
 
-  private final List<Element> readOnlyEnclosedElements;
+  private volatile List<Element> readOnlyEnclosedElements;
 
   protected AbstractElement(final Name name,
                             final ElementKind kind,
                             final TypeMirror type,
                             final Set<? extends Modifier> modifiers,
                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    this(name, kind, type, modifiers, null, annotationMirrorsSupplier);
+  }
+
+  protected AbstractElement(final Name name,
+                            final ElementKind kind,
+                            final TypeMirror type,
+                            final Set<? extends Modifier> modifiers,
+                            final Supplier<List<? extends Element>> enclosedElementsSupplier,
+                            final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(annotationMirrorsSupplier);
-    this.enclosedElements = new CopyOnWriteArrayList<>();
-    this.readOnlyEnclosedElements = Collections.unmodifiableList(this.enclosedElements);
+    if (enclosedElementsSupplier == null) {
+      this.enclosedElements = new CopyOnWriteArrayList<>();
+      this.readOnlyEnclosedElements = Collections.unmodifiableList(this.enclosedElements);
+    }
     this.name = name == null ? DefaultName.EMPTY : DefaultName.of(name);
     this.kind = Objects.requireNonNull(kind, "kind");
     this.type = type == null ? DefaultNoType.NONE : type;
@@ -144,7 +158,7 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
 
   @Override // Element
   public final List<? extends Element> getEnclosedElements() {
-    return this.readOnlyEnclosedElements;
+    return this.readOnlyEnclosedElements == null ? List.of() : this.readOnlyEnclosedElements;
   }
 
   @Override // Element, Encloseable

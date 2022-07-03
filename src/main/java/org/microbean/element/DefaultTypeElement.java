@@ -258,6 +258,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
          superclass,
          List.of(),
          List.of(),
+         null,
          null);
   }
   
@@ -274,6 +275,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
          superclass,
          List.of(),
          interfaces,
+         null,
          null);
   }
 
@@ -289,6 +291,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
          null,
          List.of(),
          List.of(),
+         null,
          null);
   }
 
@@ -300,11 +303,13 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                             final TypeMirror superclass,
                             final List<? extends TypeMirror> permittedSubclasses,
                             final List<? extends TypeMirror> interfaces,
+                            final Supplier<List<? extends Element>> enclosedElementsSupplier,
                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(qualifiedName,
           validate(kind),
           type,
           modifiers,
+          enclosedElementsSupplier,
           annotationMirrorsSupplier);
     this.simpleName = DefaultName.ofSimple(qualifiedName);
     this.nestingKind = nestingKind == null ? NestingKind.TOP_LEVEL : nestingKind;
@@ -457,6 +462,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                              superclass,
                              permittedSubclassTypeMirrors,
                              interfaceTypeMirrors,
+                             null,
                              null);
     final RecordComponent[] recordComponents = c.getRecordComponents();
     if (recordComponents != null) {

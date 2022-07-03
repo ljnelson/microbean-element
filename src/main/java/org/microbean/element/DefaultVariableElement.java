@@ -49,6 +49,7 @@ public final class DefaultVariableElement extends AbstractElement implements Var
           validate(kind),
           validate(type),
           modifiers,
+          null,
           annotationMirrorsSupplier);
     this.constantValue = constantValue;
   }

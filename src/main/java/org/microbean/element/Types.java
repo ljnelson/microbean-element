@@ -3225,7 +3225,7 @@ final class Types {
     }
 
     private SyntheticElement(final Name name, final TypeMirror type) {
-      super(name, ElementKind.OTHER, noneType(), Set.of(), List::of);
+      super(name, ElementKind.OTHER, noneType(), Set.of(), null, List::of);
       this.type = new WeakReference<>(type);
     }
 

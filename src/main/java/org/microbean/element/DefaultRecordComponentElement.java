@@ -50,6 +50,7 @@ public class DefaultRecordComponentElement extends AbstractElement implements Re
           ElementKind.RECORD_COMPONENT,
           validate(type),
           modifiers,
+          null,
           annotationMirrorsSupplier);
     this.accessor = Objects.requireNonNull(accessor, "accessor");
   }

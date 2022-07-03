@@ -68,6 +68,7 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
           ElementKind.TYPE_PARAMETER,
           type,
           modifiers,
+          null,
           annotationMirrorsSupplier);
     if (type instanceof DefaultTypeVariable dtv) {
       dtv.element(this);

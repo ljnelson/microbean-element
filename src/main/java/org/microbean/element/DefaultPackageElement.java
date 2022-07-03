@@ -44,6 +44,7 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
           ElementKind.PACKAGE,
           packageType,
           modifiers,
+          null,
           annotationMirrorsSupplier);
     this.simpleName = DefaultName.ofSimple(fullyQualifiedName);
   }

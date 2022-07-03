@@ -80,14 +80,6 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
                             final ElementKind kind,
                             final TypeMirror type,
                             final Set<? extends Modifier> modifiers,
-                            final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    this(name, kind, type, modifiers, null, annotationMirrorsSupplier);
-  }
-
-  protected AbstractElement(final Name name,
-                            final ElementKind kind,
-                            final TypeMirror type,
-                            final Set<? extends Modifier> modifiers,
                             final Supplier<List<? extends Element>> enclosedElementsSupplier,
                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(annotationMirrorsSupplier);

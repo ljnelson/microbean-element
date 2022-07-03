@@ -17,7 +17,10 @@
 package org.microbean.element;
 
 import java.lang.reflect.AnnotatedType;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.RecordComponent;
 
 import java.util.ArrayList;
@@ -47,6 +50,8 @@ import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+
+import javax.lang.model.util.ElementFilter;
 
 public class DefaultTypeElement extends AbstractParameterizableElement implements TypeElement {
 
@@ -338,8 +343,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
 
   @Override // TypeElement
   public List<? extends RecordComponentElement> getRecordComponents() {
-    // TODO: resume; they're just a subset of the enclosed elements
-    throw new UnsupportedOperationException();
+    return ElementFilter.recordComponentsIn(this.getEnclosedElements());
   }
 
   @Override // TypeElement
@@ -462,15 +466,37 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                              superclass,
                              permittedSubclassTypeMirrors,
                              interfaceTypeMirrors,
-                             null,
+                             () -> enclosedElementsOf(c),
                              null);
-    final RecordComponent[] recordComponents = c.getRecordComponents();
-    if (recordComponents != null) {
-      for (final RecordComponent rc : recordComponents) {
-        returnValue.addEnclosedElement(DefaultRecordComponentElement.of(rc));
+    return returnValue;
+  }
+
+  private static final List<? extends Element> enclosedElementsOf(final Class<?> c) {
+    final ArrayList<Element> enclosedElements = new ArrayList<>();
+    final Field[] declaredFields = c.getDeclaredFields();
+    for (final Field declaredField : declaredFields) {
+      enclosedElements.add(DefaultVariableElement.of(declaredField));
+    }
+    final Method[] declaredMethods = c.getDeclaredMethods();
+    for (final Method declaredMethod : declaredMethods) {
+      enclosedElements.add(DefaultExecutableElement.of(declaredMethod));
+    }
+    final Constructor<?>[] declaredConstructors = c.getDeclaredConstructors();
+    for (final Constructor<?> declaredConstructor : declaredConstructors) {
+      enclosedElements.add(DefaultExecutableElement.of(declaredConstructor));
+    }
+    if (c.isRecord()) {
+      final RecordComponent[] recordComponents = c.getRecordComponents();
+      for (final RecordComponent recordComponent : recordComponents) {
+        enclosedElements.add(DefaultRecordComponentElement.of(recordComponent));
       }
     }
-    return returnValue;
+    final Class<?>[] declaredClasses = c.getDeclaredClasses();
+    for (final Class<?> declaredClass : declaredClasses) {
+      enclosedElements.add(DefaultTypeElement.of(declaredClass));
+    }
+    enclosedElements.trimToSize();
+    return Collections.unmodifiableList(enclosedElements);
   }
 
 }

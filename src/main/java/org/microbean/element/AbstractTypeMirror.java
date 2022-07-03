@@ -138,7 +138,9 @@ public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements Ty
   }
 
   public static AbstractTypeMirror of(final TypeMirror t) {
-    if (t instanceof AbstractTypeMirror atm) {
+    if (t == null) {
+      return null;
+    } else if (t instanceof AbstractTypeMirror atm) {
       return atm;
     }
     switch (t.getKind()) {
@@ -215,7 +217,9 @@ public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements Ty
   }
   
   public static AbstractTypeMirror of(final Type t) {
-    if (t instanceof Class<?> c) {
+    if (t == null) {
+      return null;
+    } else if (t instanceof Class<?> c) {
       return AbstractTypeMirror.of(c);
     } else if (t instanceof ParameterizedType p) {
       return DefaultDeclaredType.of(p);
@@ -231,7 +235,9 @@ public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements Ty
   }
   
   public static AbstractTypeMirror of(final Class<?> c) {
-    if (c == void.class) {
+    if (c == null) {
+      return null;
+    } else if (c == void.class) {
       return DefaultNoType.VOID;
     } else if (c.isArray()) {
       return DefaultArrayType.of(c);
@@ -243,7 +249,9 @@ public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements Ty
   }
   
   public static AbstractTypeMirror of(final AnnotatedType t) {
-    if (t instanceof AnnotatedParameterizedType p) {
+    if (t == null) {
+      return null;
+    } else if (t instanceof AnnotatedParameterizedType p) {
       return DefaultDeclaredType.of(p);
     } else if (t instanceof AnnotatedArrayType a) {
       return DefaultArrayType.of(a);

@@ -28,6 +28,7 @@ import java.util.Set;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -48,20 +49,20 @@ import javax.lang.model.type.TypeMirror;
 
 public abstract class AbstractElement extends AbstractAnnotatedConstruct implements Element, Encloseable {
 
-  private static final VarHandle ENCLOSED_ELEMENTS;
-
   private static final VarHandle ENCLOSING_ELEMENT;
+
+  private static final VarHandle READ_ONLY_ENCLOSED_ELEMENTS;
 
   static {
     final Lookup lookup = MethodHandles.lookup();
     try {
-      ENCLOSED_ELEMENTS = lookup.findVarHandle(AbstractElement.class, "enclosedElements", List.class);
       ENCLOSING_ELEMENT = lookup.findVarHandle(AbstractElement.class, "enclosingElement", Element.class);
+      READ_ONLY_ENCLOSED_ELEMENTS = lookup.findVarHandle(AbstractElement.class, "readOnlyEnclosedElements", List.class);
     } catch (final NoSuchFieldException | IllegalAccessException reflectiveOperationException) {
       throw new ExceptionInInitializerError(reflectiveOperationException);
     }
   }
-  
+
   private final Name name;
 
   private final ElementKind kind;
@@ -73,8 +74,8 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
   private volatile Element enclosingElement;
 
   private final Supplier<List<? extends Element>> enclosedElementsSupplier;
-  
-  private volatile List<Element> enclosedElements;
+
+  private final Consumer<Element> enclosedElementsAdder;
 
   private volatile List<Element> readOnlyEnclosedElements;
 
@@ -85,17 +86,19 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
                             final Supplier<List<? extends Element>> enclosedElementsSupplier,
                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(annotationMirrorsSupplier);
-    if (enclosedElementsSupplier == null) {
-      this.enclosedElementsSupplier = null;
-      this.enclosedElements = new CopyOnWriteArrayList<>();
-      this.readOnlyEnclosedElements = Collections.unmodifiableList(this.enclosedElements);
-    } else {
-      this.enclosedElementsSupplier = enclosedElementsSupplier;
-    }
     this.name = name == null ? DefaultName.EMPTY : DefaultName.of(name);
     this.kind = Objects.requireNonNull(kind, "kind");
     this.type = type == null ? DefaultNoType.NONE : type;
-    this.modifiers = modifiers == null || modifiers.isEmpty() ? Set.of() : Set.copyOf(modifiers);    
+    this.modifiers = modifiers == null || modifiers.isEmpty() ? Set.of() : Set.copyOf(modifiers);
+    this.enclosedElementsSupplier = enclosedElementsSupplier;
+    if (enclosedElementsSupplier == null) {
+      final List<Element> enclosedElements = new CopyOnWriteArrayList<>();
+      this.enclosedElementsAdder = e -> enclosedElements.add(e);
+      this.readOnlyEnclosedElements = Collections.unmodifiableList(enclosedElements);
+    } else {
+      this.enclosedElementsAdder = e -> { throw new IllegalStateException(); };
+    }
+
   }
 
   @Override
@@ -149,7 +152,7 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
   }
 
   public final <E extends Element & Encloseable> void addEnclosedElement(final E e) {
-    this.enclosedElements.add(e);
+    this.enclosedElementsAdder.accept(e);
     e.setEnclosingElement(this);
   }
 
@@ -157,11 +160,15 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
   public final List<? extends Element> getEnclosedElements() {
     List<Element> readOnlyEnclosedElements = this.readOnlyEnclosedElements; // volatile read
     if (readOnlyEnclosedElements == null) {
-      readOnlyEnclosedElements = Collections.unmodifiableList(this.enclosedElementsSupplier.get());
-      if (ENCLOSED_ELEMENTS.compareAndSet(this, null, readOnlyEnclosedElements)) { // volatile write
-        this.readOnlyEnclosedElements = readOnlyEnclosedElements; // volatile write and read
+      readOnlyEnclosedElements = List.copyOf(this.enclosedElementsSupplier.get());
+      if (READ_ONLY_ENCLOSED_ELEMENTS.compareAndSet(this, null, readOnlyEnclosedElements)) { // volatile write
+        for (final Element enclosedElement : readOnlyEnclosedElements) {
+          if (enclosedElement instanceof Encloseable e) {
+            e.setEnclosingElement(this);
+          }
+        }
       } else {
-        readOnlyEnclosedElements = this.readOnlyEnclosedElements; // volatile read
+        return this.readOnlyEnclosedElements; // volatile read
       }
     }
     return readOnlyEnclosedElements;

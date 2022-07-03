@@ -25,14 +25,19 @@ import java.lang.reflect.AnnotatedType;
 import java.lang.reflect.AnnotatedTypeVariable;
 import java.lang.reflect.AnnotatedWildcardType;
 
+import java.util.List;
+
+import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
 
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 final class TestReflective {
@@ -59,7 +64,12 @@ final class TestReflective {
     final TypeElement o = DefaultTypeElement.of(Object.class);
     assertTrue(o.getQualifiedName().contentEquals("java.lang.Object"));
     final DeclaredType otype = (DeclaredType)o.asType();
-
+    assertSame(TypeKind.DECLARED, otype.getKind());
+    final List<? extends Element> enclosedElements = o.getEnclosedElements();
+    assertFalse(enclosedElements.isEmpty());
+    for (final Element e : enclosedElements) {
+      assertSame(o, e.getEnclosingElement());
+    }
   }
 
   private static final String[] strings() {

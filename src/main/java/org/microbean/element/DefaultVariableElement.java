@@ -16,8 +16,12 @@
  */
 package org.microbean.element;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Parameter;
 
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -93,6 +97,45 @@ public final class DefaultVariableElement extends AbstractElement implements Var
     return type;
   }
 
+  public static final DefaultVariableElement of(final Field f) {
+    final Name simpleName = DefaultName.of(f.getName());
+    final TypeMirror type = AbstractTypeMirror.of(f.getAnnotatedType());
+    final Collection<Modifier> modifierSet = new HashSet<>();
+    final int modifiers = f.getModifiers();
+    if (java.lang.reflect.Modifier.isAbstract(modifiers)) {
+      modifierSet.add(Modifier.ABSTRACT);
+    }
+    if (java.lang.reflect.Modifier.isFinal(modifiers)) {
+      modifierSet.add(Modifier.FINAL);
+    }
+    if (java.lang.reflect.Modifier.isPrivate(modifiers)) {
+      modifierSet.add(Modifier.PRIVATE);
+    }
+    if (java.lang.reflect.Modifier.isProtected(modifiers)) {
+      modifierSet.add(Modifier.PROTECTED);
+    }
+    if (java.lang.reflect.Modifier.isPublic(modifiers)) {
+      modifierSet.add(Modifier.PUBLIC);
+    }
+    if (java.lang.reflect.Modifier.isStatic(modifiers)) {
+      modifierSet.add(Modifier.STATIC);
+    }
+    if (java.lang.reflect.Modifier.isStrict(modifiers)) {
+      modifierSet.add(Modifier.STRICTFP);
+    }
+    if (java.lang.reflect.Modifier.isSynchronized(modifiers)) {
+      modifierSet.add(Modifier.SYNCHRONIZED);
+    }
+    if (java.lang.reflect.Modifier.isTransient(modifiers)) {
+      modifierSet.add(Modifier.TRANSIENT);
+    }
+    if (java.lang.reflect.Modifier.isVolatile(modifiers)) {
+      modifierSet.add(Modifier.VOLATILE);
+    }
+    final EnumSet<Modifier> finalModifiers = EnumSet.copyOf(modifierSet);
+    return new DefaultVariableElement(simpleName, ElementKind.FIELD, type, finalModifiers, null, null);
+  }
+  
   public static final DefaultVariableElement of(final Parameter p) {
     final Name simpleName = DefaultName.of(p.getName());
     final TypeMirror type = AbstractTypeMirror.of(p.getParameterizedType());

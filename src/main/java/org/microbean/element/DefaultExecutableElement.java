@@ -74,7 +74,7 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
           kind,
           validate(type),
           modifiers,
-          null,
+          List::of,
           annotationMirrorsSupplier);
     switch (kind) {
     case CONSTRUCTOR:
@@ -240,14 +240,13 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
                                    kind,
                                    type,
                                    finalModifiers,
-                                   // parameterElements,
                                    varArgs,
                                    isDefault,
                                    null,
                                    null);
 
     for (final java.lang.reflect.TypeVariable<?> t : e.getTypeParameters()) {
-      returnValue.addEnclosedElement(DefaultTypeParameterElement.of(t));
+      returnValue.addTypeParameter(DefaultTypeParameterElement.of(t));
     }
 
     for (final Parameter p : e.getParameters()) {

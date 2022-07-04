@@ -380,8 +380,14 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
   }
 
   public static final DefaultTypeElement of(final Class<?> c) {
+    return DefaultTypeElement.of(c, null);
+  }
+
+  public static final DefaultTypeElement of(final Class<?> c, final Class<?> enclosedClass) {
     if (c == void.class || c.isArray() || c.isPrimitive()) {
       throw new IllegalArgumentException("c: " + c);
+    } else if (enclosedClass != null && enclosedClass.getEnclosingClass() != c) {
+      throw new IllegalArgumentException("enclosedClass: " + enclosedClass);
     }
     final Name qualifiedName = DefaultName.of(c.getName());
     final ElementKind kind;
@@ -466,37 +472,174 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                              superclass,
                              permittedSubclassTypeMirrors,
                              interfaceTypeMirrors,
-                             () -> enclosedElementsOf(c),
+                             () -> enclosedElementsOf(c, enclosedClass),
                              null);
     return returnValue;
   }
 
-  private static final List<? extends Element> enclosedElementsOf(final Class<?> c) {
+  private static final List<? extends Element> enclosedElementsOf(final Class<?> c, final Object butNot) {
     final ArrayList<Element> enclosedElements = new ArrayList<>();
-    final Field[] declaredFields = c.getDeclaredFields();
-    for (final Field declaredField : declaredFields) {
-      enclosedElements.add(DefaultVariableElement.of(declaredField));
-    }
-    final Method[] declaredMethods = c.getDeclaredMethods();
-    for (final Method declaredMethod : declaredMethods) {
-      enclosedElements.add(DefaultExecutableElement.of(declaredMethod));
-    }
-    final Constructor<?>[] declaredConstructors = c.getDeclaredConstructors();
-    for (final Constructor<?> declaredConstructor : declaredConstructors) {
-      enclosedElements.add(DefaultExecutableElement.of(declaredConstructor));
-    }
-    if (c.isRecord()) {
-      final RecordComponent[] recordComponents = c.getRecordComponents();
-      for (final RecordComponent recordComponent : recordComponents) {
-        enclosedElements.add(DefaultRecordComponentElement.of(recordComponent));
+    if (butNot == null) {
+      final Field[] declaredFields = c.getDeclaredFields();
+      for (final Field declaredField : declaredFields) {      
+        enclosedElements.add(DefaultVariableElement.of(declaredField));
       }
-    }
-    final Class<?>[] declaredClasses = c.getDeclaredClasses();
-    for (final Class<?> declaredClass : declaredClasses) {
-      enclosedElements.add(DefaultTypeElement.of(declaredClass));
+      final Method[] declaredMethods = c.getDeclaredMethods();
+      for (final Method declaredMethod : declaredMethods) {
+        enclosedElements.add(DefaultExecutableElement.of(declaredMethod));
+      }
+      final Constructor<?>[] declaredConstructors = c.getDeclaredConstructors();
+      for (final Constructor<?> declaredConstructor : declaredConstructors) {
+        enclosedElements.add(DefaultExecutableElement.of(declaredConstructor));
+      }
+      if (c.isRecord()) {
+        final RecordComponent[] recordComponents = c.getRecordComponents();
+        for (final RecordComponent recordComponent : recordComponents) {
+          enclosedElements.add(DefaultRecordComponentElement.of(recordComponent));
+        }
+      }
+      final Class<?>[] declaredClasses = c.getDeclaredClasses();
+      for (final Class<?> declaredClass : declaredClasses) {
+        enclosedElements.add(DefaultTypeElement.of(declaredClass));
+      }
+    } else if (butNot instanceof Field) {
+      final Field[] declaredFields = c.getDeclaredFields();
+      for (final Field declaredField : declaredFields) {
+        if (!declaredField.equals(butNot)) {
+          enclosedElements.add(DefaultVariableElement.of(declaredField));
+        }
+      }
+      final Method[] declaredMethods = c.getDeclaredMethods();
+      for (final Method declaredMethod : declaredMethods) {
+        enclosedElements.add(DefaultExecutableElement.of(declaredMethod));
+      }
+      final Constructor<?>[] declaredConstructors = c.getDeclaredConstructors();
+      for (final Constructor<?> declaredConstructor : declaredConstructors) {
+        enclosedElements.add(DefaultExecutableElement.of(declaredConstructor));
+      }
+      if (c.isRecord()) {
+        final RecordComponent[] recordComponents = c.getRecordComponents();
+        for (final RecordComponent recordComponent : recordComponents) {
+          enclosedElements.add(DefaultRecordComponentElement.of(recordComponent));
+        }
+      }
+      final Class<?>[] declaredClasses = c.getDeclaredClasses();
+      for (final Class<?> declaredClass : declaredClasses) {
+        enclosedElements.add(DefaultTypeElement.of(declaredClass));
+      }
+    } else if (butNot instanceof Method) {
+      final Field[] declaredFields = c.getDeclaredFields();
+      for (final Field declaredField : declaredFields) {      
+        enclosedElements.add(DefaultVariableElement.of(declaredField));
+      }
+      final Method[] declaredMethods = c.getDeclaredMethods();
+      for (final Method declaredMethod : declaredMethods) {
+        if (!declaredMethod.equals(butNot)) {
+          enclosedElements.add(DefaultExecutableElement.of(declaredMethod));
+        }
+      }
+      final Constructor<?>[] declaredConstructors = c.getDeclaredConstructors();
+      for (final Constructor<?> declaredConstructor : declaredConstructors) {
+        enclosedElements.add(DefaultExecutableElement.of(declaredConstructor));
+      }
+      if (c.isRecord()) {
+        final RecordComponent[] recordComponents = c.getRecordComponents();
+        for (final RecordComponent recordComponent : recordComponents) {
+          enclosedElements.add(DefaultRecordComponentElement.of(recordComponent));
+        }
+      }
+      final Class<?>[] declaredClasses = c.getDeclaredClasses();
+      for (final Class<?> declaredClass : declaredClasses) {
+        enclosedElements.add(DefaultTypeElement.of(declaredClass));
+      }
+    } else if (butNot instanceof Constructor) {
+      final Field[] declaredFields = c.getDeclaredFields();
+      for (final Field declaredField : declaredFields) {      
+        enclosedElements.add(DefaultVariableElement.of(declaredField));
+      }
+      final Method[] declaredMethods = c.getDeclaredMethods();
+      for (final Method declaredMethod : declaredMethods) {
+        enclosedElements.add(DefaultExecutableElement.of(declaredMethod));
+      }
+      final Constructor<?>[] declaredConstructors = c.getDeclaredConstructors();
+      for (final Constructor<?> declaredConstructor : declaredConstructors) {
+        if (!declaredConstructor.equals(butNot)) {
+          enclosedElements.add(DefaultExecutableElement.of(declaredConstructor));
+        }
+      }
+      if (c.isRecord()) {
+        final RecordComponent[] recordComponents = c.getRecordComponents();
+        for (final RecordComponent recordComponent : recordComponents) {
+          enclosedElements.add(DefaultRecordComponentElement.of(recordComponent));
+        }
+      }
+      final Class<?>[] declaredClasses = c.getDeclaredClasses();
+      for (final Class<?> declaredClass : declaredClasses) {
+        enclosedElements.add(DefaultTypeElement.of(declaredClass));
+      }
+    } else if (butNot instanceof RecordComponent) {
+      final Field[] declaredFields = c.getDeclaredFields();
+      for (final Field declaredField : declaredFields) {      
+        enclosedElements.add(DefaultVariableElement.of(declaredField));
+      }
+      final Method[] declaredMethods = c.getDeclaredMethods();
+      for (final Method declaredMethod : declaredMethods) {
+        enclosedElements.add(DefaultExecutableElement.of(declaredMethod));
+      }
+      final Constructor<?>[] declaredConstructors = c.getDeclaredConstructors();
+      for (final Constructor<?> declaredConstructor : declaredConstructors) {
+        enclosedElements.add(DefaultExecutableElement.of(declaredConstructor));
+      }
+      if (c.isRecord()) {
+        final RecordComponent[] recordComponents = c.getRecordComponents();
+        for (final RecordComponent recordComponent : recordComponents) {
+          if (!recordComponent.equals(butNot)) {
+            enclosedElements.add(DefaultRecordComponentElement.of(recordComponent));
+          }
+        }
+      }
+      final Class<?>[] declaredClasses = c.getDeclaredClasses();
+      for (final Class<?> declaredClass : declaredClasses) {
+        enclosedElements.add(DefaultTypeElement.of(declaredClass));
+      }
+    } else if (butNot instanceof Class) {
+      final Field[] declaredFields = c.getDeclaredFields();
+      for (final Field declaredField : declaredFields) {      
+        enclosedElements.add(DefaultVariableElement.of(declaredField));
+      }
+      final Method[] declaredMethods = c.getDeclaredMethods();
+      for (final Method declaredMethod : declaredMethods) {
+        enclosedElements.add(DefaultExecutableElement.of(declaredMethod));
+      }
+      final Constructor<?>[] declaredConstructors = c.getDeclaredConstructors();
+      for (final Constructor<?> declaredConstructor : declaredConstructors) {
+        enclosedElements.add(DefaultExecutableElement.of(declaredConstructor));
+      }
+      if (c.isRecord()) {
+        final RecordComponent[] recordComponents = c.getRecordComponents();
+        for (final RecordComponent recordComponent : recordComponents) {
+          enclosedElements.add(DefaultRecordComponentElement.of(recordComponent));
+        }
+      }
+      final Class<?>[] declaredClasses = c.getDeclaredClasses();
+      for (final Class<?> declaredClass : declaredClasses) {
+        if (!declaredClass.equals(butNot)) {
+          enclosedElements.add(DefaultTypeElement.of(declaredClass));
+        }
+      }
+    } else {
+      throw new IllegalArgumentException("butNot: " + butNot);
     }
     enclosedElements.trimToSize();
     return Collections.unmodifiableList(enclosedElements);
   }
 
+  private static final Element enclosingElementOf(final Class<?> c) {
+    final Class<?> enclosingClass = c.getEnclosingClass();
+    if (enclosingClass == null) {
+      return null;
+    }
+    return DefaultTypeElement.of(enclosingClass, c);
+  }
+  
 }

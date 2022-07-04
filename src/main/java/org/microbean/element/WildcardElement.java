@@ -30,7 +30,7 @@ final class WildcardElement extends AbstractElement {
           ElementKind.CLASS,
           new DefaultDeclaredType(), // emulate javac
           Set.of(),
-          null,
+          List::of,
           List::of);
   }
   

@@ -502,10 +502,12 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
       for (final Class<?> declaredClass : declaredClasses) {
         enclosedElements.add(DefaultTypeElement.of(declaredClass));
       }
-    } else if (butNot instanceof Field) {
+    } else if (butNot instanceof Field f) {
       final Field[] declaredFields = c.getDeclaredFields();
       for (final Field declaredField : declaredFields) {
-        if (!declaredField.equals(butNot)) {
+        if (declaredField.equals(butNot)) {
+          enclosedElements.add(DefaultVariableElement.of(f));
+        } else {
           enclosedElements.add(DefaultVariableElement.of(declaredField));
         }
       }
@@ -527,14 +529,16 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
       for (final Class<?> declaredClass : declaredClasses) {
         enclosedElements.add(DefaultTypeElement.of(declaredClass));
       }
-    } else if (butNot instanceof Method) {
+    } else if (butNot instanceof Method m) {
       final Field[] declaredFields = c.getDeclaredFields();
       for (final Field declaredField : declaredFields) {      
         enclosedElements.add(DefaultVariableElement.of(declaredField));
       }
       final Method[] declaredMethods = c.getDeclaredMethods();
       for (final Method declaredMethod : declaredMethods) {
-        if (!declaredMethod.equals(butNot)) {
+        if (declaredMethod.equals(butNot)) {
+          enclosedElements.add(DefaultExecutableElement.of(m));
+        } else {
           enclosedElements.add(DefaultExecutableElement.of(declaredMethod));
         }
       }
@@ -552,7 +556,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
       for (final Class<?> declaredClass : declaredClasses) {
         enclosedElements.add(DefaultTypeElement.of(declaredClass));
       }
-    } else if (butNot instanceof Constructor) {
+    } else if (butNot instanceof Constructor<?> constructor) {
       final Field[] declaredFields = c.getDeclaredFields();
       for (final Field declaredField : declaredFields) {      
         enclosedElements.add(DefaultVariableElement.of(declaredField));
@@ -563,7 +567,9 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
       }
       final Constructor<?>[] declaredConstructors = c.getDeclaredConstructors();
       for (final Constructor<?> declaredConstructor : declaredConstructors) {
-        if (!declaredConstructor.equals(butNot)) {
+        if (declaredConstructor.equals(butNot)) {
+          enclosedElements.add(DefaultExecutableElement.of(constructor));
+        } else {
           enclosedElements.add(DefaultExecutableElement.of(declaredConstructor));
         }
       }
@@ -577,7 +583,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
       for (final Class<?> declaredClass : declaredClasses) {
         enclosedElements.add(DefaultTypeElement.of(declaredClass));
       }
-    } else if (butNot instanceof RecordComponent) {
+    } else if (butNot instanceof RecordComponent rc) {
       final Field[] declaredFields = c.getDeclaredFields();
       for (final Field declaredField : declaredFields) {      
         enclosedElements.add(DefaultVariableElement.of(declaredField));
@@ -593,7 +599,9 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
       if (c.isRecord()) {
         final RecordComponent[] recordComponents = c.getRecordComponents();
         for (final RecordComponent recordComponent : recordComponents) {
-          if (!recordComponent.equals(butNot)) {
+          if (recordComponent.equals(butNot)) {
+            enclosedElements.add(DefaultRecordComponentElement.of(rc));
+          } else {
             enclosedElements.add(DefaultRecordComponentElement.of(recordComponent));
           }
         }
@@ -602,7 +610,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
       for (final Class<?> declaredClass : declaredClasses) {
         enclosedElements.add(DefaultTypeElement.of(declaredClass));
       }
-    } else if (butNot instanceof Class) {
+    } else if (butNot instanceof Class<?> cls) {
       final Field[] declaredFields = c.getDeclaredFields();
       for (final Field declaredField : declaredFields) {      
         enclosedElements.add(DefaultVariableElement.of(declaredField));
@@ -623,7 +631,9 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
       }
       final Class<?>[] declaredClasses = c.getDeclaredClasses();
       for (final Class<?> declaredClass : declaredClasses) {
-        if (!declaredClass.equals(butNot)) {
+        if (declaredClass.equals(butNot)) {
+          enclosedElements.add(DefaultTypeElement.of(cls));
+        } else {
           enclosedElements.add(DefaultTypeElement.of(declaredClass));
         }
       }
@@ -636,10 +646,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
 
   private static final Element enclosingElementOf(final Class<?> c) {
     final Class<?> enclosingClass = c.getEnclosingClass();
-    if (enclosingClass == null) {
-      return null;
-    }
-    return DefaultTypeElement.of(enclosingClass, c);
+    return enclosingClass == null ? null : DefaultTypeElement.of(enclosingClass, c);
   }
   
 }

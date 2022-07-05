@@ -213,7 +213,6 @@ final class Equality {
     case MODULE:
       return hashCode((ModuleElement)e, ia);
 
-    case OTHER:
     default:
       return System.identityHashCode(e); // basically illegal argument
     }
@@ -379,9 +378,6 @@ final class Equality {
     case WILDCARD:
       return hashCode((WildcardType)t, ia);
 
-    case ERROR:
-    case UNION:
-    case OTHER:
     default:
       return System.identityHashCode(t); // basically illegal argument
     }
@@ -507,7 +503,7 @@ final class Equality {
     }
     final TypeKind k = t.getKind();
     if (k != TypeKind.WILDCARD) {
-      return System.identityHashCode(t); // illegal argument;
+      return System.identityHashCode(t); // illegal argument
     }
     return
       hashCode(k.hashCode(),
@@ -611,11 +607,11 @@ final class Equality {
                hashCode(d.getService(), ia));
   }
 
-  
 
   /*
    * equals()
    */
+
 
   static final boolean equals(final Object o1, final Object o2, final boolean ia) {
     if (o1 == o2) {
@@ -689,6 +685,11 @@ final class Equality {
     return equals(values(am1), values(am2), ia);
   }
 
+  private static final List<AnnotationValue> values(final AnnotationMirror am) {
+    final Collection<AnnotationValue> v = toMap(am).values();
+    return v instanceof List ? Collections.unmodifiableList((List<AnnotationValue>)v) : List.copyOf(v);
+  }
+
   static final Map<String, AnnotationValue> toMap(final AnnotationMirror am) {
     if (am == null) {
       return Map.of();
@@ -719,11 +720,6 @@ final class Equality {
     return Collections.unmodifiableMap(map);
   }
 
-  private static final List<AnnotationValue> values(final AnnotationMirror am) {
-    final Collection<AnnotationValue> v = toMap(am).values();
-    return v instanceof List ? Collections.unmodifiableList((List<AnnotationValue>)v) : List.copyOf(v);
-  }
-
   static final boolean equals(final AnnotationValue av1, final AnnotationValue av2, final boolean ia) {
     if (av1 == av2) {
       return true;
@@ -740,7 +736,7 @@ final class Equality {
     } else if (v1 instanceof VariableElement ve1) {
       return av2.getValue() instanceof VariableElement ve2 && equals(ve1, ve2, ia);
     } else {
-      return v1.equals(av2.getValue());
+      return v1.equals(av2.getValue()); // illegal argument
     }
   }
 
@@ -804,7 +800,6 @@ final class Equality {
     case MODULE:
       return equals((ModuleElement)e1, (ModuleElement)e2, ia);
 
-    case OTHER:
     default:
       return false;
     }
@@ -906,8 +901,8 @@ final class Equality {
     // sun.reflect.generics.reflectiveObjects.TypeVariableImpl.
     return
       e1.getKind() == ElementKind.TYPE_PARAMETER && e2.getKind() == ElementKind.TYPE_PARAMETER &&
-      equals(e1.getGenericElement(), e2.getGenericElement(), ia) &&
-      equals(e1.getSimpleName(), e2.getSimpleName());
+      equals(e1.getSimpleName(), e2.getSimpleName()) &&
+      equals(e1.getGenericElement(), e2.getGenericElement(), ia);
   }
 
   static final boolean equals(final VariableElement e1, final VariableElement e2, final boolean ia) {
@@ -1122,9 +1117,8 @@ final class Equality {
       return false;
     }
     // The Java type system doesn't actually say that a wildcard type
-    // is a type.  At the same time they say that, for example, "?" is
-    // equivalent to "? extends Object".  Let's start by simply
-    // comparing bounds exactly.
+    // is a type.  It also says that "?" is "equivalent to" "? extends
+    // Object".  Let's start by simply comparing bounds exactly.
     return
       t1.getKind() == TypeKind.WILDCARD && t2.getKind() == TypeKind.WILDCARD &&
       equals(t1.getExtendsBound(), t2.getExtendsBound(), ia) &&

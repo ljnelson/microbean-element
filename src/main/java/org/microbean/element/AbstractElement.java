@@ -153,7 +153,16 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
 
   public final <E extends Element & Encloseable> void addEnclosedElement(final E e) {
     this.enclosedElementsAdder.accept(e);
-    e.setEnclosingElement(this);
+    if (e.getEnclosingElement() == null) {
+      // TODO: this needs refining due to the strange relationship
+      // between getEnclosedElements() and getEnclosingElement().
+      //
+      // For example, a VariableElement representing a method
+      // parameter will have an ExecutableElement as its enclosing
+      // element, but that ExecutableElement will not contain the
+      // VariableElement among its enclosed elements.
+      e.setEnclosingElement(this);
+    }
   }
 
   @Override // Element
@@ -163,7 +172,17 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
       readOnlyEnclosedElements = List.copyOf(this.enclosedElementsSupplier.get());
       if (READ_ONLY_ENCLOSED_ELEMENTS.compareAndSet(this, null, readOnlyEnclosedElements)) { // volatile write
         for (final Element enclosedElement : readOnlyEnclosedElements) {
-          if (enclosedElement instanceof Encloseable e) {
+          if (enclosedElement.getEnclosingElement() == null && enclosedElement instanceof Encloseable e) {
+            // TODO: this needs refining.
+            //
+            // The enclosed/enclosing relationship is extremely weird
+            // and poorly defined.
+            //
+            // For example, a VariableElement representing a method
+            // parameter will have an ExecutableElement as its
+            // enclosing element, but that ExecutableElement will not
+            // contain the VariableElement among its enclosed
+            // elements.
             e.setEnclosingElement(this);
           }
         }

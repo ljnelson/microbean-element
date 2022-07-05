@@ -34,6 +34,7 @@ import java.util.Set;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -64,7 +65,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     new DefaultTypeElement(DefaultName.of("java.lang.Object"),
                            DefaultDeclaredType.JAVA_LANG_OBJECT,
                            PUBLIC);
-  
+
   public static final DefaultTypeElement JAVA_IO_SERIALIZABLE =
     new DefaultTypeElement(DefaultName.of("java.io.Serializable"),
                            ElementKind.INTERFACE,
@@ -126,18 +127,18 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
   // * an element, declared elsewhere, Comparable<T>.  (If you were to
   // * call asType() on this element, what would be the value of
   // * type.getTypeArguments()? Probably List.of().)
-  
+
   // * an element, Comparable<Frob>.  It "has" an associated
   // * (definitionally nameless) type "backing" it whose
   // * getTypeArguments() will return exactly one type, namely the
   // * type backing the Frob element.
-  // 
+  //
   public static final DefaultTypeElement JAVA_LANG_COMPARABLE_BOOLEAN =
     new DefaultTypeElement(DefaultName.of("java.lang.Comparable"),
                            ElementKind.INTERFACE,
                            DefaultDeclaredType.JAVA_LANG_COMPARABLE_BOOLEAN,
                            PUBLIC);
-  
+
   public static final DefaultTypeElement JAVA_LANG_BOOLEAN =
     new DefaultTypeElement(DefaultName.of("java.lang.Boolean"),
                            DefaultDeclaredType.JAVA_LANG_BOOLEAN,
@@ -151,7 +152,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     new DefaultTypeElement(DefaultName.of("java.lang.Number"),
                            DefaultDeclaredType.JAVA_LANG_NUMBER,
                            PUBLIC);
-  
+
   public static final DefaultTypeElement JAVA_LANG_BYTE =
     new DefaultTypeElement(DefaultName.of("java.lang.Byte"),
                            DefaultDeclaredType.JAVA_LANG_BYTE,
@@ -267,7 +268,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
          null,
          null);
   }
-  
+
   DefaultTypeElement(final Name qualifiedName,
                      final TypeMirror type,
                      final Set<? extends Modifier> modifiers,
@@ -383,7 +384,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
   public static final DefaultTypeElement of(final Class<?> c) {
     return DefaultTypeElement.of(c, null);
   }
-  
+
   static final DefaultTypeElement of(final Class<?> c, final Element enclosedElement) {
     if (c == void.class || c.isArray() || c.isPrimitive()) {
       throw new IllegalArgumentException("c: " + c);
@@ -476,7 +477,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     return returnValue;
   }
 
-  private static final List<? extends Element> enclosedElementsOf(final Class<?> c, final Element enclosedElement) {
+  static final List<? extends Element> enclosedElementsOf(final Class<?> c, final Element enclosedElement) {
     final ArrayList<Element> enclosedElements = new ArrayList<>();
     addEnclosedElements(c::getDeclaredFields, DefaultVariableElement::of, enclosedElements, enclosedElement);
     addEnclosedElements(c::getDeclaredMethods, DefaultExecutableElement::of, enclosedElements, enclosedElement);
@@ -489,15 +490,10 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     return Collections.unmodifiableList(enclosedElements);
   }
 
-  private static final Element enclosingElementOf(final Class<?> c) {
-    final Class<?> enclosingClass = c.getEnclosingClass();
-    return enclosingClass == null ? null : DefaultTypeElement.of(enclosingClass, DefaultTypeElement.of(c));
-  }
-
-  private static final <T> void addEnclosedElements(final Supplier<? extends T[]> declaredThingsSupplier,
-                                                    final Function<? super T, ? extends Element> f,
-                                                    final Collection<? super Element> elements,
-                                                    final Element enclosedElement) {
+  private static final <T> void addEnclosedElements(final Supplier<? extends T[]> declaredThingsSupplier, // e.g. fields, methods, constructors, record components, classes
+                                                    final Function<? super T, ? extends Element> f, // turns a declared thing into an Element
+                                                    final Collection<? super Element> elements, // add things here
+                                                    final Element enclosedElement) { // "caller"
     final T[] declaredThings = declaredThingsSupplier.get();
     if (declaredThings != null && declaredThings.length > 0) {
       if (enclosedElement == null) {
@@ -512,6 +508,21 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
       }
     }
   }
-  
-}
 
+  /*
+   * Not yet used.
+   */
+
+  private static final Element enclosingElementOf(final Class<?> c) {
+    return enclosingElementOf(c, c::getEnclosingClass, DefaultTypeElement::of, DefaultTypeElement::of);
+  }
+
+  static final <T, U> Element enclosingElementOf(final T enclosedThing,
+                                                 final Supplier<? extends U> enclosingThingSupplier,
+                                                 final Function<? super T, ? extends Element> f,
+                                                 final BiFunction<? super U, ? super Element, ? extends Element> returnValueFunction) {
+    final U enclosingThing = enclosingThingSupplier.get();
+    return enclosingThing == null ? null : returnValueFunction.apply(enclosingThing, f.apply(enclosedThing));
+  }
+
+}

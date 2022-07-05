@@ -44,18 +44,36 @@ import javax.lang.model.type.TypeMirror;
 
 public final class DefaultElement implements ExecutableElement, ModuleElement, PackageElement, RecordComponentElement, TypeElement, TypeParameterElement, VariableElement {
 
+
+  /*
+   * Instance fields.
+   */
+
+
   private final Element delegate;
-  
+
+
+  /*
+   * Constructors.
+   */
+
+
   private DefaultElement(final Element delegate) {
     super();
     this.delegate = Objects.requireNonNull(delegate, "delegate");
   }
 
+
+  /*
+   * Instance methods.
+   */
+
+
   @Override // Element
   public final <R, P> R accept(final ElementVisitor<R, P> v, final P p) {
     return this.delegate.accept(v, p);
   }
-  
+
   @Override // Element
   public final TypeMirror asType() {
     return this.delegate.asType(); // TODO: maybe wrap with DefaultTypeMirror?
@@ -64,7 +82,7 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
   public final Element delegate() {
     return this.delegate;
   }
-  
+
   @Override // RecordComponentElement
   public final ExecutableElement getAccessor() {
     switch (this.delegate.getKind()) {
@@ -74,7 +92,7 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
       return null;
     }
   }
-  
+
   @Override // Element
   public final <A extends Annotation> A getAnnotation(final Class<A> annotationType) {
     return this.delegate.getAnnotation(annotationType);
@@ -115,7 +133,7 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
       return null;
     }
   }
-  
+
   @Override // ExecutableElement
   public final AnnotationValue getDefaultValue() {
     switch (this.delegate.getKind()) {
@@ -133,14 +151,14 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
       return ((ModuleElement)this.delegate).getDirectives();
     default:
       return List.of();
-    }    
+    }
   }
 
   @Override // Element
   public final List<? extends Element> getEnclosedElements() {
     return this.delegate.getEnclosedElements();
   }
-  
+
   @Override // Element
   public final Element getEnclosingElement() {
     return this.delegate.getEnclosingElement();
@@ -155,7 +173,7 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
       return null; // illegal state
     }
   }
-  
+
   @Override // TypeElement
   public final List<? extends TypeMirror> getInterfaces() {
     switch (this.delegate.getKind()) {
@@ -174,7 +192,7 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
   public final ElementKind getKind() {
     return this.delegate.getKind();
   }
-  
+
   @Override // Element
   public final Set<Modifier> getModifiers() {
     return this.delegate.getModifiers();
@@ -193,7 +211,7 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
       return null;
     }
   }
-  
+
   @Override // ExecutableElement
   public final List<? extends VariableElement> getParameters() {
     switch (this.delegate.getKind()) {
@@ -202,7 +220,7 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
       return ((ExecutableElement)this.delegate).getParameters();
     default:
       return List.of();
-    }      
+    }
   }
 
   @Override // ModuleElement, PackageElement, TypeElement
@@ -218,9 +236,9 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
       return ((QualifiedNameable)this.delegate).getQualifiedName();
     default:
       return DefaultName.of();
-    }      
+    }
   }
-  
+
   @Override // ExecutableElement
   public final TypeMirror getReceiverType() {
     return DefaultTypeMirror.of(this.asType()).getReceiverType();
@@ -297,7 +315,7 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
       return false;
     }
   }
-  
+
   @Override // ExecutableElement
   public final boolean isVarArgs() {
     switch (this.delegate.getKind()) {
@@ -330,11 +348,14 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
     return this.delegate.toString();
   }
 
+
+  /*
+   * Static methods.
+   */
+
+
   public static final DefaultElement of(final Element e) {
-    if (e instanceof DefaultElement d) {
-      return d;
-    }
-    return new DefaultElement(e);
+    return e instanceof DefaultElement d ? d : new DefaultElement(e);
   }
-  
+
 }

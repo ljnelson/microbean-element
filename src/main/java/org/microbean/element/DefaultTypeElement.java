@@ -34,6 +34,7 @@ import java.util.Set;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -383,7 +384,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     return DefaultTypeElement.of(c, null);
   }
   
-  static final DefaultTypeElement of(final Class<?> c, final AbstractElement enclosedElement) {
+  static final DefaultTypeElement of(final Class<?> c, final Element enclosedElement) {
     if (c == void.class || c.isArray() || c.isPrimitive()) {
       throw new IllegalArgumentException("c: " + c);
     }
@@ -475,44 +476,41 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     return returnValue;
   }
 
-  private static final List<? extends Element> enclosedElementsOf(final Class<?> c, final AbstractElement enclosedElement) {
+  private static final List<? extends Element> enclosedElementsOf(final Class<?> c, final Element enclosedElement) {
     final ArrayList<Element> enclosedElements = new ArrayList<>();
-    final Field[] declaredFields = c.getDeclaredFields();
-    for (final Field declaredField : declaredFields) {      
-      enclosedElements.add(DefaultVariableElement.of(declaredField));
-    }
-    final Method[] declaredMethods = c.getDeclaredMethods();
-    for (final Method declaredMethod : declaredMethods) {
-      enclosedElements.add(DefaultExecutableElement.of(declaredMethod));
-    }
-    final Constructor<?>[] declaredConstructors = c.getDeclaredConstructors();
-    for (final Constructor<?> declaredConstructor : declaredConstructors) {
-      enclosedElements.add(DefaultExecutableElement.of(declaredConstructor));
-    }
+    addEnclosedElements(c::getDeclaredFields, DefaultVariableElement::of, enclosedElements, enclosedElement);
+    addEnclosedElements(c::getDeclaredMethods, DefaultExecutableElement::of, enclosedElements, enclosedElement);
+    addEnclosedElements(c::getDeclaredConstructors, DefaultExecutableElement::of, enclosedElements, enclosedElement);
     if (c.isRecord()) {
-      final RecordComponent[] recordComponents = c.getRecordComponents();
-      for (final RecordComponent recordComponent : recordComponents) {
-        enclosedElements.add(DefaultRecordComponentElement.of(recordComponent));
-      }
+      addEnclosedElements(c::getRecordComponents, DefaultRecordComponentElement::of, enclosedElements, enclosedElement);
     }
-    final Class<?>[] declaredClasses = c.getDeclaredClasses();
-    if (enclosedElement == null) {
-      for (final Class<?> declaredClass : declaredClasses) {
-        enclosedElements.add(DefaultTypeElement.of(declaredClass, null));
-      }
-    } else {
-      for (final Class<?> declaredClass : declaredClasses) {
-        final DefaultTypeElement e = DefaultTypeElement.of(declaredClass, null);
-        enclosedElements.add(Equality.equals(enclosedElement, e, true) ? enclosedElement : e);
-      }
-    }
+    addEnclosedElements(c::getDeclaredClasses, DefaultTypeElement::of, enclosedElements, enclosedElement);
     enclosedElements.trimToSize();
     return Collections.unmodifiableList(enclosedElements);
   }
 
   private static final Element enclosingElementOf(final Class<?> c) {
     final Class<?> enclosingClass = c.getEnclosingClass();
-    return enclosingClass == null ? null : DefaultTypeElement.of(enclosingClass, DefaultTypeElement.of(c, null));
+    return enclosingClass == null ? null : DefaultTypeElement.of(enclosingClass, DefaultTypeElement.of(c));
+  }
+
+  private static final <T> void addEnclosedElements(final Supplier<? extends T[]> declaredThingsSupplier,
+                                                    final Function<? super T, ? extends Element> f,
+                                                    final Collection<? super Element> elements,
+                                                    final Element enclosedElement) {
+    final T[] declaredThings = declaredThingsSupplier.get();
+    if (declaredThings != null && declaredThings.length > 0) {
+      if (enclosedElement == null) {
+        for (final T declaredThing : declaredThings) {
+          elements.add(f.apply(declaredThing));
+        }
+      } else {
+        for (final T declaredThing : declaredThings) {
+          final Element e = f.apply(declaredThing);
+          elements.add(Equality.equals(enclosedElement, e, true) ? enclosedElement : e);
+        }
+      }
+    }
   }
   
 }

@@ -45,7 +45,7 @@ import javax.lang.model.type.TypeVisitor;
 public class DefaultDeclaredType extends AbstractReferenceType implements DeclaredType {
 
   private static final VarHandle ENCLOSING_TYPE;
-  
+
   static {
     final Lookup lookup = MethodHandles.lookup();
     try {
@@ -54,43 +54,41 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
       throw (Error)new ExceptionInInitializerError(reflectiveOperationException.getMessage()).initCause(reflectiveOperationException);
     }
   }
-  
-  static final DefaultDeclaredType JAVA_IO_SERIALIZABLE = new DefaultDeclaredType();
 
-  static final DefaultDeclaredType JAVA_LANG_BOOLEAN = new DefaultDeclaredType();
+  static final DefaultDeclaredType JAVA_IO_SERIALIZABLE = of();
 
-  static final DefaultDeclaredType JAVA_LANG_BYTE = new DefaultDeclaredType();
+  static final DefaultDeclaredType JAVA_LANG_BOOLEAN = of();
 
-  static final DefaultDeclaredType JAVA_LANG_CHARACTER = new DefaultDeclaredType();
+  static final DefaultDeclaredType JAVA_LANG_BYTE = of();
 
-  static final DefaultDeclaredType JAVA_LANG_CLONEABLE = new DefaultDeclaredType();
+  static final DefaultDeclaredType JAVA_LANG_CHARACTER = of();
 
-  static final DefaultDeclaredType JAVA_LANG_COMPARABLE_BOOLEAN =
-    new DefaultDeclaredType(List.of(JAVA_LANG_BOOLEAN),
-                            null); // no annotations
+  static final DefaultDeclaredType JAVA_LANG_CLONEABLE = of();
 
-  static final DefaultDeclaredType JAVA_LANG_CONSTANT_CONSTABLE = new DefaultDeclaredType();
+  static final DefaultDeclaredType JAVA_LANG_COMPARABLE_BOOLEAN = of(List.of(JAVA_LANG_BOOLEAN));
 
-  static final DefaultDeclaredType JAVA_LANG_CONSTANT_CONSTANTDESC = new DefaultDeclaredType();
+  static final DefaultDeclaredType JAVA_LANG_CONSTANT_CONSTABLE = of();
 
-  static final DefaultDeclaredType JAVA_LANG_DOUBLE = new DefaultDeclaredType();
+  static final DefaultDeclaredType JAVA_LANG_CONSTANT_CONSTANTDESC = of();
 
-  static final DefaultDeclaredType JAVA_LANG_FLOAT = new DefaultDeclaredType();
+  static final DefaultDeclaredType JAVA_LANG_DOUBLE = of();
 
-  static final DefaultDeclaredType JAVA_LANG_INTEGER = new DefaultDeclaredType();
+  static final DefaultDeclaredType JAVA_LANG_FLOAT = of();
 
-  static final DefaultDeclaredType JAVA_LANG_LONG = new DefaultDeclaredType();
+  static final DefaultDeclaredType JAVA_LANG_INTEGER = of();
 
-  static final DefaultDeclaredType JAVA_LANG_NUMBER = new DefaultDeclaredType();
+  static final DefaultDeclaredType JAVA_LANG_LONG = of();
 
-  static final DefaultDeclaredType JAVA_LANG_OBJECT = new DefaultDeclaredType();
+  static final DefaultDeclaredType JAVA_LANG_NUMBER = of();
 
-  static final DefaultDeclaredType JAVA_LANG_SHORT = new DefaultDeclaredType();
+  static final DefaultDeclaredType JAVA_LANG_OBJECT = of();
 
-  static final DefaultDeclaredType JAVA_LANG_VOID = new DefaultDeclaredType();
+  static final DefaultDeclaredType JAVA_LANG_SHORT = of();
+
+  static final DefaultDeclaredType JAVA_LANG_VOID = of();
 
   private final Supplier<? extends TypeMirror> enclosingTypeSupplier;
-  
+
   private volatile TypeMirror enclosingType;
 
   private Element definingElement;
@@ -104,11 +102,11 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
   public DefaultDeclaredType(final TypeMirror soleTypeArgument) {
     this(DefaultNoType.NONE, List.of(soleTypeArgument), null);
   }
-  
+
   public DefaultDeclaredType(final List<? extends TypeMirror> typeArguments) {
     this(DefaultNoType.NONE, typeArguments, null);
   }
-  
+
   public DefaultDeclaredType(final List<? extends TypeMirror> typeArguments,
                              final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     this(DefaultNoType.NONE, typeArguments, annotationMirrorsSupplier);
@@ -130,7 +128,7 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
       this.typeArguments = Collections.unmodifiableList(list);
     }
   }
-  
+
   public DefaultDeclaredType(final Supplier<? extends TypeMirror> enclosingTypeSupplier,
                              final List<? extends TypeMirror> typeArguments,
                              final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
@@ -174,7 +172,7 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
   public <R, P> R accept(final TypeVisitor<R, P> v, P p) {
     return v.visitDeclared(this, p);
   }
-  
+
   @Override // DeclaredType
   public final Element asElement() {
     return this.definingElement;
@@ -197,6 +195,12 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
     return this.typeArguments;
   }
 
+
+  /*
+   * Static methods.
+   */
+
+
   private static final <T extends TypeMirror> T validateEnclosingType(final T t) {
     if (t == null) {
       return null;
@@ -210,6 +214,10 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
     }
   }
 
+  public static final DefaultDeclaredType of() {
+    return new DefaultDeclaredType();
+  }
+
   public static final DefaultDeclaredType of(final DeclaredType t) {
     if (t instanceof DefaultDeclaredType ddt) {
       return ddt;
@@ -217,19 +225,28 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
     return of(t.getEnclosingType(), t.getTypeArguments(), t::getAnnotationMirrors);
   }
 
+  public static final DefaultDeclaredType of(final List<? extends TypeMirror> typeArguments) {
+    return of(DefaultNoType.NONE, typeArguments, null);
+  }
+
   public static final DefaultDeclaredType of(final TypeMirror enclosingType,
                                              final List<? extends TypeMirror> typeArguments,
                                              final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    if ((enclosingType == null || DefaultNoType.NONE.equals(enclosingType)) &&
+        (typeArguments == null || typeArguments.isEmpty()) &&
+        annotationMirrorsSupplier == null) {
+      return DefaultDeclaredType.of();
+    }
     return new DefaultDeclaredType(enclosingType, typeArguments, annotationMirrorsSupplier);
   }
-  
-  public static final DefaultDeclaredType of(final AnnotatedType t) {    
+
+  public static final DefaultDeclaredType of(final AnnotatedType t) {
     if (t instanceof AnnotatedParameterizedType p) {
-      return of(p);
+      return DefaultDeclaredType.of(p);
     }
     throw new IllegalArgumentException("t: " + t);
   }
-  
+
   public static final DefaultDeclaredType of(final Class<?> c) {
     if (c == void.class || c.isArray() || c.isPrimitive()) {
       throw new IllegalArgumentException("c: " + c);
@@ -246,7 +263,7 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
         typeArguments.add(DefaultTypeVariable.of(t));
       }
     }
-    return new DefaultDeclaredType(enclosingType, typeArguments, null);
+    return DefaultDeclaredType.of(enclosingType, typeArguments, null);
   }
 
   public static final DefaultDeclaredType of(final ParameterizedType p) {
@@ -262,9 +279,9 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
         typeArguments.add(AbstractTypeMirror.of(t));
       }
     }
-    return new DefaultDeclaredType(enclosingType, typeArguments, null);
+    return DefaultDeclaredType.of(enclosingType, typeArguments, null);
   }
-  
+
   public static final DefaultDeclaredType of(final AnnotatedParameterizedType p) {
     final AnnotatedType ownerType = p.getAnnotatedOwnerType();
     final TypeMirror enclosingType = ownerType == null ? null : AbstractTypeMirror.of(ownerType);
@@ -278,7 +295,7 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
         typeArguments.add(AbstractTypeMirror.of(t));
       }
     }
-    return new DefaultDeclaredType(enclosingType, typeArguments, null);
+    return DefaultDeclaredType.of(enclosingType, typeArguments, null);
   }
 
 }

@@ -47,12 +47,14 @@ public final class DefaultVariableElement extends AbstractElement implements Var
                                 final ElementKind kind,
                                 final TypeMirror type,
                                 final Set<? extends Modifier> modifiers,
+                                final Element enclosingElement,
                                 final Object constantValue,
                                 final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(simpleName,
           validate(kind),
           validate(type),
           modifiers,
+          enclosingElement,
           List::of,
           annotationMirrorsSupplier);
     this.constantValue = constantValue;
@@ -72,7 +74,13 @@ public final class DefaultVariableElement extends AbstractElement implements Var
   public final void setEnclosingElement(final Element enclosingElement) {
     super.setEnclosingElement(validate(enclosingElement));
   }
-  
+
+
+  /*
+   * Static methods.
+   */
+
+
   private static final ElementKind validate(final ElementKind kind) {
     switch (kind) {
     case BINDING_VARIABLE:
@@ -133,13 +141,14 @@ public final class DefaultVariableElement extends AbstractElement implements Var
       modifierSet.add(Modifier.VOLATILE);
     }
     final EnumSet<Modifier> finalModifiers = EnumSet.copyOf(modifierSet);
-    return new DefaultVariableElement(simpleName, ElementKind.FIELD, type, finalModifiers, null, null);
+    
+    return new DefaultVariableElement(simpleName, ElementKind.FIELD, type, finalModifiers, null, null, null);
   }
-  
+
   public static final DefaultVariableElement of(final Parameter p) {
     final Name simpleName = DefaultName.of(p.getName());
     final TypeMirror type = AbstractTypeMirror.of(p.getParameterizedType());
-    return new DefaultVariableElement(simpleName, ElementKind.PARAMETER, type, Set.of(), null, null);
+    return new DefaultVariableElement(simpleName, ElementKind.PARAMETER, type, Set.of(), null, null, null);
   }
-  
+
 }

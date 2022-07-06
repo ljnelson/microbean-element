@@ -74,6 +74,7 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
           kind,
           validate(type),
           modifiers,
+          null,
           List::of,
           annotationMirrorsSupplier);
     switch (kind) {
@@ -122,10 +123,11 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
     return this.parameters;
   }
 
-  public final void addParameter(final VariableElement p) {
+  public final <T extends VariableElement & Encloseable> void addParameter(final T p) {
     switch (p.getKind()) {
     case PARAMETER:
       this.mutableParameters.add(p);
+      p.setEnclosingElement(this);
       break;
     default:
       throw new IllegalArgumentException();
@@ -250,10 +252,13 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
     }
 
     for (final Parameter p : e.getParameters()) {
-      returnValue.addParameter(DefaultVariableElement.of(p));
+      final DefaultVariableElement element = DefaultVariableElement.of(p);
+      returnValue.addParameter(element);
     }
 
     return returnValue;
   }
 
+
+  
 }

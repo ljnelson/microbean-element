@@ -64,6 +64,7 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
           ElementKind.MODULE,
           DefaultNoType.MODULE,
           Set.of(),
+          null, // enclosingElement
           null, // enclosedElementsSupplier
           annotationMirrorsSupplier);
     this.simpleName = DefaultName.ofSimple(fullyQualifiedName);

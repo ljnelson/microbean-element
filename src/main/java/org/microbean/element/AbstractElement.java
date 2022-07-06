@@ -83,6 +83,7 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
                             final ElementKind kind,
                             final TypeMirror type,
                             final Set<? extends Modifier> modifiers,
+                            final Element enclosingElement, // nullable, normally null
                             final Supplier<List<? extends Element>> enclosedElementsSupplier,
                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(annotationMirrorsSupplier);
@@ -90,6 +91,7 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
     this.kind = Objects.requireNonNull(kind, "kind");
     this.type = type == null ? DefaultNoType.NONE : type;
     this.modifiers = modifiers == null || modifiers.isEmpty() ? Set.of() : Set.copyOf(modifiers);
+    this.enclosingElement = enclosingElement;
     this.enclosedElementsSupplier = enclosedElementsSupplier;
     if (enclosedElementsSupplier == null) {
       final List<Element> enclosedElements = new CopyOnWriteArrayList<>();
@@ -172,17 +174,22 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
       readOnlyEnclosedElements = List.copyOf(this.enclosedElementsSupplier.get());
       if (READ_ONLY_ENCLOSED_ELEMENTS.compareAndSet(this, null, readOnlyEnclosedElements)) { // volatile write
         for (final Element enclosedElement : readOnlyEnclosedElements) {
+          // TODO: the following test needs refining.
+          //
+          // The enclosed/enclosing relationship is extremely weird
+          // and poorly defined.
+          //
+          // For example, a VariableElement representing a method
+          // parameter will have an ExecutableElement as its enclosing
+          // element, but that ExecutableElement will not contain the
+          // VariableElement among its enclosed elements.
           if (enclosedElement.getEnclosingElement() == null && enclosedElement instanceof Encloseable e) {
-            // TODO: this needs refining.
-            //
-            // The enclosed/enclosing relationship is extremely weird
-            // and poorly defined.
-            //
-            // For example, a VariableElement representing a method
-            // parameter will have an ExecutableElement as its
-            // enclosing element, but that ExecutableElement will not
-            // contain the VariableElement among its enclosed
-            // elements.
+            // We use nullness as a cheap proxy: if the existing
+            // enclosing element is already set, we honor it.  This
+            // means, of course, it's possible for illegal states to
+            // occur: a member class being added as an enclosed
+            // element of class A could claim its enclosing element is
+            // actually class B and this would be permitted.  But this does let things like a TypeElement enclosing
             e.setEnclosingElement(this);
           }
         }

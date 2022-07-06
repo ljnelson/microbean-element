@@ -47,6 +47,7 @@ final class PrimitiveElement extends AbstractElement {
           ElementKind.OTHER, // not really right, but this whole thing isn't really right, because javac isn't really right
           validate(type),
           Set.of(),
+          null,
           List::of,
           null);
   }

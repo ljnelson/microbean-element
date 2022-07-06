@@ -266,6 +266,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
          List.of(),
          List.of(),
          null,
+         null,
          null);
   }
 
@@ -283,6 +284,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
          List.of(),
          interfaces,
          null,
+         null,
          null);
   }
 
@@ -299,6 +301,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
          List.of(),
          List.of(),
          null,
+         null,
          null);
   }
 
@@ -310,12 +313,14 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                             final TypeMirror superclass,
                             final List<? extends TypeMirror> permittedSubclasses,
                             final List<? extends TypeMirror> interfaces,
+                            final Element enclosingElement,
                             final Supplier<List<? extends Element>> enclosedElementsSupplier,
                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(qualifiedName,
           validate(kind),
           type,
           modifiers,
+          enclosingElement,
           enclosedElementsSupplier,
           annotationMirrorsSupplier);
     this.simpleName = DefaultName.ofSimple(qualifiedName);
@@ -427,16 +432,34 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
       modifierSet.add(Modifier.STATIC);
     }
     final EnumSet<Modifier> finalModifiers = EnumSet.copyOf(modifierSet);
+    Object enclosingObject;
     final NestingKind nestingKind;
     if (c.isAnonymousClass()) {
       nestingKind = NestingKind.ANONYMOUS;
+      enclosingObject = c.getEnclosingMethod();
+      if (enclosingObject == null) {
+        enclosingObject = c.getEnclosingConstructor();
+      }
+      // Note: we don't want to call c.getEnclosingClass(), because
+      // that will jump the hierarchy. An anonymous class is lexically
+      // enclosed only by an non-static executable.  (I think. :-))
+      assert enclosingObject != null;
     } else if (c.isLocalClass()) {
       nestingKind = NestingKind.LOCAL;
+      enclosingObject = c.getEnclosingMethod();
+      if (enclosingObject == null) {
+        enclosingObject = c.getEnclosingConstructor();
+      }
+      assert enclosingObject != null;
     } else if (c.isMemberClass()) {
       nestingKind = NestingKind.MEMBER;
+      enclosingObject = c.getDeclaringClass();
+      assert enclosingObject != null;
     } else {
       nestingKind = NestingKind.TOP_LEVEL;
+      enclosingObject = null;
     }
+    final Element enclosingElement = enclosingObject instanceof Executable ex ? DefaultExecutableElement.of(ex) : null;
     final AnnotatedType annotatedSuperclass = c.getAnnotatedSuperclass();
     final DeclaredType superclass = annotatedSuperclass == null ? null : DefaultDeclaredType.of(annotatedSuperclass);
     final List<TypeMirror> permittedSubclassTypeMirrors;
@@ -472,6 +495,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                              superclass,
                              permittedSubclassTypeMirrors,
                              interfaceTypeMirrors,
+                             enclosingElement, // most often null
                              () -> enclosedElementsOf(c, enclosedElement),
                              null);
     return returnValue;

@@ -296,6 +296,7 @@ final class TestORama {
                                List.of(),
                                List.of(),
                                null,
+                               null,
                                null);
       defaultJavaLang.addEnclosedElement(defaultComparableElement);
 
@@ -368,6 +369,7 @@ final class TestORama {
                                null, // no superclass,
                                List.of(), // permitted subclass types
                                List.of(defaultComparableFrobType), // interface types
+                               null,
                                null,
                                null);
       unnamedPackage.addEnclosedElement(defaultFrobElement);

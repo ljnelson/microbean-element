@@ -18,13 +18,7 @@ package org.microbean.element;
 
 import java.lang.annotation.Annotation;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodHandles.Lookup;
-import java.lang.invoke.VarHandle;
-
 import java.util.List;
-
-import java.util.function.Supplier;
 
 import javax.lang.model.AnnotatedConstruct;
 
@@ -32,31 +26,13 @@ import javax.lang.model.element.AnnotationMirror;
 
 public abstract class AbstractAnnotatedConstruct implements AnnotatedConstruct {
 
-  private static final VarHandle ANNOTATION_MIRRORS;
-  
-  static {
-    final Lookup lookup = MethodHandles.lookup();
-    try {
-      ANNOTATION_MIRRORS = lookup.findVarHandle(AbstractAnnotatedConstruct.class, "annotationMirrors", List.class);
-    } catch (final NoSuchFieldException | IllegalAccessException reflectiveOperationException) {
-      throw (Error)new ExceptionInInitializerError(reflectiveOperationException.getMessage()).initCause(reflectiveOperationException);
-    }
-  }
-  
   protected static final Annotation[] EMPTY_ANNOTATION_ARRAY = new Annotation[0];
   
-  private final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier;
-
-  private volatile List<? extends AnnotationMirror> annotationMirrors;
+  private final List<? extends AnnotationMirror> annotationMirrors;
   
-  protected AbstractAnnotatedConstruct(final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+  protected AbstractAnnotatedConstruct(final List<? extends AnnotationMirror> annotationMirrors) {
     super();
-    if (annotationMirrorsSupplier == null) {
-      this.annotationMirrorsSupplier = null;
-      this.annotationMirrors = List.of();
-    } else {
-      this.annotationMirrorsSupplier = annotationMirrorsSupplier;
-    }
+    this.annotationMirrors = annotationMirrors == null ? List.of() : List.copyOf(annotationMirrors);
   }
 
   @Override // AnnotatedConstruct
@@ -72,14 +48,7 @@ public abstract class AbstractAnnotatedConstruct implements AnnotatedConstruct {
   
   @Override // AnnotatedConstruct
   public final List<? extends AnnotationMirror> getAnnotationMirrors() {
-    List<? extends AnnotationMirror> annotationMirrors = this.annotationMirrors; // volatile read
-    if (annotationMirrors == null) {
-      annotationMirrors = this.annotationMirrorsSupplier.get();
-      if (!ANNOTATION_MIRRORS.compareAndSet(this, null, annotationMirrors)) { // volatile write
-        return this.annotationMirrors; // volatile read
-      }
-    }
-    return annotationMirrors;
+    return this.annotationMirrors;
   }
   
 }

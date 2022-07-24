@@ -64,14 +64,14 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
 
   private DefaultModuleElement(final Name fullyQualifiedName,
                                final boolean open,
-                               final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+                               final List<? extends AnnotationMirror> annotationMirrors) {
     super(fullyQualifiedName,
           ElementKind.MODULE,
           DefaultNoType.MODULE,
           Set.of(),
           null, // enclosingElement
           null, // enclosedElementsSupplier
-          annotationMirrorsSupplier);
+          annotationMirrors);
     this.simpleName = DefaultName.ofSimple(fullyQualifiedName);
     this.open = open;
     this.directives = new CopyOnWriteArrayList<>();

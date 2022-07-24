@@ -46,8 +46,8 @@ public abstract class AbstractParameterizableElement extends AbstractElement imp
                                            final Set<? extends Modifier> modifiers,
                                            final Element enclosingElement,
                                            final Supplier<List<? extends Element>> enclosedElementsSupplier,
-                                           final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    super(name, kind, type, modifiers, enclosingElement, enclosedElementsSupplier, annotationMirrorsSupplier);
+                                           final List<? extends AnnotationMirror> annotationMirrors) {
+    super(name, kind, type, modifiers, enclosingElement, enclosedElementsSupplier, annotationMirrors);
     this.mutableTypeParameters = new CopyOnWriteArrayList<>();
     this.typeParameters = Collections.unmodifiableList(this.mutableTypeParameters);
   }

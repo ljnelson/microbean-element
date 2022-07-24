@@ -28,8 +28,6 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
 
-import java.util.function.Supplier;
-
 import javax.lang.model.element.AnnotationMirror;
 
 import javax.lang.model.type.ArrayType;
@@ -57,8 +55,8 @@ public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements Ty
   // "Type" --> "TypeMirror"
   // "TypeMapping" --> "TypeVisitor"
   
-  public AbstractTypeMirror(final TypeKind kind, final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    super(annotationMirrorsSupplier);
+  public AbstractTypeMirror(final TypeKind kind, final List<? extends AnnotationMirror> annotationMirrors) {
+    super(annotationMirrors);
     this.kind = Objects.requireNonNull(kind, "kind");
   }
 
@@ -148,13 +146,13 @@ public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements Ty
       final ArrayType at = (ArrayType)t;
       return
         DefaultArrayType.of(at.getComponentType(),
-                            at::getAnnotationMirrors);
+                            at.getAnnotationMirrors());
     case DECLARED:
       final DeclaredType dt = (DeclaredType)t;
       return
         DefaultDeclaredType.of(dt.getEnclosingType(),
                                dt.getTypeArguments(),
-                               dt::getAnnotationMirrors);
+                               dt.getAnnotationMirrors());
     case EXECUTABLE:
       final ExecutableType et = (ExecutableType)t;
       return
@@ -163,7 +161,7 @@ public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements Ty
                                  et.getReturnType(),
                                  et.getThrownTypes(),
                                  et.getTypeVariables(),
-                                 et::getAnnotationMirrors);
+                                 et.getAnnotationMirrors());
     case INTERSECTION:
       final IntersectionType it = (IntersectionType)t;
       return
@@ -203,13 +201,13 @@ public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements Ty
       return
         DefaultTypeVariable.of(tv.getUpperBound(),
                                tv.getLowerBound(),
-                               tv::getAnnotationMirrors);
+                               tv.getAnnotationMirrors());
     case WILDCARD:
       final WildcardType w = (WildcardType)t;
       return
         DefaultWildcardType.of(w.getExtendsBound(),
                                w.getSuperBound(),
-                               w.getAnnotationMirrors().isEmpty() ? null : w::getAnnotationMirrors);
+                               w.getAnnotationMirrors());
 
     default:
       throw new IllegalArgumentException("t: " + t);

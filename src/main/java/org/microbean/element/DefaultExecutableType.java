@@ -50,8 +50,8 @@ public class DefaultExecutableType extends AbstractTypeMirror implements Executa
                                final TypeMirror returnType,
                                final List<? extends TypeMirror> thrownTypes,
                                final List<? extends TypeVariable> typeVariables,
-                               final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    super(TypeKind.EXECUTABLE, annotationMirrorsSupplier);
+                               final List<? extends AnnotationMirror> annotationMirrors) {
+    super(TypeKind.EXECUTABLE, annotationMirrors);
     this.parameterTypes = parameterTypes == null || parameterTypes.isEmpty() ? List.of() : List.copyOf(parameterTypes);
     this.receiverType = receiverType == null ? DefaultNoType.NONE : receiverType;
     this.returnType = returnType == null ? DefaultNoType.VOID : returnType;
@@ -99,7 +99,7 @@ public class DefaultExecutableType extends AbstractTypeMirror implements Executa
                                 e.getReturnType(),
                                 e.getThrownTypes(),
                                 e.getTypeVariables(),
-                                e::getAnnotationMirrors);
+                                e.getAnnotationMirrors());
   }
 
   public static DefaultExecutableType of(final List<? extends TypeMirror> parameterTypes,
@@ -107,13 +107,13 @@ public class DefaultExecutableType extends AbstractTypeMirror implements Executa
                                          final TypeMirror returnType,
                                          final List<? extends TypeMirror> thrownTypes,
                                          final List<? extends TypeVariable> typeVariables,
-                                         final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+                                         final List<? extends AnnotationMirror> annotationMirrors) {
     return new DefaultExecutableType(parameterTypes,
                                      receiverType,
                                      returnType,
                                      thrownTypes,
                                      typeVariables,
-                                     annotationMirrorsSupplier);
+                                     annotationMirrors);
   }
 
   public static DefaultExecutableType of(final Executable e) {

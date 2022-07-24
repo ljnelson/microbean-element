@@ -34,8 +34,8 @@ public class DefaultErrorType extends DefaultDeclaredType implements ErrorType {
 
   public DefaultErrorType(final TypeMirror enclosingType,
                           final List<? extends TypeMirror> typeArguments,
-                          final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    super(enclosingType, typeArguments, annotationMirrorsSupplier);
+                          final List<? extends AnnotationMirror> annotationMirrors) {
+    super(enclosingType, typeArguments, annotationMirrors);
   }
 
   @Override // TypeMirror

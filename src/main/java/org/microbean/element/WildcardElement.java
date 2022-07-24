@@ -32,7 +32,7 @@ final class WildcardElement extends AbstractElement {
           Set.of(),
           null,
           List::of,
-          List::of);
+          List.of());
   }
   
 }

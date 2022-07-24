@@ -85,8 +85,8 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
                             final Set<? extends Modifier> modifiers,
                             final Element enclosingElement, // nullable, normally null
                             final Supplier<List<? extends Element>> enclosedElementsSupplier,
-                            final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    super(annotationMirrorsSupplier);
+                            final List<? extends AnnotationMirror> annotationMirrors) {
+    super(annotationMirrors);
     this.name = name == null ? DefaultName.EMPTY : DefaultName.of(name);
     this.kind = Objects.requireNonNull(kind, "kind");
     this.type = type == null ? DefaultNoType.NONE : type;

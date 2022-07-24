@@ -67,8 +67,8 @@ public class DefaultPrimitiveType extends AbstractTypeMirror implements Primitiv
   }
   
   public DefaultPrimitiveType(final TypeKind kind,
-                              final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    super(kind, annotationMirrorsSupplier);
+                              final List<? extends AnnotationMirror> annotationMirrors) {
+    super(kind, annotationMirrors);
     switch (kind) {
     case BOOLEAN:
     case BYTE:

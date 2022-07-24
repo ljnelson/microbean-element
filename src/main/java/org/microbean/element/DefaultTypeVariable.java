@@ -23,8 +23,6 @@ import java.lang.reflect.GenericArrayType;
 import java.util.ArrayList;
 import java.util.List;
 
-import java.util.function.Supplier;
-
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeParameterElement;
@@ -40,8 +38,8 @@ public class DefaultTypeVariable extends AbstractTypeVariable {
 
   protected DefaultTypeVariable(final TypeMirror upperBound,
                                 final TypeMirror lowerBound,
-                                final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    super(TypeKind.TYPEVAR, upperBound, lowerBound, annotationMirrorsSupplier);
+                                final List<? extends AnnotationMirror> annotationMirrors) {
+    super(TypeKind.TYPEVAR, upperBound, lowerBound, annotationMirrors);
   }
   
   final void element(final TypeParameterElement e) {
@@ -72,14 +70,14 @@ public class DefaultTypeVariable extends AbstractTypeVariable {
   }
   
   public static DefaultTypeVariable of(final TypeMirror upperBound,
-                                       final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    return new DefaultTypeVariable(upperBound, null, annotationMirrorsSupplier);
+                                       final List<? extends AnnotationMirror> annotationMirrors) {
+    return new DefaultTypeVariable(upperBound, null, annotationMirrors);
   }
 
   public static DefaultTypeVariable of(final TypeMirror upperBound,
                                        final TypeMirror lowerBound,
-                                       final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    return new DefaultTypeVariable(upperBound, lowerBound, annotationMirrorsSupplier);
+                                       final List<? extends AnnotationMirror> annotationMirrors) {
+    return new DefaultTypeVariable(upperBound, lowerBound, annotationMirrors);
   }
 
   // Weirdly, nothing in the JDK actually uses AnnotatedTypeVariable.

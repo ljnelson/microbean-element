@@ -36,8 +36,8 @@ public class DefaultArrayType extends AbstractReferenceType implements ArrayType
   private final TypeMirror componentType;
   
   protected DefaultArrayType(final TypeMirror componentType,
-                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    super(TypeKind.ARRAY, annotationMirrorsSupplier);
+                             final List<? extends AnnotationMirror> annotationMirrors) {
+    super(TypeKind.ARRAY, annotationMirrors);
     this.componentType = Objects.requireNonNull(componentType);
   }
 
@@ -56,8 +56,8 @@ public class DefaultArrayType extends AbstractReferenceType implements ArrayType
   }
   
   public static DefaultArrayType of(final TypeMirror componentType,
-                                    final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    return new DefaultArrayType(componentType, annotationMirrorsSupplier);
+                                    final List<? extends AnnotationMirror> annotationMirrors) {
+    return new DefaultArrayType(componentType, annotationMirrors);
   }
 
   public static DefaultArrayType of(final Class<?> c) {

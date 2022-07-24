@@ -49,14 +49,14 @@ public final class DefaultVariableElement extends AbstractElement implements Var
                                 final Set<? extends Modifier> modifiers,
                                 final Element enclosingElement,
                                 final Object constantValue,
-                                final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+                                final List<? extends AnnotationMirror> annotationMirrors) {
     super(simpleName,
           validate(kind),
           validate(type),
           modifiers,
           enclosingElement,
           List::of,
-          annotationMirrorsSupplier);
+          annotationMirrors);
     this.constantValue = constantValue;
   }
 

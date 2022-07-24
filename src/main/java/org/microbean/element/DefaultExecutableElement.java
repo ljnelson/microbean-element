@@ -67,7 +67,7 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
                                   final boolean varArgs,
                                   final boolean isDefault,
                                   final AnnotationValue defaultValue,
-                                  final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+                                  final List<? extends AnnotationMirror> annotationMirrors) {
     super(kind == ElementKind.CONSTRUCTOR ? DefaultName.of("<init>") :
           (kind == ElementKind.STATIC_INIT ? DefaultName.of("<clinit>") :
            (kind == ElementKind.INSTANCE_INIT ? DefaultName.EMPTY : simpleName)),
@@ -76,7 +76,7 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
           modifiers,
           null,
           List::of,
-          annotationMirrorsSupplier);
+          annotationMirrors);
     switch (kind) {
     case CONSTRUCTOR:
     case INSTANCE_INIT:
@@ -175,7 +175,7 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
               e.isVarArgs(),
               e.isDefault(),
               e.getDefaultValue(),
-              e::getAnnotationMirrors);
+              e.getAnnotationMirrors());
   }
   
   public static final DefaultExecutableElement of(final Name simpleName,
@@ -185,7 +185,7 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
                                                   final boolean varArgs,
                                                   final boolean isDefault,
                                                   final AnnotationValue defaultValue,
-                                                  final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+                                                  final List<? extends AnnotationMirror> annotationMirrors) {
     return new DefaultExecutableElement(simpleName,
                                         kind,
                                         type,
@@ -193,7 +193,7 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
                                         varArgs,
                                         isDefault,
                                         defaultValue,
-                                        annotationMirrorsSupplier);
+                                        annotationMirrors);
   }
   
   public static final DefaultExecutableElement of(final Executable e) {

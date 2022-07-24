@@ -34,7 +34,7 @@ public class DefaultUnionType extends AbstractTypeMirror implements UnionType {
   private final List<? extends TypeMirror> alternatives;
 
   protected DefaultUnionType(final List<? extends TypeMirror> alternatives) {
-    super(TypeKind.UNION, List::of);
+    super(TypeKind.UNION, List.of());
     this.alternatives = alternatives == null || alternatives.isEmpty() ? List.of() : List.copyOf(alternatives);
   }
 

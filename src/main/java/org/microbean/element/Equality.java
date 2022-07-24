@@ -335,6 +335,14 @@ final class Equality {
                ia ? hashCode(e.getAnnotationMirrors(), ia) : 0);
   }
 
+  static final int hashCode(final AnnotatedName a, final boolean ia) {
+    if (a == null) {
+      return 0;
+    }
+    return hashCode(hashCode(a.getName(), ia),
+                    ia ? hashCode(a.getAnnotationMirrors(), ia) : 0);
+  }
+  
   static final int hashCode(final TypeMirror t, final boolean ia) {
     if (t == null) {
       return 0;
@@ -749,6 +757,8 @@ final class Equality {
       return ac2 instanceof Element e2 && equals(e1, e2, ia);
     } else if (ac1 instanceof TypeMirror t1) {
       return ac2 instanceof TypeMirror t2 && equals(t1, t2, ia);
+    } else if (ac1 instanceof AnnotatedName an1) {
+      return ac2 instanceof AnnotatedName an2 && equals(an1, an2, ia);
     } else {
       return false; // illegal state
     }
@@ -930,6 +940,15 @@ final class Equality {
     return
       equals(e1.getSimpleName(), e2.getSimpleName()) &&
       equals(e1.getEnclosingElement(), e2.getEnclosingElement(), ia);
+  }
+
+  static final boolean equals(final AnnotatedName a1, final AnnotatedName a2, final boolean ia) {
+    if (a1 == a2) {
+      return true;
+    } else if (a1 == null || a2 == null || ia && !equals(a1.getAnnotationMirrors(), a2.getAnnotationMirrors(), ia)) {
+      return false;
+    }
+    return equals(a1.getName(), a2.getName(), ia);
   }
 
   static final boolean equals(final TypeMirror t1, final TypeMirror t2, final boolean ia) {

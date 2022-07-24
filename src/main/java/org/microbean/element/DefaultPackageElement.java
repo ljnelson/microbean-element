@@ -44,20 +44,20 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
   }
 
   public DefaultPackageElement(final Name fullyQualifiedName,
-                               final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    this(fullyQualifiedName, DefaultNoType.PACKAGE, annotationMirrorsSupplier);
+                               final List<? extends AnnotationMirror> annotationMirrors) {
+    this(fullyQualifiedName, DefaultNoType.PACKAGE, annotationMirrors);
   }
   
   public DefaultPackageElement(final Name fullyQualifiedName,
                                final NoType packageType,
-                               final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+                               final List<? extends AnnotationMirror> annotationMirrors) {
     super(fullyQualifiedName,
           ElementKind.PACKAGE,
           packageType,
           Set.of(),
           null,
           null,
-          annotationMirrorsSupplier);
+          annotationMirrors);
     this.simpleName = DefaultName.ofSimple(fullyQualifiedName);
   }
 
@@ -116,8 +116,8 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
     return DefaultPackageElement.of(fullyQualifiedName, null);
   }
 
-  public static final DefaultPackageElement of(final Name fullyQualifiedName, final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    return new DefaultPackageElement(DefaultName.of(fullyQualifiedName), annotationMirrorsSupplier);
+  public static final DefaultPackageElement of(final Name fullyQualifiedName, final List<? extends AnnotationMirror> annotationMirrors) {
+    return new DefaultPackageElement(DefaultName.of(fullyQualifiedName), annotationMirrors);
   }
   
 }

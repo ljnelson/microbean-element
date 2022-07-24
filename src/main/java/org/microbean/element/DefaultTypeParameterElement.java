@@ -63,14 +63,14 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
   public DefaultTypeParameterElement(final Name simpleName,
                                      final TypeVariable type,
                                      final Set<? extends Modifier> modifiers,
-                                     final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+                                     final List<? extends AnnotationMirror> annotationMirrors) {
     super(simpleName,
           ElementKind.TYPE_PARAMETER,
           type,
           modifiers,
           null,
           List::of,
-          annotationMirrorsSupplier);
+          annotationMirrors);
     if (type instanceof DefaultTypeVariable dtv) {
       dtv.element(this);
     }

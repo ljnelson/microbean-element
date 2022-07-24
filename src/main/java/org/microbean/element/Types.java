@@ -34,8 +34,6 @@ import java.util.WeakHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
-import javax.lang.model.AnnotatedConstruct;
-
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -437,8 +435,8 @@ final class Types {
   }
 
   private static final ArrayType arrayType(final TypeMirror componentType,
-                                           final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    return DefaultArrayType.of(componentType, annotationMirrorsSupplier);
+                                           final List<? extends AnnotationMirror> annotationMirrors) {
+    return DefaultArrayType.of(componentType, annotationMirrors);
   }
 
   private static final Element asElement(final TypeMirror t) {
@@ -735,7 +733,7 @@ final class Types {
       final DeclaredType dt = (DeclaredType)t;
       final TypeMirror enclosingType = dt.getEnclosingType();
       final TypeMirror boundingClass = boundingClass(enclosingType);
-      return enclosingType == boundingClass ? t : declaredType(boundingClass, dt.getTypeArguments(), dt::getAnnotationMirrors);
+      return enclosingType == boundingClass ? t : declaredType(boundingClass, dt.getTypeArguments(), dt.getAnnotationMirrors());
     case TYPEVAR:
       // UnaryVisitor-based so also handles captured type variables
       return boundingClass(supertype(t));
@@ -1109,26 +1107,26 @@ final class Types {
     }
   }
   
-  private static final DeclaredType declaredType(final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    return declaredType(noneType(), List.of(), annotationMirrorsSupplier);
+  private static final DeclaredType declaredType(final List<? extends AnnotationMirror> annotationMirrors) {
+    return declaredType(noneType(), List.of(), annotationMirrors);
   }
 
   private static final DeclaredType declaredType(final List<? extends TypeMirror> typeArguments,
-                                                final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    return declaredType(noneType(), typeArguments, annotationMirrorsSupplier);
+                                                final List<? extends AnnotationMirror> annotationMirrors) {
+    return declaredType(noneType(), typeArguments, annotationMirrors);
   }
 
   private static final DeclaredType declaredType(final DeclaredType enclosingType,
                                                 final List<? extends TypeMirror> typeArguments,
-                                                final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    return declaredType((TypeMirror)enclosingType, typeArguments, annotationMirrorsSupplier);
+                                                final List<? extends AnnotationMirror> annotationMirrors) {
+    return declaredType((TypeMirror)enclosingType, typeArguments, annotationMirrors);
   }
 
   private static final DeclaredType declaredType(final TypeMirror enclosingType,
-                                                final List<? extends TypeMirror> typeArguments,
-                                                final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+                                                 final List<? extends TypeMirror> typeArguments,
+                                                 final List<? extends AnnotationMirror> annotationMirrors) {
     if ((enclosingType == null || enclosingType.getKind() == TypeKind.NONE) &&
-        annotationMirrorsSupplier == null &&
+        (annotationMirrors == null || annotationMirrors.isEmpty()) &&
         (typeArguments == null || typeArguments.isEmpty())) {
       return objectType();
     }
@@ -1141,7 +1139,7 @@ final class Types {
     default:
       throw new IllegalArgumentException("enclosingType: " + enclosingType);
     }
-    return new DefaultDeclaredType(enclosingType, typeArguments, annotationMirrorsSupplier);
+    return new DefaultDeclaredType(enclosingType, typeArguments, annotationMirrors);
   }
 
   private static final TypeMirror enclosingType(final TypeMirror t) {
@@ -1228,9 +1226,9 @@ final class Types {
     final TypeMirror enclosingType = t.getEnclosingType();
     switch (enclosingType.getKind()) {
     case DECLARED:
-      return declaredType(erase((DeclaredType)enclosingType), List.of(), t::getAnnotationMirrors);
+      return declaredType(erase((DeclaredType)enclosingType), List.of(), t.getAnnotationMirrors());
     case NONE:
-      return t.getTypeArguments().isEmpty() ? t : declaredType(enclosingType, List.of(), t::getAnnotationMirrors);
+      return t.getTypeArguments().isEmpty() ? t : declaredType(enclosingType, List.of(), t.getAnnotationMirrors());
     case ERROR:
     case UNION:
     default:
@@ -1246,7 +1244,7 @@ final class Types {
     assert t.getKind() == TypeKind.ARRAY;
     final TypeMirror ct = t.getComponentType();
     final TypeMirror ect = erase(ct);
-    return ct == ect ? t : arrayType(ect, t::getAnnotationMirrors);
+    return ct == ect ? t : arrayType(ect, t.getAnnotationMirrors());
   }
 
   // StructuralTypeMapping-based, so this also handles captured type variables
@@ -1283,14 +1281,14 @@ final class Types {
                                                      final TypeMirror returnType,
                                                      final List<? extends TypeMirror> thrownTypes,
                                                      final List<? extends TypeVariable> typeVariables,
-                                                     final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+                                                     final List<? extends AnnotationMirror> annotationMirrors) {
     return
       DefaultExecutableType.of(parameterTypes,
                                receiverType,
                                returnType,
                                thrownTypes,
                                typeVariables,
-                               annotationMirrorsSupplier);
+                               annotationMirrors);
   }
 
   private static final Name flatName(final Element e) {
@@ -1554,8 +1552,8 @@ final class Types {
   }
 
   private static final WildcardType lowerBoundedWildcardType(final TypeMirror lowerBound,
-                                                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    return DefaultWildcardType.lowerBoundedWildcardType(lowerBound, annotationMirrorsSupplier);
+                                                             final List<? extends AnnotationMirror> annotationMirrors) {
+    return DefaultWildcardType.lowerBoundedWildcardType(lowerBound, annotationMirrors);
   }
 
   // SimpleVisitor-based
@@ -2187,7 +2185,7 @@ final class Types {
             if (((WildcardType)s).getSuperBound() != null) {
               // TODO: maybe need to somehow ensure this shows up as
               // non-canonical/synthetic
-              s = unboundedWildcardType(s::getAnnotationMirrors);
+              s = unboundedWildcardType(s.getAnnotationMirrors());
               changed = true;
             }
             break;
@@ -2195,7 +2193,7 @@ final class Types {
             if (s != orig) { // Don't need Equality.equals() here
               // TODO: maybe need to somehow ensure this shows up as
               // non-canonical/synthetic
-              s = upperBoundedWildcardType(wildcardUpperBound(s), s::getAnnotationMirrors);
+              s = upperBoundedWildcardType(wildcardUpperBound(s), s.getAnnotationMirrors());
               changed = true;
             }
             break;
@@ -2287,7 +2285,7 @@ final class Types {
     if (componentType == x) {
       return t;
     }
-    return arrayType(componentType, t::getAnnotationMirrors);
+    return arrayType(componentType, t.getAnnotationMirrors());
   }
 
   private static final DeclaredType subst(final DeclaredType t,
@@ -2306,7 +2304,7 @@ final class Types {
         typeArguments == substTypeArguments) {
       return t;
     }
-    return declaredType(substEnclosingType, substTypeArguments, t::getAnnotationMirrors);
+    return declaredType(substEnclosingType, substTypeArguments, t.getAnnotationMirrors());
   }
 
   private static final ExecutableType subst(ExecutableType t,
@@ -2375,7 +2373,7 @@ final class Types {
                          t.getReturnType(),
                          t.getThrownTypes(),
                          typeVariables(typeVariables), // NOTE; alpha conversion
-                         t::getAnnotationMirrors);
+                         t.getAnnotationMirrors());
       // Ensure we "pick up" the alpha conversion
       typeVariables = t.getTypeVariables();
     }
@@ -2418,7 +2416,7 @@ final class Types {
                          substReturnType,
                          substThrownTypes,
                          typeVariables,
-                         t::getAnnotationMirrors);
+                         t.getAnnotationMirrors());
       assert typeVariables == t.getTypeVariables();
       if (typeVariables == substTypeVariables) {
         return t;
@@ -2499,14 +2497,14 @@ final class Types {
       if (x == upperBound) {
         return wt;
       }
-      return upperBoundedWildcardType(x, wt::getAnnotationMirrors);
+      return upperBoundedWildcardType(x, wt.getAnnotationMirrors());
     } else if (upperBound == null) {
       // Lower-bounded.
       final TypeMirror x = subst(lowerBound, from, to); // RECURSIVE
       if (x == lowerBound) {
         return wt;
       }
-      return lowerBoundedWildcardType(x, wt::getAnnotationMirrors);
+      return lowerBoundedWildcardType(x, wt.getAnnotationMirrors());
     } else {
       // Wildcards can only specify a single bound, either upper or
       // lower.
@@ -3036,7 +3034,7 @@ final class Types {
 
   private static final DeclaredType syntheticDeclaredType(final DeclaredType canonicalType,
                                                           final List<? extends TypeMirror> typeArguments) {
-    final DefaultDeclaredType t = new DefaultDeclaredType(canonicalType.getEnclosingType(), typeArguments, List::of);
+    final DefaultDeclaredType t = new DefaultDeclaredType(canonicalType.getEnclosingType(), typeArguments, List.of());
     t.element(canonicalType.asElement());
     return t;
   }
@@ -3056,7 +3054,7 @@ final class Types {
 
   private static final TypeVariable typeVariable(final TypeVariable tv, final TypeMirror upperBound) {
     assert tv.getKind() == TypeKind.TYPEVAR;
-    final DefaultTypeVariable returnValue = new DefaultTypeVariable(upperBound, tv.getLowerBound(), tv::getAnnotationMirrors);
+    final DefaultTypeVariable returnValue = new DefaultTypeVariable(upperBound, tv.getLowerBound(), tv.getAnnotationMirrors());
     returnValue.element((TypeParameterElement)tv.asElement());
     assert returnValue.asElement().asType() == tv;
     return returnValue;
@@ -3064,8 +3062,8 @@ final class Types {
 
   private static final TypeVariable typeVariable(final TypeMirror upperBound,
                                                  final TypeMirror lowerBound, // use with caution; normally null
-                                                 final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    return new DefaultTypeVariable(upperBound, lowerBound, annotationMirrorsSupplier);
+                                                 final List<? extends AnnotationMirror> annotationMirrors) {
+    return new DefaultTypeVariable(upperBound, lowerBound, annotationMirrors);
   }
 
   // A port/translation of Types#newInstances(List)
@@ -3088,8 +3086,8 @@ final class Types {
     return DefaultWildcardType.UNBOUNDED;
   }
 
-  private static final WildcardType unboundedWildcardType(final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    return DefaultWildcardType.unboundedWildcardType(annotationMirrorsSupplier);
+  private static final WildcardType unboundedWildcardType(final List<? extends AnnotationMirror> annotationMirrors) {
+    return DefaultWildcardType.unboundedWildcardType(annotationMirrors);
   }
 
   private static final TypeMirror unboxedType(final TypeMirror t) {
@@ -3098,8 +3096,8 @@ final class Types {
   }
   
   private static final WildcardType upperBoundedWildcardType(final TypeMirror upperBound,
-                                                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    return DefaultWildcardType.upperBoundedWildcardType(upperBound, annotationMirrorsSupplier);
+                                                             final List<? extends AnnotationMirror> annotationMirrors) {
+    return DefaultWildcardType.upperBoundedWildcardType(upperBound, annotationMirrors);
   }
 
   // https://github.com/openjdk/jdk/blob/jdk-18+37/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L157-L167
@@ -3139,7 +3137,7 @@ final class Types {
       if (upperBound == null || !Equality.equals(tv, upperBound, false)) {
         // Return a (normally new) wildcard type whose upper bound is
         // the TypeVariable.
-        return upperBoundedWildcardType(tv, w::getAnnotationMirrors);
+        return upperBoundedWildcardType(tv, w.getAnnotationMirrors());
       }
       return w;
     } else if (upperBound == null) {
@@ -3148,7 +3146,7 @@ final class Types {
       }
       // Return a (normally new) wildcard type whose lower bound is
       // the TypeVariable.
-      return lowerBoundedWildcardType(tv, w::getAnnotationMirrors);
+      return lowerBoundedWildcardType(tv, w.getAnnotationMirrors());
     } else {
       throw new IllegalArgumentException("w: " + w);
     }
@@ -3225,7 +3223,7 @@ final class Types {
     }
 
     private SyntheticElement(final Name name, final TypeMirror type) {
-      super(name, ElementKind.OTHER, noneType(), Set.of(), null, null, List::of);
+      super(name, ElementKind.OTHER, noneType(), Set.of(), null, null, List.of());
       this.type = new WeakReference<>(type);
     }
 

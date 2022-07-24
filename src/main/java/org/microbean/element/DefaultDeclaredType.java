@@ -108,14 +108,14 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
   }
 
   public DefaultDeclaredType(final List<? extends TypeMirror> typeArguments,
-                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    this(DefaultNoType.NONE, typeArguments, annotationMirrorsSupplier);
+                             final List<? extends AnnotationMirror> annotationMirrors) {
+    this(DefaultNoType.NONE, typeArguments, annotationMirrors);
   }
 
   public DefaultDeclaredType(final TypeMirror enclosingType,
                              final List<? extends TypeMirror> typeArguments,
-                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    super(TypeKind.DECLARED, annotationMirrorsSupplier);
+                             final List<? extends AnnotationMirror> annotationMirrors) {
+    super(TypeKind.DECLARED, annotationMirrors);
     this.enclosingTypeSupplier = null; // will never be dereferenced
     this.enclosingType = validateEnclosingType(enclosingType);
     if (typeArguments == null || typeArguments.isEmpty()) {
@@ -131,8 +131,8 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
 
   public DefaultDeclaredType(final Supplier<? extends TypeMirror> enclosingTypeSupplier,
                              final List<? extends TypeMirror> typeArguments,
-                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    super(TypeKind.DECLARED, annotationMirrorsSupplier);
+                             final List<? extends AnnotationMirror> annotationMirrors) {
+    super(TypeKind.DECLARED, annotationMirrors);
     this.enclosingTypeSupplier = enclosingTypeSupplier;
     if (enclosingTypeSupplier == null) {
       this.enclosingType = DefaultNoType.NONE;
@@ -222,7 +222,7 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
     if (t instanceof DefaultDeclaredType ddt) {
       return ddt;
     }
-    return of(t.getEnclosingType(), t.getTypeArguments(), t::getAnnotationMirrors);
+    return of(t.getEnclosingType(), t.getTypeArguments(), t.getAnnotationMirrors());
   }
 
   public static final DefaultDeclaredType of(final List<? extends TypeMirror> typeArguments) {
@@ -231,13 +231,13 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
 
   public static final DefaultDeclaredType of(final TypeMirror enclosingType,
                                              final List<? extends TypeMirror> typeArguments,
-                                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+                                             final List<? extends AnnotationMirror> annotationMirrors) {
     if ((enclosingType == null || DefaultNoType.NONE.equals(enclosingType)) &&
         (typeArguments == null || typeArguments.isEmpty()) &&
-        annotationMirrorsSupplier == null) {
+        (annotationMirrors == null || annotationMirrors.isEmpty())) {
       return DefaultDeclaredType.of();
     }
-    return new DefaultDeclaredType(enclosingType, typeArguments, annotationMirrorsSupplier);
+    return new DefaultDeclaredType(enclosingType, typeArguments, annotationMirrors);
   }
 
   public static final DefaultDeclaredType of(final AnnotatedType t) {

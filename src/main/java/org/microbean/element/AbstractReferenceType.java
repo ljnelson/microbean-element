@@ -18,8 +18,6 @@ package org.microbean.element;
 
 import java.util.List;
 
-import java.util.function.Supplier;
-
 import javax.lang.model.element.AnnotationMirror;
 
 import javax.lang.model.type.ReferenceType;
@@ -27,8 +25,8 @@ import javax.lang.model.type.TypeKind;
 
 public class AbstractReferenceType extends AbstractTypeMirror implements ReferenceType {
 
-  public AbstractReferenceType(final TypeKind kind, final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    super(validate(kind), annotationMirrorsSupplier);
+  public AbstractReferenceType(final TypeKind kind, final List<? extends AnnotationMirror> annotationMirrors) {
+    super(validate(kind), annotationMirrors);
   }
 
   private static final TypeKind validate(final TypeKind kind) {

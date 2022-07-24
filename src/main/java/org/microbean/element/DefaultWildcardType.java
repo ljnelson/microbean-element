@@ -35,7 +35,7 @@ import javax.lang.model.type.WildcardType;
 
 public class DefaultWildcardType extends AbstractTypeMirror implements WildcardType {
 
-  public static final DefaultWildcardType UNBOUNDED = new DefaultWildcardType(null, null, List::of);
+  public static final DefaultWildcardType UNBOUNDED = new DefaultWildcardType(null, null, List.of());
   
   private final TypeMirror extendsBound;
 
@@ -43,8 +43,8 @@ public class DefaultWildcardType extends AbstractTypeMirror implements WildcardT
   
   protected DefaultWildcardType(final TypeMirror extendsBound,
                                 final TypeMirror superBound,
-                                final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    super(TypeKind.WILDCARD, annotationMirrorsSupplier);
+                                final List<? extends AnnotationMirror> annotationMirrors) {
+    super(TypeKind.WILDCARD, annotationMirrors);
     if (extendsBound == null) {
       this.extendsBound = null;
     } else {
@@ -101,11 +101,12 @@ public class DefaultWildcardType extends AbstractTypeMirror implements WildcardT
   }
   
   public static DefaultWildcardType upperBoundedWildcardType(final TypeMirror extendsBound,
-                                                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    if (extendsBound == null && annotationMirrorsSupplier == null) {
+                                                             final List<? extends AnnotationMirror> annotationMirrors) {
+    if (extendsBound == null &&
+        (annotationMirrors == null || annotationMirrors.isEmpty())) {
       return UNBOUNDED;
     }
-    return new DefaultWildcardType(extendsBound, null, annotationMirrorsSupplier);
+    return new DefaultWildcardType(extendsBound, null, annotationMirrors);
   }
 
   public static DefaultWildcardType lowerBoundedWildcardType(final TypeMirror superBound) {
@@ -113,32 +114,34 @@ public class DefaultWildcardType extends AbstractTypeMirror implements WildcardT
   }
   
   public static DefaultWildcardType lowerBoundedWildcardType(final TypeMirror superBound,
-                                                             final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    if (superBound == null && annotationMirrorsSupplier == null) {
+                                                             final List<? extends AnnotationMirror> annotationMirrors) {
+    if (superBound == null &&
+        (annotationMirrors == null || annotationMirrors.isEmpty())) {
       return UNBOUNDED;
     }
-    return new DefaultWildcardType(null, superBound, annotationMirrorsSupplier);
+    return new DefaultWildcardType(null, superBound, annotationMirrors);
   }
 
   public static DefaultWildcardType unboundedWildcardType() {
     return UNBOUNDED;
   }
   
-  public static DefaultWildcardType unboundedWildcardType(final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
-    return annotationMirrorsSupplier == null ? UNBOUNDED : new DefaultWildcardType(null, null, annotationMirrorsSupplier);
+  public static DefaultWildcardType unboundedWildcardType(final List<? extends AnnotationMirror> annotationMirrors) {
+    return
+      (annotationMirrors == null || annotationMirrors.isEmpty()) ? UNBOUNDED : new DefaultWildcardType(null, null, annotationMirrors);
   }
 
   public static DefaultWildcardType of(final TypeMirror extendsBound,
                                        final TypeMirror superBound,
-                                       final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+                                       final List<? extends AnnotationMirror> annotationMirrors) {
     if (extendsBound == null) {
       if (superBound == null) {
-        return unboundedWildcardType(annotationMirrorsSupplier);
+        return unboundedWildcardType(annotationMirrors);
       } else {
-        return lowerBoundedWildcardType(superBound, annotationMirrorsSupplier);
+        return lowerBoundedWildcardType(superBound, annotationMirrors);
       }
     } else if (superBound == null) {
-      return upperBoundedWildcardType(extendsBound, annotationMirrorsSupplier);
+      return upperBoundedWildcardType(extendsBound, annotationMirrors);
     } else {
       throw new IllegalArgumentException("extendsBound: " + extendsBound + "; superBound: " + superBound);
     }    

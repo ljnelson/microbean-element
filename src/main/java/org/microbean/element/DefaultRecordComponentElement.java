@@ -45,14 +45,14 @@ public class DefaultRecordComponentElement extends AbstractElement implements Re
                                        final TypeMirror type,
                                        final Set<? extends Modifier> modifiers,
                                        final ExecutableElement accessor,
-                                       final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+                                       final List<? extends AnnotationMirror> annotationMirrors) {
     super(simpleName,
           ElementKind.RECORD_COMPONENT,
           validate(type),
           modifiers,
           null,
           List::of,
-          annotationMirrorsSupplier);
+          annotationMirrors);
     this.accessor = Objects.requireNonNull(accessor, "accessor");
   }
   

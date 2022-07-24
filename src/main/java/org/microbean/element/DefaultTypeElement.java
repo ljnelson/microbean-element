@@ -315,14 +315,14 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                             final List<? extends TypeMirror> interfaces,
                             final Element enclosingElement,
                             final Supplier<List<? extends Element>> enclosedElementsSupplier,
-                            final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+                            final List<? extends AnnotationMirror> annotationMirrors) {
     super(qualifiedName,
           validate(kind),
           type,
           modifiers,
           enclosingElement,
           enclosedElementsSupplier,
-          annotationMirrorsSupplier);
+          annotationMirrors);
     this.simpleName = DefaultName.ofSimple(qualifiedName);
     this.nestingKind = nestingKind == null ? NestingKind.TOP_LEVEL : nestingKind;
     this.superclass = superclass == null ? DefaultNoType.NONE : superclass;

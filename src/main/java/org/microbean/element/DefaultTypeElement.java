@@ -498,6 +498,12 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                              enclosingElement, // most often null
                              () -> enclosedElementsOf(c, enclosedElement),
                              null);
+    if (enclosingElement == null) {
+      final DefaultPackageElement p = DefaultPackageElement.of(c.getPackage());
+      p.addEnclosedElement(returnValue);
+      final DefaultModuleElement m = DefaultModuleElement.of(c.getModule());
+      m.addEnclosedElement(p);
+    }
     return returnValue;
   }
 

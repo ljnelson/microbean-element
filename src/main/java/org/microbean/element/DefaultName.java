@@ -25,9 +25,9 @@ public final class DefaultName implements Name {
   public static final DefaultName EMPTY = new DefaultName("");
 
   public static final DefaultName JAVA_LANG_OBJECT = DefaultName.of("java.lang.Object");
-  
+
   private final String name;
-  
+
   private DefaultName(final String s) {
     super();
     this.name = s;
@@ -62,7 +62,7 @@ public final class DefaultName implements Name {
   public final boolean contentEquals(final CharSequence cs) {
     return this.name.equals(cs.toString());
   }
-  
+
   @Override // Object
   public final int hashCode() {
     return this.name.hashCode();
@@ -84,10 +84,16 @@ public final class DefaultName implements Name {
     return this.name;
   }
 
+
+  /*
+   * Static methods.
+   */
+
+
   public static final DefaultName of() {
     return EMPTY;
   }
-  
+
   public static final DefaultName of(final CharSequence cs) {
     if (cs instanceof DefaultName dn) {
       return dn;
@@ -104,6 +110,6 @@ public final class DefaultName implements Name {
     }
     return of(cs);
   }
-    
-  
+
+
 }

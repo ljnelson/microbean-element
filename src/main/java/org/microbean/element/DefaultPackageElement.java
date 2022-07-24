@@ -19,6 +19,9 @@ package org.microbean.element;
 import java.util.List;
 import java.util.Set;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import java.util.function.Supplier;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -36,14 +39,22 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
 
   private final DefaultName simpleName;
 
+  public DefaultPackageElement(final Name fullyQualifiedName) {
+    this(fullyQualifiedName, DefaultNoType.PACKAGE, null);
+  }
+
+  public DefaultPackageElement(final Name fullyQualifiedName,
+                               final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    this(fullyQualifiedName, DefaultNoType.PACKAGE, annotationMirrorsSupplier);
+  }
+  
   public DefaultPackageElement(final Name fullyQualifiedName,
                                final NoType packageType,
-                               final Set<? extends Modifier> modifiers,
                                final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
     super(fullyQualifiedName,
           ElementKind.PACKAGE,
           packageType,
-          modifiers,
+          Set.of(),
           null,
           null,
           annotationMirrorsSupplier);
@@ -97,11 +108,16 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
     }
   }
 
+  public static final DefaultPackageElement of(final Package p) {
+    return DefaultPackageElement.of(DefaultName.of(p.getName()), null);
+  }
+  
   public static final DefaultPackageElement of(final Name fullyQualifiedName) {
-    return new DefaultPackageElement(fullyQualifiedName,
-                                     DefaultNoType.PACKAGE,
-                                     Set.of(),
-                                     List::of);
+    return DefaultPackageElement.of(fullyQualifiedName, null);
+  }
+
+  public static final DefaultPackageElement of(final Name fullyQualifiedName, final Supplier<List<? extends AnnotationMirror>> annotationMirrorsSupplier) {
+    return new DefaultPackageElement(DefaultName.of(fullyQualifiedName), annotationMirrorsSupplier);
   }
   
 }

@@ -38,9 +38,6 @@ public final class DefaultExportsDirective extends AbstractDirective implements 
     super(DirectiveKind.EXPORTS);
     this.pkg = Objects.requireNonNull(pkg, "pkg");
     this.targetModules = targetModules == null || targetModules.isEmpty() ? List.of() : List.copyOf(targetModules);
-    if (pkg.getEnclosingElement() instanceof DefaultModuleElement m) {
-      m.addDirective(this);
-    }
   }
 
   @Override // Directive

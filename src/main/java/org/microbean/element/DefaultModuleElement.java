@@ -20,11 +20,15 @@ import java.lang.module.ModuleDescriptor;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import java.util.function.Supplier;
 
@@ -36,6 +40,7 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.ModuleElement;
 import javax.lang.model.element.ModuleElement.Directive;
 import javax.lang.model.element.Name;
+import javax.lang.model.element.PackageElement;
 
 import javax.lang.model.type.NoType;
 
@@ -117,16 +122,85 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
     return this.getSimpleName().length() <= 0;
   }
 
+
+  /*
+   * Static methods.
+   */
+
+
   public static final DefaultModuleElement of(final Module m) {
-    final DefaultName name = DefaultName.of(m.getName());
+    return DefaultModuleElement.of(m, new ConcurrentHashMap<>(), null);
+  }
+
+  static final <P extends PackageElement & Encloseable> DefaultModuleElement of(final Module m, final P enclosedElement) {
+    return DefaultModuleElement.of(m, new ConcurrentHashMap<>(), enclosedElement);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static final <P extends PackageElement & Encloseable> DefaultModuleElement of(final Module m, final ConcurrentMap<String, DefaultModuleElement> seen, final P enclosedElement) {
+    if (enclosedElement != null && enclosedElement.getKind() != ElementKind.PACKAGE) {
+      throw new IllegalArgumentException("enclosedElement: " + enclosedElement);
+    }
+    final String name = m.getName();
+    DefaultModuleElement returnValue = seen.get(name);
+    if (returnValue == null) {
+
+      final DefaultName defaultName = DefaultName.of(name);
+      final ModuleDescriptor md = m.getDescriptor();
+      final boolean open = md.modifiers().contains(ModuleDescriptor.Modifier.OPEN);
+      returnValue = new DefaultModuleElement(defaultName, open);
+      seen.putIfAbsent(name, returnValue);
+      
+      final Set<ModuleDescriptor.Exports> exports = new TreeSet<>(md.exports());
+      for (final ModuleDescriptor.Exports export : exports) {
+
+        final String source = export.source();
+        final P packageElement;
+        if (enclosedElement != null && enclosedElement.getQualifiedName().contentEquals(source)) {
+          packageElement = enclosedElement;
+          returnValue.addEnclosedElement(enclosedElement);
+        } else {
+          packageElement = (P)DefaultPackageElement.of(DefaultName.of(source));
+          returnValue.addEnclosedElement(packageElement);
+        }
+
+        final List<DefaultModuleElement> targetModuleElements;
+        if (export.isQualified()) {
+          final ModuleLayer layer = m.getLayer();
+          final Set<String> moduleNames = new TreeSet<>(export.targets());
+          targetModuleElements = new ArrayList<>(moduleNames.size());
+          for (final String moduleName : moduleNames) {
+            final Module targetModule = layer.findModule(moduleName).orElse(null);
+            if (targetModule != null) {
+              targetModuleElements.add(DefaultModuleElement.of(targetModule, seen, null));
+            }
+          }
+        } else {
+          targetModuleElements = List.of();
+        }
+        returnValue.addDirective(new DefaultExportsDirective(packageElement, targetModuleElements));
+      }
+    }
+    return returnValue;
+  }
+
+  private static final List<? extends Directive> directivesOf(final Module m, final ConcurrentMap<String, DefaultModuleElement> seen, final PackageElement enclosedElement) {
+    if (enclosedElement != null && enclosedElement.getKind() != ElementKind.PACKAGE) {
+      throw new IllegalArgumentException("enclosedElement: " + enclosedElement);
+    }
+    ArrayList<Directive> returnValue = new ArrayList<>();
     final ModuleDescriptor md = m.getDescriptor();
-    final boolean open = md.modifiers().contains(ModuleDescriptor.Modifier.OPEN);
-    DefaultModuleElement returnValue = new DefaultModuleElement(name, open);
-    
     final Set<ModuleDescriptor.Exports> exports = new TreeSet<>(md.exports());
     for (final ModuleDescriptor.Exports export : exports) {
-      final DefaultPackageElement packageElement = DefaultPackageElement.of(DefaultName.of(export.source()));
-      returnValue.addEnclosedElement(packageElement);
+      
+      final String source = export.source();
+      final PackageElement packageElement;
+      if (enclosedElement != null && enclosedElement.getQualifiedName().contentEquals(source)) {
+        packageElement = enclosedElement;
+      } else {
+        packageElement = DefaultPackageElement.of(DefaultName.of(source));
+      }
+
       final List<DefaultModuleElement> targetModuleElements;
       if (export.isQualified()) {
         final ModuleLayer layer = m.getLayer();
@@ -135,14 +209,15 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
         for (final String moduleName : moduleNames) {
           final Module targetModule = layer.findModule(moduleName).orElse(null);
           if (targetModule != null) {
-            targetModuleElements.add(of(targetModule));
+            targetModuleElements.add(DefaultModuleElement.of(targetModule, seen, null));
           }
         }
       } else {
         targetModuleElements = List.of();
       }
-      new DefaultExportsDirective(packageElement, targetModuleElements); // side effect: adds itself to returnValue
+      returnValue.add(new DefaultExportsDirective(packageElement, targetModuleElements));
     }
+    returnValue.trimToSize();
     return returnValue;
   }
   

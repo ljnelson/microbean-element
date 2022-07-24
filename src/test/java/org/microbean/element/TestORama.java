@@ -187,6 +187,7 @@ final class TestORama {
 
       final PackageElement javaLang = (PackageElement)comparableElement.getEnclosingElement();
       assertTrue(javaLang.getSimpleName().contentEquals("lang"));
+      System.out.println("*** java.lang modifiers: " + javaLang.getModifiers());
 
       final ModuleElement javaBase = (ModuleElement)javaLang.getEnclosingElement();
       assertTrue(javaBase.getQualifiedName().contentEquals("java.base"));
@@ -278,11 +279,7 @@ final class TestORama {
         new DefaultModuleElement(DefaultName.of("java.base"));
 
 
-      final DefaultPackageElement defaultJavaLang =
-        new DefaultPackageElement(DefaultName.of("java.lang"),
-                                  DefaultNoType.PACKAGE,
-                                  Set.of(),
-                                  null);
+      final DefaultPackageElement defaultJavaLang = new DefaultPackageElement(DefaultName.of("java.lang"), null);
       defaultJavaBase.addEnclosedElement(defaultJavaLang);
 
       // Now we can do the main Comparable element:
@@ -354,11 +351,7 @@ final class TestORama {
       // Now we can do a TypeMirror representing Comparable<Frob>:
       final DefaultDeclaredType defaultComparableFrobType = new DefaultDeclaredType(frobType);
 
-      final DefaultPackageElement unnamedPackage =
-        new DefaultPackageElement(DefaultName.of(),
-                                  DefaultNoType.PACKAGE,
-                                  Set.of(),
-                                  null);
+      final DefaultPackageElement unnamedPackage = new DefaultPackageElement(DefaultName.of(), null);
 
       final DefaultTypeElement defaultFrobElement =
         new DefaultTypeElement(DefaultName.of("Frob"),

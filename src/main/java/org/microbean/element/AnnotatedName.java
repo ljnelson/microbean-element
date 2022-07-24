@@ -17,19 +17,28 @@
 package org.microbean.element;
 
 import java.util.List;
-import java.util.Objects;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import java.util.function.Function;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Name;
 
 public final class AnnotatedName extends AbstractAnnotatedConstruct {
 
+  private static final ConcurrentMap<AnnotatedName, AnnotatedName> cache = new ConcurrentHashMap<>();
+
   private final Name name;
-  
-  public AnnotatedName(final List<? extends AnnotationMirror> annotationMirrors,
-                       final Name name) {
+
+  private AnnotatedName(final List<? extends AnnotationMirror> annotationMirrors,
+                        final Name name) {
     super(annotationMirrors);
-    this.name = Objects.requireNonNull(name);
+    if (name.isEmpty()) {
+      throw new IllegalArgumentException("name.isEmpty()");
+    }
+    this.name = DefaultName.of(name);
   }
 
   public final Name getName() {
@@ -46,7 +55,7 @@ public final class AnnotatedName extends AbstractAnnotatedConstruct {
     if (other == this) {
       return true;
     } else if (other != null && this.getClass() == other.getClass()) {
-      return Equality.equals(this, other, true);
+      return Equality.equals(this, (AnnotatedName)other, true);
     } else {
       return false;
     }
@@ -56,5 +65,30 @@ public final class AnnotatedName extends AbstractAnnotatedConstruct {
   public final String toString() {
     return this.name.toString();
   }
-  
+
+
+  /*
+   * Static methods.
+   */
+
+
+  public static final AnnotatedName of(final String name) {
+    return of(List.of(), DefaultName.of(name));
+  }
+
+  public static final AnnotatedName of(final List<? extends AnnotationMirror> annotationMirrors,
+                                       final String name) {
+    return of(annotationMirrors, DefaultName.of(name));
+  }
+
+  public static final AnnotatedName of(final Name name) {
+    return of(List.of(), name);
+  }
+
+  public static final AnnotatedName of(final List<? extends AnnotationMirror> annotationMirrors,
+                                       final Name name) {
+    final AnnotatedName an = new AnnotatedName(annotationMirrors, name);
+    return cache.computeIfAbsent(an, Function.identity());
+  }
+
 }

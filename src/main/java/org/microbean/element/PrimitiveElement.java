@@ -43,13 +43,12 @@ final class PrimitiveElement extends AbstractElement {
   static final PrimitiveElement SHORT = new PrimitiveElement(DefaultName.of("short"), DefaultPrimitiveType.SHORT);
   
   private PrimitiveElement(final Name name, final PrimitiveType type) {
-    super(name,
+    super(AnnotatedName.of(name),
           ElementKind.OTHER, // not really right, but this whole thing isn't really right, because javac isn't really right
           validate(type),
           Set.of(),
           null,
-          List::of,
-          null);
+          List::of);
   }
 
   private static final PrimitiveType validate(final PrimitiveType t) {

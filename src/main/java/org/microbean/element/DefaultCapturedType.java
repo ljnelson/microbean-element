@@ -50,16 +50,16 @@ public class DefaultCapturedType extends AbstractTypeVariable implements Capture
   // TypeVariableSymbol --> DefaultTYpeParameterElement
 
   public DefaultCapturedType(final WildcardType wildcardType) {
-    this(DefaultName.of("<captured wildcard>"), wildcardType);
+    this(AnnotatedName.of(DefaultName.of("<captured wildcard>")), wildcardType);
   }
   
-  public DefaultCapturedType(final Name name, final WildcardType wildcardType) {
+  public DefaultCapturedType(final AnnotatedName name, final WildcardType wildcardType) {
     super(TypeKind.TYPEVAR,
           wildcardType.getExtendsBound() == null ? DefaultTypeElement.JAVA_LANG_OBJECT.asType() : wildcardType.getExtendsBound(),
           null,
           null);
     this.wildcardType = wildcardType;
-    this.definingElement = new DefaultTypeParameterElement(name, this, Set.of(), null);
+    this.definingElement = new DefaultTypeParameterElement(name, this, Set.of());
   }
   
   @Override // TypeVariable

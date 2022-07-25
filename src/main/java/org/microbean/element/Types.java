@@ -3222,8 +3222,8 @@ final class Types {
       this(generateName(type), type);
     }
 
-    private SyntheticElement(final Name name, final TypeMirror type) {
-      super(name, ElementKind.OTHER, noneType(), Set.of(), null, null, List.of());
+    private SyntheticElement(final AnnotatedName name, final TypeMirror type) {
+      super(name, ElementKind.OTHER, noneType(), Set.of(), null, null);
       this.type = new WeakReference<>(type);
     }
 
@@ -3243,8 +3243,8 @@ final class Types {
       return this == other;
     }
 
-    private static final Name generateName(final TypeMirror t) {
-      return DefaultName.EMPTY; // TODO if it turns out to be important
+    private static final AnnotatedName generateName(final TypeMirror t) {
+      return AnnotatedName.of(DefaultName.EMPTY); // TODO if it turns out to be important
     }
 
   }

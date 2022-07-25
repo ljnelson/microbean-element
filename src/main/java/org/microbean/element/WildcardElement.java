@@ -26,13 +26,12 @@ final class WildcardElement extends AbstractElement {
   static final WildcardElement INSTANCE = new WildcardElement();
   
   private WildcardElement() {
-    super(DefaultName.of("Bound"), // emulate javac
+    super(AnnotatedName.of(DefaultName.of("Bound")), // emulate javac
           ElementKind.CLASS,
           new DefaultDeclaredType(), // emulate javac
           Set.of(),
           null,
-          List::of,
-          List.of());
+          List::of);
   }
   
 }

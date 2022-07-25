@@ -54,25 +54,19 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
   
   private final List<? extends Directive> readOnlyDirectives;
 
-  public DefaultModuleElement(final Name fullyQualifiedName) {
-    this(fullyQualifiedName, false, null);
+  private DefaultModuleElement(final AnnotatedName fullyQualifiedName) {
+    this(fullyQualifiedName, false);
   }
 
-  public DefaultModuleElement(final Name fullyQualifiedName, final boolean open) {
-    this(fullyQualifiedName, open, null);
-  }
-
-  private DefaultModuleElement(final Name fullyQualifiedName,
-                               final boolean open,
-                               final List<? extends AnnotationMirror> annotationMirrors) {
+  private DefaultModuleElement(final AnnotatedName fullyQualifiedName,
+                               final boolean open) {
     super(fullyQualifiedName,
           ElementKind.MODULE,
           DefaultNoType.MODULE,
           Set.of(),
           null, // enclosingElement
-          null, // enclosedElementsSupplier
-          annotationMirrors);
-    this.simpleName = DefaultName.ofSimple(fullyQualifiedName);
+          null); // enclosedElementsSupplier
+    this.simpleName = DefaultName.ofSimple(fullyQualifiedName.getName());
     this.open = open;
     this.directives = new CopyOnWriteArrayList<>();
     this.readOnlyDirectives = Collections.unmodifiableList(this.directives);
@@ -128,6 +122,14 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
    */
 
 
+  public static final DefaultModuleElement of(final AnnotatedName fullyQualifiedName) {
+    return of(fullyQualifiedName, false);
+  }
+
+  public static final DefaultModuleElement of(final AnnotatedName fullyQualifiedName, final boolean open) {
+    return new DefaultModuleElement(fullyQualifiedName, open);
+  }
+  
   public static final DefaultModuleElement of(final Module m) {
     return DefaultModuleElement.of(m, new ConcurrentHashMap<>(), null);
   }
@@ -145,7 +147,7 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
     DefaultModuleElement returnValue = seen.get(name);
     if (returnValue == null) {
 
-      final DefaultName defaultName = DefaultName.of(name);
+      final AnnotatedName defaultName = AnnotatedName.of(name);
       final ModuleDescriptor md = m.getDescriptor();
       final boolean open = md.modifiers().contains(ModuleDescriptor.Modifier.OPEN);
       returnValue = new DefaultModuleElement(defaultName, open);

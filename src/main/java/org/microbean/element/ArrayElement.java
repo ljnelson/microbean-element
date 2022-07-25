@@ -26,13 +26,12 @@ final class ArrayElement extends AbstractElement {
   static final ArrayElement INSTANCE = new ArrayElement();
   
   private ArrayElement() {
-    super(DefaultName.of("Array"), // emulate javac
+    super(AnnotatedName.of(DefaultName.of("Array")), // emulate javac
           ElementKind.CLASS,
           new DefaultDeclaredType(), // emulate javac
           Set.of(),
           null,
-          List::of,
-          null);
+          List::of);
   }
   
 }

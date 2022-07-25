@@ -79,15 +79,14 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
 
   private volatile List<Element> readOnlyEnclosedElements;
 
-  protected AbstractElement(final Name name,
+  protected AbstractElement(final AnnotatedName name,
                             final ElementKind kind,
                             final TypeMirror type,
                             final Set<? extends Modifier> modifiers,
                             final Element enclosingElement, // nullable, normally null
-                            final Supplier<List<? extends Element>> enclosedElementsSupplier,
-                            final List<? extends AnnotationMirror> annotationMirrors) {
-    super(annotationMirrors);
-    this.name = name == null ? DefaultName.EMPTY : DefaultName.of(name);
+                            final Supplier<List<? extends Element>> enclosedElementsSupplier) {
+    super(name.getAnnotationMirrors());
+    this.name = name == null ? DefaultName.EMPTY : name.getName();
     this.kind = Objects.requireNonNull(kind, "kind");
     this.type = type == null ? DefaultNoType.NONE : type;
     this.modifiers = modifiers == null || modifiers.isEmpty() ? Set.of() : Set.copyOf(modifiers);

@@ -276,15 +276,15 @@ final class TestORama {
 
       // We can't do the PackageElement yet because we need a ModuleElement.
       final DefaultModuleElement defaultJavaBase =
-        new DefaultModuleElement(DefaultName.of("java.base"));
+        DefaultModuleElement.of(AnnotatedName.of("java.base"));
 
 
-      final DefaultPackageElement defaultJavaLang = new DefaultPackageElement(DefaultName.of("java.lang"), null);
+      final DefaultPackageElement defaultJavaLang = new DefaultPackageElement(AnnotatedName.of("java.lang"), null);
       defaultJavaBase.addEnclosedElement(defaultJavaLang);
 
       // Now we can do the main Comparable element:
       final DefaultTypeElement defaultComparableElement =
-        new DefaultTypeElement(DefaultName.of("java.lang.Comparable"),
+        new DefaultTypeElement(AnnotatedName.of("java.lang.Comparable"),
                                ElementKind.INTERFACE,
                                defaultComparableType, // here's the backing type
                                DefaultTypeElement.PUBLIC,
@@ -293,16 +293,15 @@ final class TestORama {
                                List.of(),
                                List.of(),
                                null,
-                               null,
                                null);
       defaultJavaLang.addEnclosedElement(defaultComparableElement);
 
       // ...and now we can do a TypeParameterElement:
       final DefaultTypeParameterElement defaultTElement =
-        new DefaultTypeParameterElement(DefaultName.of("T"),
+        new DefaultTypeParameterElement(AnnotatedName.of("T"),
                                         defaultTType, // here's the backing type
-                                        Set.of(), // no modifiers
-                                        null);
+                                        Set.of()); // no modifiers
+
       defaultComparableElement.addTypeParameter(defaultTElement);
 
       assertEquals(1, defaultComparableElement.getTypeParameters().size());
@@ -351,10 +350,10 @@ final class TestORama {
       // Now we can do a TypeMirror representing Comparable<Frob>:
       final DefaultDeclaredType defaultComparableFrobType = new DefaultDeclaredType(frobType);
 
-      final DefaultPackageElement unnamedPackage = new DefaultPackageElement(DefaultName.of(), null);
+      final DefaultPackageElement unnamedPackage = new DefaultPackageElement(AnnotatedName.of(), null);
 
       final DefaultTypeElement defaultFrobElement =
-        new DefaultTypeElement(DefaultName.of("Frob"),
+        new DefaultTypeElement(AnnotatedName.of("Frob"),
                                ElementKind.CLASS,
                                defaultFrobType,
                                DefaultTypeElement.PUBLIC,
@@ -362,7 +361,6 @@ final class TestORama {
                                null, // no superclass,
                                List.of(), // permitted subclass types
                                List.of(defaultComparableFrobType), // interface types
-                               null,
                                null,
                                null);
       unnamedPackage.addEnclosedElement(defaultFrobElement);

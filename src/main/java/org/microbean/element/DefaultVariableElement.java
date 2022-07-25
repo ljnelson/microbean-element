@@ -43,20 +43,18 @@ public final class DefaultVariableElement extends AbstractElement implements Var
 
   public final Object constantValue;
 
-  public DefaultVariableElement(final Name simpleName,
+  public DefaultVariableElement(final AnnotatedName simpleName,
                                 final ElementKind kind,
                                 final TypeMirror type,
                                 final Set<? extends Modifier> modifiers,
                                 final Element enclosingElement,
-                                final Object constantValue,
-                                final List<? extends AnnotationMirror> annotationMirrors) {
+                                final Object constantValue) {
     super(simpleName,
           validate(kind),
           validate(type),
           modifiers,
           enclosingElement,
-          List::of,
-          annotationMirrors);
+          List::of);
     this.constantValue = constantValue;
   }
 
@@ -106,7 +104,7 @@ public final class DefaultVariableElement extends AbstractElement implements Var
   }
 
   public static final DefaultVariableElement of(final Field f) {
-    final Name simpleName = DefaultName.of(f.getName());
+    final AnnotatedName simpleName = AnnotatedName.of(DefaultName.of(f.getName()));
     final TypeMirror type = AbstractTypeMirror.of(f.getAnnotatedType());
     final Collection<Modifier> modifierSet = new HashSet<>();
     final int modifiers = f.getModifiers();
@@ -142,13 +140,13 @@ public final class DefaultVariableElement extends AbstractElement implements Var
     }
     final EnumSet<Modifier> finalModifiers = EnumSet.copyOf(modifierSet);
     
-    return new DefaultVariableElement(simpleName, ElementKind.FIELD, type, finalModifiers, null, null, null);
+    return new DefaultVariableElement(simpleName, ElementKind.FIELD, type, finalModifiers, null, null);
   }
 
   public static final DefaultVariableElement of(final Parameter p) {
-    final Name simpleName = DefaultName.of(p.getName());
+    final AnnotatedName simpleName = AnnotatedName.of(DefaultName.of(p.getName()));
     final TypeMirror type = AbstractTypeMirror.of(p.getParameterizedType());
-    return new DefaultVariableElement(simpleName, ElementKind.PARAMETER, type, Set.of(), null, null, null);
+    return new DefaultVariableElement(simpleName, ElementKind.PARAMETER, type, Set.of(), null, null);
   }
 
 }

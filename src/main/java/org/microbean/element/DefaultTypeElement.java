@@ -62,24 +62,24 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
   public static final Set<Modifier> PUBLIC = EnumSet.of(Modifier.PUBLIC);
 
   public static final DefaultTypeElement JAVA_LANG_OBJECT =
-    new DefaultTypeElement(DefaultName.of("java.lang.Object"),
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.lang.Object")),
                            DefaultDeclaredType.JAVA_LANG_OBJECT,
                            PUBLIC);
 
   public static final DefaultTypeElement JAVA_IO_SERIALIZABLE =
-    new DefaultTypeElement(DefaultName.of("java.io.Serializable"),
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.io.Serializable")),
                            ElementKind.INTERFACE,
                            DefaultDeclaredType.JAVA_IO_SERIALIZABLE,
                            PUBLIC);
 
   public static final DefaultTypeElement JAVA_LANG_CLONEABLE =
-    new DefaultTypeElement(DefaultName.of("java.lang.Cloneable"),
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.lang.Cloneable")),
                            ElementKind.INTERFACE,
                            DefaultDeclaredType.JAVA_LANG_CLONEABLE,
                            PUBLIC);
 
   public static final DefaultTypeElement JAVA_LANG_CONSTANT_CONSTABLE =
-    new DefaultTypeElement(DefaultName.of("java.lang.constant.Constable"),
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.lang.constant.Constable")),
                            ElementKind.INTERFACE,
                            DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE,
                            PUBLIC);
@@ -134,13 +134,13 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
   // * type backing the Frob element.
   //
   public static final DefaultTypeElement JAVA_LANG_COMPARABLE_BOOLEAN =
-    new DefaultTypeElement(DefaultName.of("java.lang.Comparable"),
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.lang.Comparable")),
                            ElementKind.INTERFACE,
                            DefaultDeclaredType.JAVA_LANG_COMPARABLE_BOOLEAN,
                            PUBLIC);
 
   public static final DefaultTypeElement JAVA_LANG_BOOLEAN =
-    new DefaultTypeElement(DefaultName.of("java.lang.Boolean"),
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.lang.Boolean")),
                            DefaultDeclaredType.JAVA_LANG_BOOLEAN,
                            PUBLIC,
                            DefaultDeclaredType.JAVA_LANG_OBJECT,
@@ -149,12 +149,12 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                                    DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
 
   public static final DefaultTypeElement JAVA_LANG_NUMBER =
-    new DefaultTypeElement(DefaultName.of("java.lang.Number"),
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.lang.Number")),
                            DefaultDeclaredType.JAVA_LANG_NUMBER,
                            PUBLIC);
 
   public static final DefaultTypeElement JAVA_LANG_BYTE =
-    new DefaultTypeElement(DefaultName.of("java.lang.Byte"),
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.lang.Byte")),
                            DefaultDeclaredType.JAVA_LANG_BYTE,
                            PUBLIC,
                            DefaultDeclaredType.JAVA_LANG_NUMBER,
@@ -163,7 +163,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                                    DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
 
   public static final DefaultTypeElement JAVA_LANG_CHARACTER =
-    new DefaultTypeElement(DefaultName.of("java.lang.Character"),
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.lang.Character")),
                            DefaultDeclaredType.JAVA_LANG_CHARACTER,
                            PUBLIC,
                            DefaultDeclaredType.JAVA_LANG_NUMBER,
@@ -172,7 +172,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                                    DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
 
   public static final DefaultTypeElement JAVA_LANG_DOUBLE =
-    new DefaultTypeElement(DefaultName.of("java.lang.Double"),
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.lang.Double")),
                            DefaultDeclaredType.JAVA_LANG_DOUBLE,
                            PUBLIC,
                            DefaultDeclaredType.JAVA_LANG_NUMBER,
@@ -181,7 +181,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                                    DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
 
   public static final DefaultTypeElement JAVA_LANG_FLOAT =
-    new DefaultTypeElement(DefaultName.of("java.lang.Float"),
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.lang.Float")),
                            DefaultDeclaredType.JAVA_LANG_FLOAT,
                            PUBLIC,
                            DefaultDeclaredType.JAVA_LANG_NUMBER,
@@ -190,7 +190,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                                    DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
 
   public static final DefaultTypeElement JAVA_LANG_INTEGER =
-    new DefaultTypeElement(DefaultName.of("java.lang.Integer"),
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.lang.Integer")),
                            DefaultDeclaredType.JAVA_LANG_INTEGER,
                            PUBLIC,
                            DefaultDeclaredType.JAVA_LANG_NUMBER,
@@ -199,7 +199,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                                    DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
 
   public static final DefaultTypeElement JAVA_LANG_LONG =
-    new DefaultTypeElement(DefaultName.of("java.lang.Long"),
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.lang.Long")),
                            DefaultDeclaredType.JAVA_LANG_LONG,
                            PUBLIC,
                            DefaultDeclaredType.JAVA_LANG_NUMBER,
@@ -208,7 +208,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                                    DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
 
   public static final DefaultTypeElement JAVA_LANG_SHORT =
-    new DefaultTypeElement(DefaultName.of("java.lang.Short"),
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.lang.Short")),
                            DefaultDeclaredType.JAVA_LANG_SHORT,
                            PUBLIC,
                            DefaultDeclaredType.JAVA_LANG_NUMBER,
@@ -217,7 +217,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                                    DefaultDeclaredType.JAVA_LANG_CONSTANT_CONSTABLE));
 
   public static final DefaultTypeElement JAVA_LANG_VOID =
-    new DefaultTypeElement(DefaultName.of("java.lang.Void"),
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.lang.Void")),
                            DefaultDeclaredType.JAVA_LANG_VOID,
                            PUBLIC,
                            DefaultDeclaredType.JAVA_LANG_OBJECT);
@@ -239,21 +239,21 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
 
   @Deprecated // you can use this, but you better know what you're doing.
   DefaultTypeElement() {
-    this(DefaultName.EMPTY, ElementKind.CLASS, new DefaultDeclaredType(), Set.of());
+    this(AnnotatedName.of(DefaultName.EMPTY), ElementKind.CLASS, new DefaultDeclaredType(), Set.of());
   }
 
   @Deprecated // you can use this, but you better know what you're doing.
-  DefaultTypeElement(final Name qualifiedName) {
+  DefaultTypeElement(final AnnotatedName qualifiedName) {
     this(qualifiedName, ElementKind.CLASS, new DefaultDeclaredType(), Set.of());
   }
 
-  DefaultTypeElement(final Name qualifiedName,
+  DefaultTypeElement(final AnnotatedName qualifiedName,
                      final TypeMirror type,
                      final Set<? extends Modifier> modifiers) {
     this(qualifiedName, ElementKind.CLASS, type, modifiers);
   }
 
-  DefaultTypeElement(final Name qualifiedName,
+  DefaultTypeElement(final AnnotatedName qualifiedName,
                      final TypeMirror type,
                      final Set<? extends Modifier> modifiers,
                      final TypeMirror superclass) {
@@ -266,11 +266,10 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
          List.of(),
          List.of(),
          null,
-         null,
          null);
   }
 
-  DefaultTypeElement(final Name qualifiedName,
+  DefaultTypeElement(final AnnotatedName qualifiedName,
                      final TypeMirror type,
                      final Set<? extends Modifier> modifiers,
                      final TypeMirror superclass,
@@ -284,11 +283,10 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
          List.of(),
          interfaces,
          null,
-         null,
          null);
   }
 
-  DefaultTypeElement(final Name qualifiedName,
+  DefaultTypeElement(final AnnotatedName qualifiedName,
                      final ElementKind kind,
                      final TypeMirror type,
                      final Set<? extends Modifier> modifiers) {
@@ -301,11 +299,10 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
          List.of(),
          List.of(),
          null,
-         null,
          null);
   }
 
-  public DefaultTypeElement(final Name qualifiedName,
+  public DefaultTypeElement(final AnnotatedName qualifiedName,
                             final ElementKind kind,
                             final TypeMirror type,
                             final Set<? extends Modifier> modifiers,
@@ -314,16 +311,14 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                             final List<? extends TypeMirror> permittedSubclasses,
                             final List<? extends TypeMirror> interfaces,
                             final Element enclosingElement,
-                            final Supplier<List<? extends Element>> enclosedElementsSupplier,
-                            final List<? extends AnnotationMirror> annotationMirrors) {
+                            final Supplier<List<? extends Element>> enclosedElementsSupplier) {
     super(qualifiedName,
           validate(kind),
           type,
           modifiers,
           enclosingElement,
-          enclosedElementsSupplier,
-          annotationMirrors);
-    this.simpleName = DefaultName.ofSimple(qualifiedName);
+          enclosedElementsSupplier);
+    this.simpleName = DefaultName.ofSimple(qualifiedName.getName());
     this.nestingKind = nestingKind == null ? NestingKind.TOP_LEVEL : nestingKind;
     this.superclass = superclass == null ? DefaultNoType.NONE : superclass;
     this.interfaces = interfaces == null || interfaces.isEmpty() ? List.of() : List.copyOf(interfaces);
@@ -394,7 +389,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     if (c == void.class || c.isArray() || c.isPrimitive()) {
       throw new IllegalArgumentException("c: " + c);
     }
-    final Name qualifiedName = DefaultName.of(c.getName());
+    final AnnotatedName qualifiedName = AnnotatedName.of(DefaultName.of(c.getName()));
     final ElementKind kind;
     if (c.isAnnotation()) {
       kind = ElementKind.ANNOTATION_TYPE;
@@ -496,8 +491,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                              permittedSubclassTypeMirrors,
                              interfaceTypeMirrors,
                              enclosingElement, // most often null
-                             () -> enclosedElementsOf(c, enclosedElement),
-                             null);
+                             () -> enclosedElementsOf(c, enclosedElement));
     if (enclosingElement == null) {
       final DefaultPackageElement p = DefaultPackageElement.of(c.getPackage());
       p.addEnclosedElement(returnValue);

@@ -60,23 +60,21 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
 
   private final AnnotationValue defaultValue;
 
-  public DefaultExecutableElement(final Name simpleName,
+  public DefaultExecutableElement(final AnnotatedName simpleName,
                                   final ElementKind kind,
                                   final ExecutableType type,
                                   final Set<? extends Modifier> modifiers,
                                   final boolean varArgs,
                                   final boolean isDefault,
-                                  final AnnotationValue defaultValue,
-                                  final List<? extends AnnotationMirror> annotationMirrors) {
-    super(kind == ElementKind.CONSTRUCTOR ? DefaultName.of("<init>") :
-          (kind == ElementKind.STATIC_INIT ? DefaultName.of("<clinit>") :
-           (kind == ElementKind.INSTANCE_INIT ? DefaultName.EMPTY : simpleName)),
+                                  final AnnotationValue defaultValue) {
+    super(kind == ElementKind.CONSTRUCTOR ? AnnotatedName.of(DefaultName.of("<init>")) :
+          (kind == ElementKind.STATIC_INIT ? AnnotatedName.of(DefaultName.of("<clinit>")) :
+           (kind == ElementKind.INSTANCE_INIT ? AnnotatedName.of(DefaultName.EMPTY) : simpleName)),
           kind,
           validate(type),
           modifiers,
           null,
-          List::of,
-          annotationMirrors);
+          List::of);
     switch (kind) {
     case CONSTRUCTOR:
     case INSTANCE_INIT:
@@ -168,36 +166,33 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
     if (e instanceof DefaultExecutableElement dee) {
       return dee;
     }
-    return of(e.getSimpleName(),
+    return of(AnnotatedName.of(e.getAnnotationMirrors(), e.getSimpleName()),
               e.getKind(),
               (ExecutableType)e.asType(),
               e.getModifiers(),
               e.isVarArgs(),
               e.isDefault(),
-              e.getDefaultValue(),
-              e.getAnnotationMirrors());
+              e.getDefaultValue());
   }
   
-  public static final DefaultExecutableElement of(final Name simpleName,
+  public static final DefaultExecutableElement of(final AnnotatedName simpleName,
                                                   final ElementKind kind,
                                                   final ExecutableType type,
                                                   final Set<? extends Modifier> modifiers,
                                                   final boolean varArgs,
                                                   final boolean isDefault,
-                                                  final AnnotationValue defaultValue,
-                                                  final List<? extends AnnotationMirror> annotationMirrors) {
+                                                  final AnnotationValue defaultValue) {
     return new DefaultExecutableElement(simpleName,
                                         kind,
                                         type,
                                         modifiers,
                                         varArgs,
                                         isDefault,
-                                        defaultValue,
-                                        annotationMirrors);
+                                        defaultValue);
   }
   
   public static final DefaultExecutableElement of(final Executable e) {
-    final Name simpleName = DefaultName.of(e.getName());
+    final AnnotatedName simpleName = AnnotatedName.of(DefaultName.of(e.getName()));
     final ElementKind kind = e instanceof Method ? ElementKind.METHOD : ElementKind.CONSTRUCTOR;
     final ExecutableType type = DefaultExecutableType.of(e);
     final Collection<Modifier> modifierSet = new HashSet<>();
@@ -244,7 +239,6 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
                                    finalModifiers,
                                    varArgs,
                                    isDefault,
-                                   null,
                                    null);
 
     for (final java.lang.reflect.TypeVariable<?> t : e.getTypeParameters()) {

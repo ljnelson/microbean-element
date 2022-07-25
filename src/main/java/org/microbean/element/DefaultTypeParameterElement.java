@@ -56,21 +56,19 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
   
   private volatile Element genericElement;
   
-  public DefaultTypeParameterElement(final Name simpleName, final TypeVariable type) {
-    this(simpleName, type, Set.of(), null);
+  public DefaultTypeParameterElement(final AnnotatedName simpleName, final TypeVariable type) {
+    this(simpleName, type, Set.of());
   }
   
-  public DefaultTypeParameterElement(final Name simpleName,
+  public DefaultTypeParameterElement(final AnnotatedName simpleName,
                                      final TypeVariable type,
-                                     final Set<? extends Modifier> modifiers,
-                                     final List<? extends AnnotationMirror> annotationMirrors) {
+                                     final Set<? extends Modifier> modifiers) {
     super(simpleName,
           ElementKind.TYPE_PARAMETER,
           type,
           modifiers,
           null,
-          List::of,
-          annotationMirrors);
+          List::of);
     if (type instanceof DefaultTypeVariable dtv) {
       dtv.element(this);
     }
@@ -151,10 +149,9 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
 
   public static DefaultTypeParameterElement of(final java.lang.reflect.TypeVariable<?> tv) {
     return
-      new DefaultTypeParameterElement(DefaultName.of(tv.getName()),
+      new DefaultTypeParameterElement(AnnotatedName.of(DefaultName.of(tv.getName())),
                                       DefaultTypeVariable.of(tv),
-                                      Set.of(), // TODO: verify: what modifiers could possibly exist on a TypeParameterElement?
-                                      null);
+                                      Set.of()); // TODO: verify: what modifiers could possibly exist on a TypeParameterElement?
   }
 
 }

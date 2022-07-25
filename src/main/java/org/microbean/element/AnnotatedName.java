@@ -35,9 +35,6 @@ public final class AnnotatedName extends AbstractAnnotatedConstruct {
   private AnnotatedName(final List<? extends AnnotationMirror> annotationMirrors,
                         final Name name) {
     super(annotationMirrors);
-    if (name.isEmpty()) {
-      throw new IllegalArgumentException("name.isEmpty()");
-    }
     this.name = DefaultName.of(name);
   }
 
@@ -71,6 +68,10 @@ public final class AnnotatedName extends AbstractAnnotatedConstruct {
    * Static methods.
    */
 
+
+  public static final AnnotatedName of() {
+    return of(List.of(), DefaultName.of());
+  }
 
   public static final AnnotatedName of(final String name) {
     return of(List.of(), DefaultName.of(name));

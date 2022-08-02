@@ -103,6 +103,19 @@ public final class DefaultVariableElement extends AbstractElement implements Var
     return type;
   }
 
+  public static final DefaultVariableElement of(final VariableElement e) {
+    if (e instanceof DefaultVariableElement dve) {
+      return dve;
+    } else {
+      return new DefaultVariableElement(AnnotatedName.of(e.getSimpleName()),
+                                        validate(e.getKind()),
+                                        validate(e.asType()),
+                                        e.getModifiers(),
+                                        e.getEnclosingElement(),
+                                        e.getConstantValue());
+    }
+  }
+
   public static final DefaultVariableElement of(final Field f) {
     final AnnotatedName simpleName = AnnotatedName.of(DefaultName.of(f.getName()));
     final TypeMirror type = AbstractTypeMirror.of(f.getAnnotatedType());
@@ -139,7 +152,7 @@ public final class DefaultVariableElement extends AbstractElement implements Var
       modifierSet.add(Modifier.VOLATILE);
     }
     final EnumSet<Modifier> finalModifiers = EnumSet.copyOf(modifierSet);
-    
+
     return new DefaultVariableElement(simpleName, ElementKind.FIELD, type, finalModifiers, null, null);
   }
 

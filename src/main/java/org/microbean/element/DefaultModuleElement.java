@@ -19,6 +19,7 @@ package org.microbean.element;
 import java.lang.module.ModuleDescriptor;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -27,8 +28,9 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import java.util.function.Supplier;
 
@@ -41,10 +43,16 @@ import javax.lang.model.element.ModuleElement;
 import javax.lang.model.element.ModuleElement.Directive;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.PackageElement;
+import javax.lang.model.element.TypeElement;
 
 import javax.lang.model.type.NoType;
 
 public class DefaultModuleElement extends AbstractElement implements ModuleElement {
+
+  private static final Lock cacheLock = new ReentrantLock();
+
+  // @GuardedBy("cacheLock")
+  private static final Map<AnnotatedName, DefaultModuleElement> cache = new HashMap<>();
 
   private final DefaultName simpleName;
 
@@ -55,11 +63,17 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
   private final List<? extends Directive> readOnlyDirectives;
 
   private DefaultModuleElement(final AnnotatedName fullyQualifiedName) {
-    this(fullyQualifiedName, false);
+    this(fullyQualifiedName, false, List.of());
   }
 
   private DefaultModuleElement(final AnnotatedName fullyQualifiedName,
                                final boolean open) {
+    this(fullyQualifiedName, open, List.of());
+  }
+
+  private DefaultModuleElement(final AnnotatedName fullyQualifiedName,
+                               final boolean open,
+                               final List<? extends Directive> directives) {
     super(fullyQualifiedName,
           ElementKind.MODULE,
           DefaultNoType.MODULE,
@@ -70,6 +84,11 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
     this.open = open;
     this.directives = new CopyOnWriteArrayList<>();
     this.readOnlyDirectives = Collections.unmodifiableList(this.directives);
+    if (directives != null) {
+      for (final Directive d : directives) {
+        this.addDirective(d);
+      }
+    }
   }
 
   @Override // AbstractElement
@@ -106,6 +125,17 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
     return this.simpleName;
   }
 
+  @Override // AbstractElement
+  final <E extends Element & Encloseable> void addEnclosedElement(E e) {
+    switch (e.getKind()) {
+    case PACKAGE:
+      super.addEnclosedElement(DefaultPackageElement.of((PackageElement)e));
+      break;
+    default:
+      throw new IllegalArgumentException("e: " + e);
+    }
+  }
+  
   @Override // ModuleElement
   public final Element getEnclosingElement() {
     return null;
@@ -123,104 +153,164 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
 
 
   public static final DefaultModuleElement of(final AnnotatedName fullyQualifiedName) {
-    return of(fullyQualifiedName, false);
+    return of(fullyQualifiedName, false, List.of());
   }
 
   public static final DefaultModuleElement of(final AnnotatedName fullyQualifiedName, final boolean open) {
-    return new DefaultModuleElement(fullyQualifiedName, open);
+    return of(fullyQualifiedName, open, List.of());
+  }
+
+  public static final DefaultModuleElement of(final AnnotatedName fullyQualifiedName,
+                                              final boolean open,
+                                              final List<? extends Directive> directives) {
+    final DefaultModuleElement e = new DefaultModuleElement(fullyQualifiedName, open, directives);
+    cacheLock.lock();
+    try {
+      final DefaultModuleElement returnValue = cache.putIfAbsent(fullyQualifiedName, e);
+      return returnValue == null ? e : returnValue;
+    } finally {
+      cacheLock.unlock();
+    }
+  }
+
+  public static final DefaultModuleElement of(final Module m) throws ClassNotFoundException {
+    return of(m, Thread.currentThread().getContextClassLoader());
   }
   
-  public static final DefaultModuleElement of(final Module m) {
-    return DefaultModuleElement.of(m, new ConcurrentHashMap<>(), null);
-  }
+  public static final DefaultModuleElement of(final Module m, final ClassLoader cl) throws ClassNotFoundException {
+    DefaultModuleElement returnValue;
+    final AnnotatedName name = AnnotatedName.of(m.getName());
+    cacheLock.lock();
+    try {
+      returnValue = cache.get(name);
+      if (returnValue == null) {
+        final ModuleDescriptor md = m.getDescriptor();
+        returnValue = new DefaultModuleElement(name, md.modifiers().contains(ModuleDescriptor.Modifier.OPEN));
+        cache.put(name, returnValue);
 
-  static final <P extends PackageElement & Encloseable> DefaultModuleElement of(final Module m, final P enclosedElement) {
-    return DefaultModuleElement.of(m, new ConcurrentHashMap<>(), enclosedElement);
-  }
-
-  @SuppressWarnings("unchecked")
-  private static final <P extends PackageElement & Encloseable> DefaultModuleElement of(final Module m, final ConcurrentMap<String, DefaultModuleElement> seen, final P enclosedElement) {
-    if (enclosedElement != null && enclosedElement.getKind() != ElementKind.PACKAGE) {
-      throw new IllegalArgumentException("enclosedElement: " + enclosedElement);
-    }
-    final String name = m.getName();
-    DefaultModuleElement returnValue = seen.get(name);
-    if (returnValue == null) {
-
-      final AnnotatedName defaultName = AnnotatedName.of(name);
-      final ModuleDescriptor md = m.getDescriptor();
-      final boolean open = md.modifiers().contains(ModuleDescriptor.Modifier.OPEN);
-      returnValue = new DefaultModuleElement(defaultName, open);
-      seen.putIfAbsent(name, returnValue);
-      
-      final Set<ModuleDescriptor.Exports> exports = new TreeSet<>(md.exports());
-      for (final ModuleDescriptor.Exports export : exports) {
-
-        final String source = export.source();
-        final P packageElement;
-        if (enclosedElement != null && enclosedElement.getQualifiedName().contentEquals(source)) {
-          packageElement = enclosedElement;
-          returnValue.addEnclosedElement(enclosedElement);
-        } else {
-          packageElement = (P)DefaultPackageElement.of(DefaultName.of(source));
+        final Set<ModuleDescriptor.Exports> exports = new TreeSet<>(md.exports());
+        for (final ModuleDescriptor.Exports export : exports) {
+          final DefaultPackageElement packageElement = DefaultPackageElement.of(DefaultName.of(export.source())); // INDIRECT RECURSIVE
           returnValue.addEnclosedElement(packageElement);
+          final List<DefaultModuleElement> targetModuleElements;
+          if (export.isQualified()) {
+            final ModuleLayer layer = m.getLayer();
+            final Set<String> moduleNames = new TreeSet<>(export.targets());
+            targetModuleElements = new ArrayList<>(moduleNames.size());
+            for (final String moduleName : moduleNames) {
+              final Module tm = layer.findModule(moduleName).orElse(null);
+              if (tm != null) {
+                targetModuleElements.add(DefaultModuleElement.of(tm, cl)); // RECURSIVE
+              }
+            }
+          } else {
+            targetModuleElements = List.of();
+          }
+          returnValue.addDirective(new DefaultExportsDirective(packageElement, targetModuleElements));
         }
 
+        final Set<ModuleDescriptor.Opens> openses = new TreeSet<>(md.opens());
+        for (final ModuleDescriptor.Opens opens : openses) {
+          final DefaultPackageElement packageElement = DefaultPackageElement.of(DefaultName.of(opens.source())); // INDIRECT RECURSIVE
+          returnValue.addEnclosedElement(packageElement);
+          final List<DefaultModuleElement> targetModuleElements;
+          if (opens.isQualified()) {
+            final ModuleLayer layer = m.getLayer();
+            final Set<String> moduleNames = new TreeSet<>(opens.targets());
+            targetModuleElements = new ArrayList<>(moduleNames.size());
+            for (final String moduleName : moduleNames) {
+              final Module tm = layer.findModule(moduleName).orElse(null);
+              if (tm != null) {
+                targetModuleElements.add(DefaultModuleElement.of(tm, cl)); // RECURSIVE
+              }
+            }
+          } else {
+            targetModuleElements = List.of();
+          }
+          returnValue.addDirective(new DefaultOpensDirective(packageElement, targetModuleElements));
+        }
+
+        final Set<ModuleDescriptor.Provides> provideses = new TreeSet<>(md.provides());
+        for (final ModuleDescriptor.Provides provides : provideses) {
+          final DefaultTypeElement service = DefaultTypeElement.of(Class.forName(provides.service(), false, cl));
+          final Collection<? extends String> providers = provides.providers();
+          final List<TypeElement> implementations = new ArrayList<>(providers.size());
+          for (final String provider : providers) {
+            implementations.add(DefaultTypeElement.of(Class.forName(provider, false, cl))); // INDIRECT RECURSIVE
+          }
+          returnValue.addDirective(new DefaultProvidesDirective(service, implementations));
+        }
+
+      }
+    } finally {
+      cacheLock.unlock();
+    }
+    return returnValue;
+  }
+
+  private static final List<? extends Directive> directivesFor(final Module m, final ClassLoader cl) throws ClassNotFoundException {
+    final ArrayList<Directive> returnValue = new ArrayList<>();
+    cacheLock.lock();
+    try {
+      final ModuleDescriptor md = m.getDescriptor();
+      final Set<ModuleDescriptor.Exports> exports = new TreeSet<>(md.exports());
+      for (final ModuleDescriptor.Exports export : exports) {
         final List<DefaultModuleElement> targetModuleElements;
         if (export.isQualified()) {
           final ModuleLayer layer = m.getLayer();
           final Set<String> moduleNames = new TreeSet<>(export.targets());
           targetModuleElements = new ArrayList<>(moduleNames.size());
           for (final String moduleName : moduleNames) {
-            final Module targetModule = layer.findModule(moduleName).orElse(null);
-            if (targetModule != null) {
-              targetModuleElements.add(DefaultModuleElement.of(targetModule, seen, null));
+            final Module tm = layer.findModule(moduleName).orElse(null);
+            if (tm != null) {
+              targetModuleElements.add(DefaultModuleElement.of(tm, cl)); // RECURSIVE
             }
           }
         } else {
           targetModuleElements = List.of();
         }
-        returnValue.addDirective(new DefaultExportsDirective(packageElement, targetModuleElements));
-      }
-    }
-    return returnValue;
-  }
-
-  private static final List<? extends Directive> directivesOf(final Module m, final ConcurrentMap<String, DefaultModuleElement> seen, final PackageElement enclosedElement) {
-    if (enclosedElement != null && enclosedElement.getKind() != ElementKind.PACKAGE) {
-      throw new IllegalArgumentException("enclosedElement: " + enclosedElement);
-    }
-    ArrayList<Directive> returnValue = new ArrayList<>();
-    final ModuleDescriptor md = m.getDescriptor();
-    final Set<ModuleDescriptor.Exports> exports = new TreeSet<>(md.exports());
-    for (final ModuleDescriptor.Exports export : exports) {
-      
-      final String source = export.source();
-      final PackageElement packageElement;
-      if (enclosedElement != null && enclosedElement.getQualifiedName().contentEquals(source)) {
-        packageElement = enclosedElement;
-      } else {
-        packageElement = DefaultPackageElement.of(DefaultName.of(source));
+        final DefaultPackageElement packageElement = DefaultPackageElement.of(DefaultName.of(export.source())); // INDIRECT RECURSIVE
+        // returnValue.addEnclosedElement(packageElement);
+        returnValue.add(new DefaultExportsDirective(packageElement, targetModuleElements));
       }
 
-      final List<DefaultModuleElement> targetModuleElements;
-      if (export.isQualified()) {
-        final ModuleLayer layer = m.getLayer();
-        final Set<String> moduleNames = new TreeSet<>(export.targets());
-        targetModuleElements = new ArrayList<>(moduleNames.size());
-        for (final String moduleName : moduleNames) {
-          final Module targetModule = layer.findModule(moduleName).orElse(null);
-          if (targetModule != null) {
-            targetModuleElements.add(DefaultModuleElement.of(targetModule, seen, null));
+      final Set<ModuleDescriptor.Opens> openses = new TreeSet<>(md.opens());
+      for (final ModuleDescriptor.Opens opens : openses) {
+        final List<DefaultModuleElement> targetModuleElements;
+        if (opens.isQualified()) {
+          final ModuleLayer layer = m.getLayer();
+          final Set<String> moduleNames = new TreeSet<>(opens.targets());
+          targetModuleElements = new ArrayList<>(moduleNames.size());
+          for (final String moduleName : moduleNames) {
+            final Module tm = layer.findModule(moduleName).orElse(null);
+            if (tm != null) {
+              targetModuleElements.add(DefaultModuleElement.of(tm, cl)); // RECURSIVE
+            }
           }
+        } else {
+          targetModuleElements = List.of();
         }
-      } else {
-        targetModuleElements = List.of();
+        final DefaultPackageElement packageElement = DefaultPackageElement.of(DefaultName.of(opens.source())); // INDIRECT RECURSIVE
+        // returnValue.addEnclosedElement(packageElement);
+        returnValue.add(new DefaultOpensDirective(packageElement, targetModuleElements));
       }
-      returnValue.add(new DefaultExportsDirective(packageElement, targetModuleElements));
+
+      final Set<ModuleDescriptor.Provides> provideses = new TreeSet<>(md.provides());
+      for (final ModuleDescriptor.Provides provides : provideses) {
+        final Collection<? extends String> providers = provides.providers();
+        final List<TypeElement> implementations = new ArrayList<>(providers.size());
+        for (final String provider : providers) {
+          implementations.add(DefaultTypeElement.of(Class.forName(provider, false, cl))); // INDIRECT RECURSIVE
+        }
+        final DefaultTypeElement service = DefaultTypeElement.of(Class.forName(provides.service(), false, cl));
+        returnValue.add(new DefaultProvidesDirective(service, implementations));
+      }
+      
+    } finally {
+      cacheLock.unlock();
     }
     returnValue.trimToSize();
-    return returnValue;
+    return Collections.unmodifiableList(returnValue);
   }
-  
+
 }

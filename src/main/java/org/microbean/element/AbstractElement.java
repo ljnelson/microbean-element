@@ -152,7 +152,21 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
     }
   }
 
-  public final <E extends Element & Encloseable> void addEnclosedElement(final E e) {
+
+  /*
+   * Enclosed elements.
+   *
+   *
+   * ModuleElement:     encloses PackageElements
+   * PackageElement:    encloses TypeElements
+   * TypeElement:       encloses TypeElements (nested classes),
+   *                    ExecutableElements (methods), VariableElements
+   *                    (fields), RecordComponentElements
+   * ExecutableElement: encloses NOTHING
+   */
+
+  
+  <E extends Element & Encloseable> void addEnclosedElement(final E e) {
     this.enclosedElementsAdder.accept(e);
     if (e.getEnclosingElement() == null) {
       // TODO: this needs refining due to the strange relationship

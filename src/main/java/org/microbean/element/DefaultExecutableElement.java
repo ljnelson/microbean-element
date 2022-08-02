@@ -253,6 +253,21 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
     return returnValue;
   }
 
+  public static record Key(Name name, List<? extends VariableElement> parameters) {
 
+    public Key {
+      name = DefaultName.of(name);
+      if (parameters.isEmpty()) {
+        parameters = List.of();
+      } else {
+        final List<VariableElement> list = new ArrayList<>(parameters.size());
+        for (final VariableElement p : parameters) {
+          list.add(DefaultVariableElement.of(p));
+        }
+        parameters = Collections.unmodifiableList(list);
+      }
+    }
+    
+  }
   
 }

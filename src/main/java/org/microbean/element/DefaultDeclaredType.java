@@ -242,9 +242,25 @@ public class DefaultDeclaredType extends AbstractReferenceType implements Declar
 
   public static final DefaultDeclaredType of(final AnnotatedType t) {
     if (t instanceof AnnotatedParameterizedType p) {
+      assert p.getType() instanceof ParameterizedType;
       return DefaultDeclaredType.of(p);
+    } else if (t.getType() instanceof Class<?> c) {
+      final AnnotatedType ownerType = t.getAnnotatedOwnerType();
+      final TypeMirror enclosingType = ownerType == null ? null : AbstractTypeMirror.of(ownerType);
+      final java.lang.reflect.TypeVariable<?>[] typeParameters = c.getTypeParameters();
+      final List<TypeVariable> typeArguments;
+      if (typeParameters.length <= 0) {
+        typeArguments = List.of();
+      } else {
+        typeArguments = new ArrayList<>(typeParameters.length);
+        for (final java.lang.reflect.TypeVariable<?> tp : typeParameters) {
+          typeArguments.add(DefaultTypeVariable.of(tp));
+        }
+      }
+      return DefaultDeclaredType.of(enclosingType, typeArguments, null);
+    } else {
+      throw new IllegalArgumentException("t: " + t);
     }
-    throw new IllegalArgumentException("t: " + t);
   }
 
   public static final DefaultDeclaredType of(final Class<?> c) {

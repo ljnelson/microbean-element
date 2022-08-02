@@ -279,7 +279,7 @@ final class TestORama {
         DefaultModuleElement.of(AnnotatedName.of("java.base"));
 
 
-      final DefaultPackageElement defaultJavaLang = new DefaultPackageElement(AnnotatedName.of("java.lang"), null);
+      final DefaultPackageElement defaultJavaLang = DefaultPackageElement.of(AnnotatedName.of("java.lang"), null);
       defaultJavaBase.addEnclosedElement(defaultJavaLang);
 
       // Now we can do the main Comparable element:
@@ -350,7 +350,7 @@ final class TestORama {
       // Now we can do a TypeMirror representing Comparable<Frob>:
       final DefaultDeclaredType defaultComparableFrobType = new DefaultDeclaredType(frobType);
 
-      final DefaultPackageElement unnamedPackage = new DefaultPackageElement(AnnotatedName.of(), null);
+      final DefaultPackageElement unnamedPackage = DefaultPackageElement.of(AnnotatedName.of(), null);
 
       final DefaultTypeElement defaultFrobElement =
         new DefaultTypeElement(AnnotatedName.of("Frob"),
@@ -368,7 +368,12 @@ final class TestORama {
       assertTrue(Equality.equals(frobElement, defaultFrobElement, true));
 
       // What's our module, incidentally?
-      final DefaultModuleElement orgMicrobeanElement = DefaultModuleElement.of(this.getClass().getModule());
+      DefaultModuleElement orgMicrobeanElement;
+      try {
+        orgMicrobeanElement = DefaultModuleElement.of(this.getClass().getModule());
+      } catch (final ClassNotFoundException classNotFoundException) {
+        throw new IllegalStateException(classNotFoundException.getMessage(), classNotFoundException);
+      }
       System.out.println(orgMicrobeanElement.getQualifiedName());
       System.out.println("*** module: " + this.getClass().getModule());
 

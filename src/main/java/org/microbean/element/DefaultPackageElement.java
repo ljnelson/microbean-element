@@ -17,10 +17,15 @@
 package org.microbean.element;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import java.util.function.Supplier;
 
@@ -32,19 +37,21 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.ModuleElement;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.PackageElement;
+import javax.lang.model.element.TypeElement;
 
 import javax.lang.model.type.NoType;
 
 public class DefaultPackageElement extends AbstractElement implements PackageElement {
 
+  private static final Map<AnnotatedName, DefaultPackageElement> cache = new ConcurrentHashMap<>();
+
   private final DefaultName simpleName;
 
-  public DefaultPackageElement(final AnnotatedName fullyQualifiedName) {
+  private DefaultPackageElement(final AnnotatedName fullyQualifiedName) {
     this(fullyQualifiedName, DefaultNoType.PACKAGE);
   }
-  
-  public DefaultPackageElement(final AnnotatedName fullyQualifiedName,
-                               final NoType packageType) {
+
+  private DefaultPackageElement(final AnnotatedName fullyQualifiedName, final NoType packageType) {
     super(fullyQualifiedName,
           ElementKind.PACKAGE,
           packageType,
@@ -58,7 +65,7 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
   public <R, P> R accept(final ElementVisitor<R, P> v, final P p) {
     return v.visitPackage(this, p);
   }
-  
+
   @Override // PackageElement
   public final NoType asType() {
     return (NoType)super.asType();
@@ -74,6 +81,21 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
     return this.simpleName;
   }
 
+  @Override // AbstractElement
+  final <E extends Element & Encloseable> void addEnclosedElement(E e) {
+    switch (e.getKind()) {
+    case ANNOTATION_TYPE:
+    case CLASS:
+    case ENUM:
+    case INTERFACE:
+    case RECORD:
+      super.addEnclosedElement(DefaultTypeElement.of((TypeElement)e));
+      break;
+    default:
+      throw new IllegalArgumentException("e: " + e);
+    }
+  }
+  
   @Override // PackageElement
   public final ModuleElement getEnclosingElement() {
     return (ModuleElement)super.getEnclosingElement();
@@ -89,28 +111,53 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
     return this.getSimpleName().length() <= 0;
   }
 
-  private static final <E extends Element> E validate(final E enclosingElement) {
+
+  /*
+   * Static methods.
+   */
+
+
+  private static final ModuleElement validate(final Element enclosingElement) {
     if (enclosingElement == null) {
       return null;
     }
     switch (enclosingElement.getKind()) {
     case MODULE:
-      return enclosingElement;
+      return (ModuleElement)enclosingElement;
     default:
       throw new IllegalArgumentException("enclosingElement: " + enclosingElement);
     }
   }
 
+  public static final DefaultPackageElement of(final PackageElement p) {
+    if (p instanceof DefaultPackageElement dpe) {
+      return dpe;
+    } else {
+      return
+        DefaultPackageElement.of(AnnotatedName.of(p.getAnnotationMirrors(),
+                                                  p.getQualifiedName()),
+                                 (NoType)p.asType());
+    }
+  }
+  
   public static final DefaultPackageElement of(final Package p) {
     return DefaultPackageElement.of(DefaultName.of(p.getName()), null);
   }
-  
+
   public static final DefaultPackageElement of(final Name fullyQualifiedName) {
     return DefaultPackageElement.of(fullyQualifiedName, null);
   }
 
   public static final DefaultPackageElement of(final Name fullyQualifiedName, final List<? extends AnnotationMirror> annotationMirrors) {
-    return new DefaultPackageElement(AnnotatedName.of(annotationMirrors, fullyQualifiedName));
+    return DefaultPackageElement.of(AnnotatedName.of(annotationMirrors, fullyQualifiedName));
   }
-  
+
+  public static final DefaultPackageElement of(final AnnotatedName name) {
+    return DefaultPackageElement.of(name, null);
+  }
+
+  public static final DefaultPackageElement of(final AnnotatedName name, final NoType packageType) {
+    return cache.computeIfAbsent(name, n -> new DefaultPackageElement(n, packageType));
+  }
+
 }

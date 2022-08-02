@@ -60,7 +60,7 @@ final class TestReflective {
   }
 
   @Test
-  final void testObject() {
+  final void testObject() throws ClassNotFoundException {
     final TypeElement o = DefaultTypeElement.of(Object.class);
     assertTrue(o.getQualifiedName().contentEquals("java.lang.Object"));
     final DeclaredType otype = (DeclaredType)o.asType();

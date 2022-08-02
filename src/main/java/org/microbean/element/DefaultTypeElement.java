@@ -42,12 +42,15 @@ import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ElementVisitor;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.NestingKind;
+import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.RecordComponentElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
+import javax.lang.model.element.VariableElement;
 
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
@@ -333,6 +336,48 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     return v.visitType(this, p);
   }
 
+  @Override // AbstractElement
+  final <E extends Element & Encloseable> void addEnclosedElement(final E e) {
+    switch (e.getKind()) {
+    case ANNOTATION_TYPE:
+    case CLASS:
+    case ENUM:
+    case INTERFACE:
+    case RECORD:
+      super.addEnclosedElement(DefaultTypeElement.of((TypeElement)e));
+      break;
+    case FIELD:
+      super.addEnclosedElement(DefaultVariableElement.of((VariableElement)e));
+      break;
+    case CONSTRUCTOR:
+    case INSTANCE_INIT:
+    case METHOD:
+    case STATIC_INIT:
+      super.addEnclosedElement(DefaultExecutableElement.of((ExecutableElement)e));
+      break;
+    default:
+      throw new IllegalArgumentException("e: " + e);
+    }
+  }
+
+  @Override // AbstractElement
+  public final void setEnclosingElement(final Element e) {
+    switch (e.getKind()) {
+    case ANNOTATION_TYPE:
+    case CLASS:
+    case ENUM:
+    case INTERFACE:
+    case RECORD:
+      super.setEnclosingElement((TypeElement)e);
+      break;
+    case PACKAGE:
+      super.setEnclosingElement((PackageElement)e);
+      break;
+    default:
+      throw new IllegalArgumentException("e: " + e);
+    }
+  }
+
   @Override // TypeElement
   public TypeMirror getSuperclass() {
     return this.superclass;
@@ -368,6 +413,12 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     return this.nestingKind;
   }
 
+
+  /*
+   * Static methods.
+   */
+
+
   private static final ElementKind validate(final ElementKind kind) {
     switch (kind) {
     case ANNOTATION_TYPE:
@@ -381,11 +432,34 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     }
   }
 
-  public static final DefaultTypeElement of(final Class<?> c) {
-    return DefaultTypeElement.of(c, null);
+  public static final DefaultTypeElement of(final DefaultTypeElement e) {
+    return e;
   }
 
-  static final DefaultTypeElement of(final Class<?> c, final Element enclosedElement) {
+  public static final DefaultTypeElement of(final TypeElement e) {
+    if (e instanceof DefaultTypeElement dte) {
+      return dte;
+    } else {
+      return
+        new DefaultTypeElement(AnnotatedName.of(e.getAnnotationMirrors(),
+                                                e.getQualifiedName()),
+                               e.getKind(),
+                               e.asType(),
+                               e.getModifiers(),
+                               e.getNestingKind(),
+                               e.getSuperclass(),
+                               e.getPermittedSubclasses(),
+                               e.getInterfaces(),
+                               e.getEnclosingElement(),
+                               e::getEnclosedElements);
+    }
+  }
+
+  public static final DefaultTypeElement of(final Class<?> c) throws ClassNotFoundException {
+    return DefaultTypeElement.of(c, Thread.currentThread().getContextClassLoader());
+  }
+
+  static final DefaultTypeElement of(final Class<?> c, final ClassLoader cl) throws ClassNotFoundException {
     if (c == void.class || c.isArray() || c.isPrimitive()) {
       throw new IllegalArgumentException("c: " + c);
     }
@@ -491,44 +565,44 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
                              permittedSubclassTypeMirrors,
                              interfaceTypeMirrors,
                              enclosingElement, // most often null
-                             () -> enclosedElementsOf(c, enclosedElement));
+                             () -> enclosedElementsOf(c, cl));
     if (enclosingElement == null) {
       final DefaultPackageElement p = DefaultPackageElement.of(c.getPackage());
       p.addEnclosedElement(returnValue);
-      final DefaultModuleElement m = DefaultModuleElement.of(c.getModule());
+      final DefaultModuleElement m = DefaultModuleElement.of(c.getModule(), cl);
       m.addEnclosedElement(p);
     }
     return returnValue;
   }
 
-  static final List<? extends Element> enclosedElementsOf(final Class<?> c, final Element enclosedElement) {
+  static final List<? extends Element> enclosedElementsOf(final Class<?> c, final ClassLoader cl) {
     final ArrayList<Element> enclosedElements = new ArrayList<>();
-    addEnclosedElements(c::getDeclaredFields, DefaultVariableElement::of, enclosedElements, enclosedElement);
-    addEnclosedElements(c::getDeclaredMethods, DefaultExecutableElement::of, enclosedElements, enclosedElement);
-    addEnclosedElements(c::getDeclaredConstructors, DefaultExecutableElement::of, enclosedElements, enclosedElement);
+    addEnclosedElements(c::getDeclaredFields, DefaultVariableElement::of, enclosedElements);
+    addEnclosedElements(c::getDeclaredMethods, DefaultExecutableElement::of, enclosedElements);
+    addEnclosedElements(c::getDeclaredConstructors, DefaultExecutableElement::of, enclosedElements);
     if (c.isRecord()) {
-      addEnclosedElements(c::getRecordComponents, DefaultRecordComponentElement::of, enclosedElements, enclosedElement);
+      addEnclosedElements(c::getRecordComponents, DefaultRecordComponentElement::of, enclosedElements);
     }
-    addEnclosedElements(c::getDeclaredClasses, DefaultTypeElement::of, enclosedElements, enclosedElement);
+    addEnclosedElements(c::getDeclaredClasses,
+                        s -> {
+                          try {
+                            return DefaultTypeElement.of(s, cl);
+                          } catch (final ClassNotFoundException classNotFoundException) {
+                            throw new IllegalArgumentException(classNotFoundException.getMessage(), classNotFoundException);
+                          }
+                        },
+                        enclosedElements);
     enclosedElements.trimToSize();
     return Collections.unmodifiableList(enclosedElements);
   }
 
   private static final <T> void addEnclosedElements(final Supplier<? extends T[]> declaredThingsSupplier, // e.g. fields, methods, constructors, record components, classes
                                                     final Function<? super T, ? extends Element> f, // turns a declared thing into an Element
-                                                    final Collection<? super Element> elements, // add things here
-                                                    final Element enclosedElement) { // "caller"
+                                                    final Collection<? super Element> elements) { // add things here
     final T[] declaredThings = declaredThingsSupplier.get();
     if (declaredThings != null && declaredThings.length > 0) {
-      if (enclosedElement == null) {
-        for (final T declaredThing : declaredThings) {
-          elements.add(f.apply(declaredThing));
-        }
-      } else {
-        for (final T declaredThing : declaredThings) {
-          final Element e = f.apply(declaredThing);
-          elements.add(Equality.equals(enclosedElement, e, true) ? enclosedElement : e);
-        }
+      for (final T declaredThing : declaredThings) {
+        elements.add(f.apply(declaredThing));
       }
     }
   }
@@ -537,9 +611,11 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
    * Not yet used.
    */
 
+  /*
   private static final Element enclosingElementOf(final Class<?> c) {
     return enclosingElementOf(c, c::getEnclosingClass, DefaultTypeElement::of, DefaultTypeElement::of);
   }
+  */
 
   static final <T, U> Element enclosingElementOf(final T enclosedThing,
                                                  final Supplier<? extends U> enclosingThingSupplier,

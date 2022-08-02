@@ -57,6 +57,7 @@ import javax.tools.JavaFileObject;
 import javax.tools.SimpleJavaFileObject;
 import javax.tools.StandardJavaFileManager;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static javax.lang.model.SourceVersion.RELEASE_17;
@@ -75,6 +76,18 @@ final class TestORama {
   private TestORama() {
     super();
   }
+
+  @BeforeEach
+  final void clearCaches() {
+    DefaultModuleElement.cacheLock.lock();
+    try {
+      DefaultModuleElement.cache.clear();
+    } finally {
+      DefaultModuleElement.cacheLock.unlock();
+    }
+    DefaultPackageElement.cache.clear();
+  }
+
 
   @Test
   final void testORama() throws IOException {

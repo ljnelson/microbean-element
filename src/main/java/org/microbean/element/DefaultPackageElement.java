@@ -43,9 +43,29 @@ import javax.lang.model.type.NoType;
 
 public class DefaultPackageElement extends AbstractElement implements PackageElement {
 
-  private static final Map<AnnotatedName, DefaultPackageElement> cache = new ConcurrentHashMap<>();
 
+  /*
+   * Static fields.
+   */
+
+
+  static final Map<AnnotatedName, DefaultPackageElement> cache = new ConcurrentHashMap<>();
+
+
+  /*
+   * Instance fields.
+   */
+
+
+  private final Set<Name> typeNamesCache;
+  
   private final DefaultName simpleName;
+
+
+  /*
+   * Constructors.
+   */
+
 
   private DefaultPackageElement(final AnnotatedName fullyQualifiedName) {
     this(fullyQualifiedName, DefaultNoType.PACKAGE);
@@ -59,7 +79,14 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
           null,
           null);
     this.simpleName = DefaultName.ofSimple(fullyQualifiedName.getName());
+    this.typeNamesCache = ConcurrentHashMap.newKeySet();
   }
+
+
+  /*
+   * Instance methods.
+   */
+
 
   @Override // AbstractElement
   public <R, P> R accept(final ElementVisitor<R, P> v, final P p) {
@@ -89,13 +116,16 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
     case ENUM:
     case INTERFACE:
     case RECORD:
-      super.addEnclosedElement(DefaultTypeElement.of((TypeElement)e));
+      final DefaultTypeElement t = DefaultTypeElement.of((TypeElement)e);
+      if (this.typeNamesCache.add(t.getQualifiedName())) {
+        super.addEnclosedElement(t);
+      }
       break;
     default:
       throw new IllegalArgumentException("e: " + e);
     }
   }
-  
+
   @Override // PackageElement
   public final ModuleElement getEnclosingElement() {
     return (ModuleElement)super.getEnclosingElement();
@@ -139,7 +169,7 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
                                  (NoType)p.asType());
     }
   }
-  
+
   public static final DefaultPackageElement of(final Package p) {
     return DefaultPackageElement.of(DefaultName.of(p.getName()), null);
   }

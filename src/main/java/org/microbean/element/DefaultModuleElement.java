@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import java.util.concurrent.locks.Lock;
@@ -49,14 +50,28 @@ import javax.lang.model.type.NoType;
 
 public class DefaultModuleElement extends AbstractElement implements ModuleElement {
 
-  private static final Lock cacheLock = new ReentrantLock();
+
+  /*
+   * Static fields.
+   */
+
+  
+  static final Lock cacheLock = new ReentrantLock();
 
   // @GuardedBy("cacheLock")
-  private static final Map<AnnotatedName, DefaultModuleElement> cache = new HashMap<>();
+  static final Map<AnnotatedName, DefaultModuleElement> cache = new HashMap<>();
 
+
+  /*
+   * Instance fields.
+   */
+
+  
   private final DefaultName simpleName;
 
   private final boolean open;
+
+  private final Set<Name> packageNamesCache;
 
   private final List<Directive> directives;
   
@@ -80,6 +95,7 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
           Set.of(),
           null, // enclosingElement
           null); // enclosedElementsSupplier
+    this.packageNamesCache = ConcurrentHashMap.newKeySet();
     this.simpleName = DefaultName.ofSimple(fullyQualifiedName.getName());
     this.open = open;
     this.directives = new CopyOnWriteArrayList<>();
@@ -129,7 +145,10 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
   final <E extends Element & Encloseable> void addEnclosedElement(E e) {
     switch (e.getKind()) {
     case PACKAGE:
-      super.addEnclosedElement(DefaultPackageElement.of((PackageElement)e));
+      final DefaultPackageElement p = DefaultPackageElement.of((PackageElement)e);
+      if (this.packageNamesCache.add(p.getQualifiedName())) {
+        super.addEnclosedElement(p);
+      }
       break;
     default:
       throw new IllegalArgumentException("e: " + e);

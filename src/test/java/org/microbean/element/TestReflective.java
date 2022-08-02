@@ -33,6 +33,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -46,6 +47,17 @@ final class TestReflective {
     super();
   }
 
+  @BeforeEach
+  final void clearCaches() {
+    DefaultModuleElement.cacheLock.lock();
+    try {
+      DefaultModuleElement.cache.clear();
+    } finally {
+      DefaultModuleElement.cacheLock.unlock();
+    }
+    DefaultPackageElement.cache.clear();
+  }
+  
   @Test
   final void testReflective() throws ReflectiveOperationException {
     AnnotatedType returnType = this.getClass().getDeclaredMethod("strings").getAnnotatedReturnType();

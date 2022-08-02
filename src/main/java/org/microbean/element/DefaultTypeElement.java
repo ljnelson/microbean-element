@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import java.util.function.BiFunction;
@@ -230,6 +231,18 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     assert DefaultDeclaredType.JAVA_LANG_OBJECT.asElement() == JAVA_LANG_OBJECT;
   }
 
+
+  /*
+   * Instance fields.
+   */
+
+
+  private final Set<Name> typeNamesCache;
+
+  private final Set<Name> fieldNamesCache;
+
+  private final Set<DefaultExecutableElement.Key> methodsCache;
+
   private final DefaultName simpleName;
 
   private final NestingKind nestingKind;
@@ -239,6 +252,12 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
   private final List<? extends TypeMirror> interfaces;
 
   private final List<? extends TypeMirror> permittedSubclasses;
+
+
+  /*
+   * Constructors.
+   */
+
 
   @Deprecated // you can use this, but you better know what you're doing.
   DefaultTypeElement() {
@@ -321,6 +340,9 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
           modifiers,
           enclosingElement,
           enclosedElementsSupplier);
+    this.typeNamesCache = ConcurrentHashMap.newKeySet();
+    this.fieldNamesCache = ConcurrentHashMap.newKeySet();
+    this.methodsCache = ConcurrentHashMap.newKeySet();
     this.simpleName = DefaultName.ofSimple(qualifiedName.getName());
     this.nestingKind = nestingKind == null ? NestingKind.TOP_LEVEL : nestingKind;
     this.superclass = superclass == null ? DefaultNoType.NONE : superclass;
@@ -330,6 +352,12 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
       ddt.element(this);
     }
   }
+
+
+  /*
+   * Instance methods.
+   */
+
 
   @Override // TypeElement
   public <R, P> R accept(final ElementVisitor<R, P> v, final P p) {
@@ -344,16 +372,25 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     case ENUM:
     case INTERFACE:
     case RECORD:
-      super.addEnclosedElement(DefaultTypeElement.of((TypeElement)e));
+      final DefaultTypeElement dte = DefaultTypeElement.of((TypeElement)e);
+      if (this.typeNamesCache.add(dte.getSimpleName())) {
+        super.addEnclosedElement(dte);
+      }
       break;
     case FIELD:
-      super.addEnclosedElement(DefaultVariableElement.of((VariableElement)e));
+      final DefaultVariableElement dve = DefaultVariableElement.of((VariableElement)e);
+      if (this.fieldNamesCache.add(dve.getSimpleName())) {
+        super.addEnclosedElement(dve);
+      }
       break;
     case CONSTRUCTOR:
     case INSTANCE_INIT:
     case METHOD:
     case STATIC_INIT:
-      super.addEnclosedElement(DefaultExecutableElement.of((ExecutableElement)e));
+      final DefaultExecutableElement dee = DefaultExecutableElement.of((ExecutableElement)e);
+      if (this.methodsCache.add(new DefaultExecutableElement.Key(dee.getSimpleName(), dee.getParameters()))) {
+        super.addEnclosedElement(dee);
+      }
       break;
     default:
       throw new IllegalArgumentException("e: " + e);

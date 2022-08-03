@@ -53,7 +53,7 @@ public class DefaultRecordComponentElement extends AbstractElement implements Re
           List::of);
     this.accessor = Objects.requireNonNull(accessor, "accessor");
   }
-  
+
   @Override // AbstractElement
   public <R, P> R accept(final ElementVisitor<R, P> v, final P p) {
     return v.visitRecordComponent(this, p);
@@ -68,7 +68,13 @@ public class DefaultRecordComponentElement extends AbstractElement implements Re
   public final void setEnclosingElement(final Element enclosingElement) {
     super.setEnclosingElement(validate(enclosingElement));
   }
-  
+
+
+  /*
+   * Static methods.
+   */
+
+
   private static final <T extends TypeMirror> T validate(final T type) {
     switch (type.getKind()) {
     case DECLARED:
@@ -87,6 +93,19 @@ public class DefaultRecordComponentElement extends AbstractElement implements Re
     }
   }
 
+  public static final DefaultRecordComponentElement of(final RecordComponentElement r) {
+    if (r instanceof DefaultRecordComponentElement drce) {
+      return drce;
+    } else {
+      return
+        new DefaultRecordComponentElement(AnnotatedName.of(r.getAnnotationMirrors(),
+                                                           r.getSimpleName()),
+                                          r.asType(),
+                                          r.getModifiers(),
+                                          r.getAccessor());
+    }
+  }
+  
   public static final DefaultRecordComponentElement of(final RecordComponent r) {
     final AnnotatedName simpleName = AnnotatedName.of(DefaultName.of(r.getName()));
     final TypeMirror type = AbstractTypeMirror.of(r.getAnnotatedType());
@@ -97,5 +116,5 @@ public class DefaultRecordComponentElement extends AbstractElement implements Re
     final ExecutableElement accessor = DefaultExecutableElement.of(r.getAccessor());
     return new DefaultRecordComponentElement(simpleName, type, modifiers, accessor);
   }
-  
+
 }

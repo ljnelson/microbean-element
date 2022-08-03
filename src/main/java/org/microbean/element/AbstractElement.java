@@ -165,8 +165,26 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
    * ExecutableElement: encloses NOTHING
    */
 
-  
-  <E extends Element & Encloseable> void addEnclosedElement(final E e) {
+
+  <E extends Element & Encloseable> void addEnclosedElement0(final E e) {
+    // Make sure e is in the set of things that can potentially be
+    // enclosed.
+    switch (e.getKind()) {
+    case ANNOTATION_TYPE:
+    case CLASS:
+    case CONSTRUCTOR:
+    case ENUM:
+    case INSTANCE_INIT:
+    case INTERFACE:
+    case METHOD:
+    case PACKAGE:
+    case RECORD:
+    case RECORD_COMPONENT:
+    case STATIC_INIT:
+      break;
+    default:
+      throw new IllegalArgumentException("e: " + e);
+    }
     this.enclosedElementsAdder.accept(e);
     if (e.getEnclosingElement() == null) {
       // TODO: this needs refining due to the strange relationship

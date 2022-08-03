@@ -33,6 +33,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -71,7 +72,7 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
 
   private final boolean open;
 
-  private final Set<Name> packageNamesCache;
+  private final Set<Name> enclosedPackageNames;
 
   private final List<Directive> directives;
   
@@ -95,7 +96,7 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
           Set.of(),
           null, // enclosingElement
           null); // enclosedElementsSupplier
-    this.packageNamesCache = ConcurrentHashMap.newKeySet();
+    this.enclosedPackageNames = ConcurrentHashMap.newKeySet();
     this.simpleName = DefaultName.ofSimple(fullyQualifiedName.getName());
     this.open = open;
     this.directives = new CopyOnWriteArrayList<>();
@@ -141,17 +142,9 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
     return this.simpleName;
   }
 
-  @Override // AbstractElement
-  final <E extends Element & Encloseable> void addEnclosedElement(E e) {
-    switch (e.getKind()) {
-    case PACKAGE:
-      final DefaultPackageElement p = DefaultPackageElement.of((PackageElement)e);
-      if (this.packageNamesCache.add(p.getQualifiedName())) {
-        super.addEnclosedElement(p);
-      }
-      break;
-    default:
-      throw new IllegalArgumentException("e: " + e);
+  final void addEnclosedElement(DefaultPackageElement p) {
+    if (this.enclosedPackageNames.add(p.getQualifiedName())) {
+      super.addEnclosedElement0(p);
     }
   }
   
@@ -267,7 +260,10 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
     return returnValue;
   }
 
-  private static final List<? extends Directive> directivesFor(final Module m, final ClassLoader cl) throws ClassNotFoundException {
+  private static final List<? extends Directive> directivesFor(final Module m,
+                                                               final ClassLoader cl,
+                                                               final Consumer<? super DefaultPackageElement> moduleElement)
+    throws ClassNotFoundException {
     final ArrayList<Directive> returnValue = new ArrayList<>();
     cacheLock.lock();
     try {
@@ -289,7 +285,7 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
           targetModuleElements = List.of();
         }
         final DefaultPackageElement packageElement = DefaultPackageElement.of(DefaultName.of(export.source())); // INDIRECT RECURSIVE
-        // returnValue.addEnclosedElement(packageElement);
+        moduleElement.accept(packageElement);
         returnValue.add(new DefaultExportsDirective(packageElement, targetModuleElements));
       }
 
@@ -310,7 +306,7 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
           targetModuleElements = List.of();
         }
         final DefaultPackageElement packageElement = DefaultPackageElement.of(DefaultName.of(opens.source())); // INDIRECT RECURSIVE
-        // returnValue.addEnclosedElement(packageElement);
+        moduleElement.accept(packageElement);
         returnValue.add(new DefaultOpensDirective(packageElement, targetModuleElements));
       }
 
@@ -323,7 +319,7 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
         }
         final DefaultTypeElement service = DefaultTypeElement.of(Class.forName(provides.service(), false, cl));
         returnValue.add(new DefaultProvidesDirective(service, implementations));
-      }
+      }      
       
     } finally {
       cacheLock.unlock();

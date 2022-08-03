@@ -237,12 +237,14 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
    */
 
 
-  private final Set<Name> typeNamesCache;
+  private final Set<Name> enclosedTypeNames;
 
-  private final Set<Name> fieldNamesCache;
+  private final Set<Name> enclosedFieldNames;
 
-  private final Set<DefaultExecutableElement.Key> methodsCache;
+  private final Set<DefaultExecutableElement.Key> enclosedExecutableKeys;
 
+  private final Set<Name> enclosedRecordComponentNames;
+  
   private final DefaultName simpleName;
 
   private final NestingKind nestingKind;
@@ -340,9 +342,10 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
           modifiers,
           enclosingElement,
           enclosedElementsSupplier);
-    this.typeNamesCache = ConcurrentHashMap.newKeySet();
-    this.fieldNamesCache = ConcurrentHashMap.newKeySet();
-    this.methodsCache = ConcurrentHashMap.newKeySet();
+    this.enclosedTypeNames = ConcurrentHashMap.newKeySet();
+    this.enclosedFieldNames = ConcurrentHashMap.newKeySet();
+    this.enclosedExecutableKeys = ConcurrentHashMap.newKeySet();
+    this.enclosedRecordComponentNames = ConcurrentHashMap.newKeySet();
     this.simpleName = DefaultName.ofSimple(qualifiedName.getName());
     this.nestingKind = nestingKind == null ? NestingKind.TOP_LEVEL : nestingKind;
     this.superclass = superclass == null ? DefaultNoType.NONE : superclass;
@@ -364,8 +367,24 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     return v.visitType(this, p);
   }
 
+  public final void addEnclosedElement(final TypeElement e) {
+    this.addEnclosedElement0(DefaultTypeElement.of(e));
+  }
+
+  public final void addEnclosedElement(final ExecutableElement e) {
+    this.addEnclosedElement0(DefaultExecutableElement.of(e));
+  }
+
+  public final void addEnclosedElement(final VariableElement e) {
+    this.addEnclosedElement0(DefaultVariableElement.of(e));
+  }
+
+  public final void addEnclosedElement(final RecordComponentElement e) {
+    this.addEnclosedElement0(DefaultRecordComponentElement.of(e));
+  }
+
   @Override // AbstractElement
-  final <E extends Element & Encloseable> void addEnclosedElement(final E e) {
+  final <E extends Element & Encloseable> void addEnclosedElement0(final E e) {
     switch (e.getKind()) {
     case ANNOTATION_TYPE:
     case CLASS:
@@ -373,14 +392,14 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     case INTERFACE:
     case RECORD:
       final DefaultTypeElement dte = DefaultTypeElement.of((TypeElement)e);
-      if (this.typeNamesCache.add(dte.getSimpleName())) {
-        super.addEnclosedElement(dte);
+      if (this.enclosedTypeNames.add(dte.getSimpleName())) {
+        super.addEnclosedElement0(dte);
       }
       break;
     case FIELD:
       final DefaultVariableElement dve = DefaultVariableElement.of((VariableElement)e);
-      if (this.fieldNamesCache.add(dve.getSimpleName())) {
-        super.addEnclosedElement(dve);
+      if (this.enclosedFieldNames.add(dve.getSimpleName())) {
+        super.addEnclosedElement0(dve);
       }
       break;
     case CONSTRUCTOR:
@@ -388,10 +407,15 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     case METHOD:
     case STATIC_INIT:
       final DefaultExecutableElement dee = DefaultExecutableElement.of((ExecutableElement)e);
-      if (this.methodsCache.add(new DefaultExecutableElement.Key(dee.getSimpleName(), dee.getParameters()))) {
-        super.addEnclosedElement(dee);
+      if (this.enclosedExecutableKeys.add(new DefaultExecutableElement.Key(dee.getSimpleName(), dee.getParameters()))) {
+        super.addEnclosedElement0(dee);
       }
       break;
+    case RECORD_COMPONENT:
+      final DefaultRecordComponentElement drce = DefaultRecordComponentElement.of((RecordComponentElement)e);
+      if (this.enclosedRecordComponentNames.add(drce.getSimpleName())) {
+        super.addEnclosedElement0(drce);
+      }
     default:
       throw new IllegalArgumentException("e: " + e);
     }

@@ -57,7 +57,7 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
    */
 
 
-  private final Set<Name> typeNamesCache;
+  private final Set<Name> enclosedTypeNames;
   
   private final DefaultName simpleName;
 
@@ -79,7 +79,7 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
           null,
           null);
     this.simpleName = DefaultName.ofSimple(fullyQualifiedName.getName());
-    this.typeNamesCache = ConcurrentHashMap.newKeySet();
+    this.enclosedTypeNames = ConcurrentHashMap.newKeySet();
   }
 
 
@@ -108,21 +108,9 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
     return this.simpleName;
   }
 
-  @Override // AbstractElement
-  final <E extends Element & Encloseable> void addEnclosedElement(E e) {
-    switch (e.getKind()) {
-    case ANNOTATION_TYPE:
-    case CLASS:
-    case ENUM:
-    case INTERFACE:
-    case RECORD:
-      final DefaultTypeElement t = DefaultTypeElement.of((TypeElement)e);
-      if (this.typeNamesCache.add(t.getQualifiedName())) {
-        super.addEnclosedElement(t);
-      }
-      break;
-    default:
-      throw new IllegalArgumentException("e: " + e);
+  final void addEnclosedElement(DefaultTypeElement t) {
+    if (this.enclosedTypeNames.add(t.getQualifiedName())) {
+      super.addEnclosedElement0(t);
     }
   }
 

@@ -261,26 +261,16 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
    */
 
 
-  @Deprecated // you can use this, but you better know what you're doing.
-  DefaultTypeElement() {
-    this(AnnotatedName.of(DefaultName.EMPTY), ElementKind.CLASS, new DefaultDeclaredType(), Set.of());
-  }
-
-  @Deprecated // you can use this, but you better know what you're doing.
-  DefaultTypeElement(final AnnotatedName qualifiedName) {
-    this(qualifiedName, ElementKind.CLASS, new DefaultDeclaredType(), Set.of());
-  }
-
-  DefaultTypeElement(final AnnotatedName qualifiedName,
-                     final TypeMirror type,
-                     final Set<? extends Modifier> modifiers) {
+  private DefaultTypeElement(final AnnotatedName qualifiedName,
+                             final TypeMirror type,
+                             final Set<? extends Modifier> modifiers) {
     this(qualifiedName, ElementKind.CLASS, type, modifiers);
   }
 
-  DefaultTypeElement(final AnnotatedName qualifiedName,
-                     final TypeMirror type,
-                     final Set<? extends Modifier> modifiers,
-                     final TypeMirror superclass) {
+  private DefaultTypeElement(final AnnotatedName qualifiedName,
+                             final TypeMirror type,
+                             final Set<? extends Modifier> modifiers,
+                             final TypeMirror superclass) {
     this(qualifiedName,
          ElementKind.CLASS,
          type,
@@ -293,11 +283,11 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
          null);
   }
 
-  DefaultTypeElement(final AnnotatedName qualifiedName,
-                     final TypeMirror type,
-                     final Set<? extends Modifier> modifiers,
-                     final TypeMirror superclass,
-                     final List<? extends TypeMirror> interfaces) {
+  private DefaultTypeElement(final AnnotatedName qualifiedName,
+                             final TypeMirror type,
+                             final Set<? extends Modifier> modifiers,
+                             final TypeMirror superclass,
+                             final List<? extends TypeMirror> interfaces) {
     this(qualifiedName,
          ElementKind.CLASS,
          type,
@@ -310,10 +300,10 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
          null);
   }
 
-  DefaultTypeElement(final AnnotatedName qualifiedName,
-                     final ElementKind kind,
-                     final TypeMirror type,
-                     final Set<? extends Modifier> modifiers) {
+  private DefaultTypeElement(final AnnotatedName qualifiedName,
+                             final ElementKind kind,
+                             final TypeMirror type,
+                             final Set<? extends Modifier> modifiers) {
     this(qualifiedName,
          kind,
          type,
@@ -326,16 +316,16 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
          null);
   }
 
-  public DefaultTypeElement(final AnnotatedName qualifiedName,
-                            final ElementKind kind,
-                            final TypeMirror type,
-                            final Set<? extends Modifier> modifiers,
-                            final NestingKind nestingKind,
-                            final TypeMirror superclass,
-                            final List<? extends TypeMirror> permittedSubclasses,
-                            final List<? extends TypeMirror> interfaces,
-                            final Element enclosingElement,
-                            final Supplier<List<? extends Element>> enclosedElementsSupplier) {
+  DefaultTypeElement(final AnnotatedName qualifiedName,
+                     final ElementKind kind,
+                     final TypeMirror type,
+                     final Set<? extends Modifier> modifiers,
+                     final NestingKind nestingKind,
+                     final TypeMirror superclass,
+                     final List<? extends TypeMirror> permittedSubclasses,
+                     final List<? extends TypeMirror> interfaces,
+                     final Element enclosingElement,
+                     final Supplier<List<? extends Element>> enclosedElementsSupplier) {
     super(qualifiedName,
           validate(kind),
           type,
@@ -416,6 +406,7 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
       if (this.enclosedRecordComponentNames.add(drce.getSimpleName())) {
         super.addEnclosedElement0(drce);
       }
+      break;
     default:
       throw new IllegalArgumentException("e: " + e);
     }

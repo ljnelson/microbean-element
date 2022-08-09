@@ -122,7 +122,10 @@
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
-            <argLine>--add-opens=org.microbean.element/org.microbean.element=ALL-UNNAMED</argLine>
+            <argLine>
+              --add-opens=org.microbean.element/org.microbean.element=ALL-UNNAMED
+              --add-opens=org.microbean.element/org.microbean.element.dsl=ALL-UNNAMED
+            </argLine>
             <!-- See https://junit.org/junit5/docs/snapshot/user-guide/#running-tests-build-maven-config-params -->
             <!-- See https://github.com/apache/maven-surefire/blob/eb48f1b59ca5ccf6954ef33ecab03dbaf93214cd/surefire-providers/surefire-junit-platform/src/main/java/org/apache/maven/surefire/junitplatform/JUnitPlatformProvider.java#L242-L262 -->
             <properties>

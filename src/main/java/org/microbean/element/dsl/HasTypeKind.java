@@ -14,19 +14,20 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
+package org.microbean.element.dsl;
 
-/**
- * Provides packages related to Java language elements.
- *
- * @author <a href="https://about.me/lairdnelson"
- * target="_parent">Laird Nelson</a>
- */
-module org.microbean.element {
+import java.util.List;
 
-  requires transitive java.compiler;
-  requires transitive org.microbean.development.annotation;
+import javax.lang.model.type.TypeKind;
 
-  exports org.microbean.element;
-  exports org.microbean.element.dsl;
+public interface HasTypeKind {
 
+  public TypeKind typeKind();
+
+  public static interface Mutable<B extends HasTypeKind & Mutable<B>> {
+
+    public B typeKind(final TypeKind kind);
+    
+  }
+  
 }

@@ -45,7 +45,8 @@ public class DefaultTypeVariable extends AbstractTypeVariable {
   final void element(final TypeParameterElement e) {
     if (this.asElement() != null) {
       throw new IllegalStateException();
-    } else if (e.asType() != this || e.getKind() != ElementKind.TYPE_PARAMETER) {
+    } else if (e != null &&
+               (e.asType() != this || e.getKind() != ElementKind.TYPE_PARAMETER)) {
       throw new IllegalArgumentException("e: " + e);
     }
     this.definingElement = e;

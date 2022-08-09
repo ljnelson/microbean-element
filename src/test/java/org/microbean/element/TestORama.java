@@ -186,6 +186,7 @@ final class TestORama {
     }
 
     @Override // AbstractProcessor
+    @SuppressWarnings("deprecation")
     public final void init(final ProcessingEnvironment processingEnvironment) {
       final javax.lang.model.util.Elements elements = processingEnvironment.getElementUtils();
 

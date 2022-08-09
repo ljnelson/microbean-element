@@ -14,19 +14,11 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
+package org.microbean.element.dsl;
 
-/**
- * Provides packages related to Java language elements.
- *
- * @author <a href="https://about.me/lairdnelson"
- * target="_parent">Laird Nelson</a>
- */
-module org.microbean.element {
+import javax.lang.model.type.NullType;
 
-  requires transitive java.compiler;
-  requires transitive org.microbean.development.annotation;
-
-  exports org.microbean.element;
-  exports org.microbean.element.dsl;
+public interface NullTypeBuilder extends Builder<NullType, NullTypeBuilder> {
 
 }
+

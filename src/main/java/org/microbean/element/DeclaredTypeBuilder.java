@@ -26,6 +26,8 @@ import javax.lang.model.type.TypeMirror;
 
 public final class DeclaredTypeBuilder
   extends AbstractAnnotatedConstructBuilder<DeclaredType, DeclaredTypeBuilder> {
+
+  private static final DeclaredType OBJECT = new DefaultDeclaredType();
   
   private TypeMirror enclosingType;
   
@@ -70,6 +72,10 @@ public final class DeclaredTypeBuilder
     return DefaultDeclaredType.of(this.enclosingType(), this.typeArguments(), this.annotations());
   }
 
+  public static final DeclaredType object() {
+    return OBJECT;
+  }
+  
   private static final Element validateDefiningElement(final Element definingElement) {
     switch (definingElement.getKind()) {
     case ANNOTATION_TYPE:

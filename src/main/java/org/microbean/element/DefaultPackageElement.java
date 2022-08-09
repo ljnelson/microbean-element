@@ -58,7 +58,7 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
 
 
   private final Set<Name> enclosedTypeNames;
-  
+
   private final DefaultName simpleName;
 
 
@@ -66,6 +66,10 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
    * Constructors.
    */
 
+
+  private DefaultPackageElement() {
+    this(AnnotatedName.of(DefaultName.of("")), DefaultNoType.PACKAGE);
+  }
 
   private DefaultPackageElement(final AnnotatedName fullyQualifiedName) {
     this(fullyQualifiedName, DefaultNoType.PACKAGE);

@@ -64,8 +64,9 @@ public final class TypeVariableBuilder
 
   @Override // AbstractBuilder
   public final TypeVariable build() {
-    return
-      DefaultTypeVariable.of(this.upperBound(), this.lowerBound(), this.annotations());
+    final DefaultTypeVariable dtv = DefaultTypeVariable.of(this.upperBound(), this.lowerBound(), this.annotations());
+    // dtv.element(this.definingElement()); // this is tricky
+    return dtv;
   }
 
   private static final TypeParameterElement validateDefiningElement(final TypeParameterElement definingElement) {

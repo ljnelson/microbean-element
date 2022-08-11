@@ -21,13 +21,13 @@ import java.util.Set;
 
 import javax.lang.model.element.ElementKind;
 
-final class ArrayElement extends AbstractElement {
+final class SyntheticWildcardElement extends AbstractElement {
 
-  static final ArrayElement INSTANCE = new ArrayElement();
+  static final SyntheticWildcardElement INSTANCE = new SyntheticWildcardElement();
   
-  private ArrayElement() {
-    super(AnnotatedName.of(DefaultName.of("Array")), // emulate javac
-          ElementKind.CLASS,
+  private SyntheticWildcardElement() {
+    super(AnnotatedName.of(DefaultName.of("Bound")), // emulate javac
+          ElementKind.CLASS, // emulate javac
           new DefaultDeclaredType(), // emulate javac
           Set.of(),
           null,

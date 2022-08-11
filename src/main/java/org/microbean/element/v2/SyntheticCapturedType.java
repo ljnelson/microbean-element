@@ -30,7 +30,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVisitor;
 import javax.lang.model.type.WildcardType;
 
-public final class DefaultCapturedType extends AbstractTypeMirror implements CapturedType {
+final class SyntheticCapturedType extends AbstractTypeMirror implements CapturedType {
 
   private TypeMirror upperBound;
 
@@ -54,11 +54,11 @@ public final class DefaultCapturedType extends AbstractTypeMirror implements Cap
   //
   // TypeVariableSymbol --> DefaultTypeParameterElement
 
-  public DefaultCapturedType(final WildcardType wildcardType) {
+  SyntheticCapturedType(final WildcardType wildcardType) {
     this(AnnotatedName.of(DefaultName.of("<captured wildcard>")), wildcardType);
   }
   
-  public DefaultCapturedType(final AnnotatedName name, final WildcardType wildcardType) {
+  SyntheticCapturedType(final AnnotatedName name, final WildcardType wildcardType) {
     super(TypeKind.TYPEVAR, List.of());    
     this.wildcardType = wildcardType;
     this.definingElement = new DefaultTypeParameterElement(name, this, Set.of());

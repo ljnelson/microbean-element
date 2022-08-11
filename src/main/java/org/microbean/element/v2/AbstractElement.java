@@ -70,8 +70,8 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
                                                               final List<? extends T> enclosedElements) {
     super(simpleName.getAnnotationMirrors());
     this.simpleName = simpleName.getName();
-    this.kind = Objects.requireNonNull(kind, "kind");
-    this.type = type == null ? DefaultNoType.NONE : type;
+    this.kind = validateKind(kind);
+    this.type = validateType(type);
     this.modifiers = modifiers == null || modifiers.isEmpty() ? Set.of() : Set.copyOf(modifiers);
     this.enclosingElement = enclosingElement;
     if (enclosedElements == null || enclosedElements.isEmpty()) {
@@ -255,4 +255,73 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
     }
   }
 
+
+  /*
+   * Static methods.
+   */
+
+
+  private static final ElementKind validateKind(final ElementKind kind) {
+    switch (kind) {
+    case ANNOTATION_TYPE:
+    case BINDING_VARIABLE:
+    case CLASS:
+    case CONSTRUCTOR:
+    case ENUM:
+    case ENUM_CONSTANT:
+    case EXCEPTION_PARAMETER:
+    case FIELD:
+    case INSTANCE_INIT:
+    case INTERFACE:
+    case LOCAL_VARIABLE:
+    case METHOD:
+    case MODULE:
+    case OTHER:
+    case PACKAGE:
+    case PARAMETER:
+    case RECORD:
+    case RECORD_COMPONENT:
+    case RESOURCE_VARIABLE:
+    case STATIC_INIT:
+    case TYPE_PARAMETER:
+      return kind;
+    default:
+      throw new IllegalArgumentException("kind: " + kind);
+    }
+  }
+
+  private static final TypeMirror validateType(final TypeMirror type) {
+    if (type == null) {
+      return DefaultNoType.NONE;
+    }
+    switch (type.getKind()) {
+    case ARRAY:
+    case BOOLEAN:
+    case BYTE:
+    case CHAR:
+    case DECLARED:
+    case DOUBLE:
+    case ERROR:
+    case EXECUTABLE:
+    case FLOAT:
+    case INT:
+    case INTERSECTION:
+    case LONG:
+    case MODULE:
+    case NONE:
+    case NULL:
+    case OTHER:
+    case PACKAGE:
+    case SHORT:
+    case TYPEVAR:
+    case UNION:
+    case VOID:
+    case WILDCARD:
+      return type;
+    default:
+      throw new IllegalArgumentException("type: " + type);
+    }
+  }
+
+  
 }

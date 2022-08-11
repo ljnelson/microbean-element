@@ -60,11 +60,6 @@ public final class DefaultVariableElement extends AbstractElement implements Var
     return this.constantValue;
   }
 
-  @Override // AbstractElement
-  public final void setEnclosingElement(final Element enclosingElement) {
-    super.setEnclosingElement(enclosingElement);
-  }
-
 
   /*
    * Static methods.

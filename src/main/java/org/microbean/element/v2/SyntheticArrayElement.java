@@ -16,16 +16,22 @@
  */
 package org.microbean.element.v2;
 
-import javax.lang.model.type.TypeMirror;
-import javax.lang.model.type.TypeVariable;
-import javax.lang.model.type.WildcardType;
+import java.util.List;
+import java.util.Set;
 
-interface CapturedType extends TypeVariable {
+import javax.lang.model.element.ElementKind;
 
-  WildcardType getWildcardType();
+final class ArrayElement extends AbstractElement {
 
-  void setUpperBound(final TypeMirror upperBound);
-
-  void setLowerBound(final TypeMirror lowerBound);
+  static final ArrayElement INSTANCE = new ArrayElement();
+  
+  private ArrayElement() {
+    super(AnnotatedName.of(DefaultName.of("Array")), // emulate javac
+          ElementKind.CLASS, // emulate javac
+          new DefaultDeclaredType(), // emulate javac
+          Set.of(),
+          null,
+          List.of());
+  }
   
 }

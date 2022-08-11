@@ -106,11 +106,6 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
     return (ModuleElement)super.getEnclosingElement();
   }
 
-  @Override // AbstractElement
-  public final void setEnclosingElement(final Element moduleElement) {
-    super.setEnclosingElement(moduleElement);
-  }
-
   @Override // PackageElement
   public final boolean isUnnamed() {
     return this.getSimpleName().length() <= 0;

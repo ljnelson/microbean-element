@@ -241,7 +241,7 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
 
   @Override // Element
   public int hashCode() {
-    return org.microbean.element.Equality.hashCode(this, true);
+    return Equality.hashCode(this, true);
   }
 
   @Override // Element
@@ -249,7 +249,7 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
     if (this == other) {
       return true;
     } else if (other instanceof Element e) { // instanceof on purpose
-      return org.microbean.element.Equality.equals(this, e, true);
+      return Equality.equals(this, e, true);
     } else {
       return false;
     }

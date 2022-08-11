@@ -42,7 +42,7 @@ public final class AnnotatedName extends AbstractAnnotatedConstruct {
 
   @Override // Object
   public final int hashCode() {
-    return org.microbean.element.Equality.hashCode(this, true);
+    return Equality.hashCode(this, true);
   }
 
   @Override // Object
@@ -50,7 +50,7 @@ public final class AnnotatedName extends AbstractAnnotatedConstruct {
     if (other == this) {
       return true;
     } else if (other != null && this.getClass() == other.getClass()) {
-      return org.microbean.element.Equality.equals(this, (AnnotatedName)other, true);
+      return Equality.equals(this, (AnnotatedName)other, true);
     } else {
       return false;
     }

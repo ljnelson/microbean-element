@@ -59,7 +59,7 @@ public class DefaultAnnotationMirror implements AnnotationMirror {
 
   @Override // Object
   public int hashCode() {
-    return org.microbean.element.Equality.hashCode(this, true);
+    return Equality.hashCode(this, true);
   }
 
   @Override
@@ -67,7 +67,7 @@ public class DefaultAnnotationMirror implements AnnotationMirror {
     if (this == other) {
       return true;
     } else if (other instanceof AnnotationMirror her) { // instanceof is on purpose
-      return org.microbean.element.Equality.equals(this, her, true);
+      return Equality.equals(this, her, true);
     } else {
       return false;
     }

@@ -20,17 +20,22 @@ import java.util.List;
 
 import java.util.function.Supplier;
 
-import javax.lang.model.element.Element;
+import java.util.stream.Stream;
 
-import org.microbean.element.Encloseable;
+import javax.lang.model.element.Element;
 
 public interface HasEnclosedElements<E extends Element> {
 
   public Supplier<? extends List<? extends E>> enclosedElements();
 
+  /**
+   * @param <E> the type of enclosed elements
+   *
+   * @param <B> the type of this {@link Mutable}
+   */
   public static interface Mutable<E extends Element, B extends Mutable<E, B>> {
 
-    public B enclosedElements(final Supplier<? extends List<? extends E>> enclosedElements);
+    public B enclosedElements(final Stream<E> enclosedElements);
 
   }
 

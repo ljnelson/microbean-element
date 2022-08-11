@@ -24,7 +24,7 @@ public interface HasElement {
 
   public Element element();
 
-  public static interface Mutable<B extends HasElement & Mutable<B>> {
+  public static interface Mutable<B extends Mutable<B>> {
 
     public B element(final Element e);
     

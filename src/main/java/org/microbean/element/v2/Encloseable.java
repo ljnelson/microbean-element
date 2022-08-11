@@ -14,20 +14,14 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package org.microbean.element.dsl;
+package org.microbean.element.v2;
 
-import java.util.List;
+import javax.lang.model.element.Element;
 
-import javax.lang.model.element.AnnotationMirror;
+public interface Encloseable {
 
-public interface HasAnnotations {
-
-  public List<? extends AnnotationMirror> annotations();
-
-  public static interface Mutable<B extends Mutable<B>> {
-
-    public B annotations(final List<? extends AnnotationMirror> annotations);
-    
-  }
+  public Element getEnclosingElement();
+  
+  public void setEnclosingElement(final Element enclosingElement);
   
 }

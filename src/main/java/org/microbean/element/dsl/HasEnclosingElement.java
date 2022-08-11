@@ -22,7 +22,7 @@ public interface HasEnclosingElement<E extends Element> {
 
   public E enclosingElement();
 
-  public static interface Mutable<E extends Element, B extends HasEnclosingElement<E> & Mutable<E, B>> {
+  public static interface Mutable<E extends Element, B extends Mutable<E, B>> {
 
     public B enclosingElement(final E enclosingElement);
     

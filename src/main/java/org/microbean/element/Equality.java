@@ -57,13 +57,13 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.WildcardType;
 
-final class Equality {
+public final class Equality {
 
   private Equality() {
     super();
   }
 
-  static final int hashCode(final Object o, final boolean ia) {
+  public static final int hashCode(final Object o, final boolean ia) {
     if (o == null) {
       return 0;
     } else if (o instanceof AnnotationMirror am) {
@@ -621,7 +621,7 @@ final class Equality {
    */
 
 
-  static final boolean equals(final Object o1, final Object o2, final boolean ia) {
+  public static final boolean equals(final Object o1, final Object o2, final boolean ia) {
     if (o1 == o2) {
       return true;
     } else if (o1 == null || o2 == null) {

@@ -24,7 +24,7 @@ public interface HasTypeKind {
 
   public TypeKind typeKind();
 
-  public static interface Mutable<B extends HasTypeKind & Mutable<B>> {
+  public static interface Mutable<B extends Mutable<B>> {
 
     public B typeKind(final TypeKind kind);
     

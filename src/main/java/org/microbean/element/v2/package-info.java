@@ -14,20 +14,11 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package org.microbean.element.dsl;
 
-import java.util.List;
-
-import javax.lang.model.element.AnnotationMirror;
-
-public interface HasAnnotations {
-
-  public List<? extends AnnotationMirror> annotations();
-
-  public static interface Mutable<B extends Mutable<B>> {
-
-    public B annotations(final List<? extends AnnotationMirror> annotations);
-    
-  }
-  
-}
+/**
+ * Provides classes and interfaces related to Java language elements.
+ *
+ * @author <a href="https://about.me/lairdnelson"
+ * target="_parent">Laird Nelson</a>
+ */
+package org.microbean.element.v2;

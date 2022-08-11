@@ -20,6 +20,8 @@ import java.util.List;
 
 import java.util.function.Supplier;
 
+import java.util.stream.Stream;
+
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ModuleElement;
 import javax.lang.model.element.Name;
@@ -52,24 +54,35 @@ final class TestMakePackage {
      * * enclosed elements would be empty (default) (OK; we don't really care about an empty package)
      */
 
+    private List<AnnotationMirror> annotations;
+
+    private Stream<TypeElement> rawEnclosedElements;
+    
+    private Packages() {
+      super();
+      this.annotations = List.of();
+      this.rawEnclosedElements = Stream.of();
+    }
     
     @Override
     public final List<? extends AnnotationMirror> annotations() {
-      return List.of();
+      return this.annotations;
     }
 
     @Override
     public final Packages annotations(final List<? extends AnnotationMirror> annotations) {
+      this.annotations = annotations == null || annotations.isEmpty() ? List.of() : List.copyOf(annotations);
       return this;
     }
 
     @Override
     public final Supplier<? extends List<? extends TypeElement>> enclosedElements() {
-      return List::of;
+      return this.rawEnclosedElements::toList;
     }
 
     @Override
-    public final Packages enclosedElements(final Supplier<? extends List<? extends TypeElement>> enclosedElements) {
+    public final Packages enclosedElements(final Stream<TypeElement> enclosedElements) {
+      this.rawEnclosedElements = enclosedElements == null ? Stream.of() : enclosedElements;
       return this;
     }
 

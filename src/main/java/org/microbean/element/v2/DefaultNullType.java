@@ -14,20 +14,21 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package org.microbean.element.dsl;
+package org.microbean.element.v2;
 
 import java.util.List;
 
 import javax.lang.model.element.AnnotationMirror;
 
-public interface HasAnnotations {
+import javax.lang.model.type.NullType;
+import javax.lang.model.type.TypeKind;
 
-  public List<? extends AnnotationMirror> annotations();
+public final class DefaultNullType extends AbstractTypeMirror implements NullType {
 
-  public static interface Mutable<B extends Mutable<B>> {
-
-    public B annotations(final List<? extends AnnotationMirror> annotations);
-    
+  public static final DefaultNullType INSTANCE = new DefaultNullType();
+  
+  private DefaultNullType() {
+    super(TypeKind.NULL, List.of());
   }
   
 }

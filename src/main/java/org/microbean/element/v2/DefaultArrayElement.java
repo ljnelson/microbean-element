@@ -14,20 +14,24 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package org.microbean.element.dsl;
+package org.microbean.element.v2;
 
 import java.util.List;
+import java.util.Set;
 
-import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ElementKind;
 
-public interface HasAnnotations {
+final class ArrayElement extends AbstractElement {
 
-  public List<? extends AnnotationMirror> annotations();
-
-  public static interface Mutable<B extends Mutable<B>> {
-
-    public B annotations(final List<? extends AnnotationMirror> annotations);
-    
+  static final ArrayElement INSTANCE = new ArrayElement();
+  
+  private ArrayElement() {
+    super(AnnotatedName.of(DefaultName.of("Array")), // emulate javac
+          ElementKind.CLASS,
+          new DefaultDeclaredType(), // emulate javac
+          Set.of(),
+          null,
+          List.of());
   }
   
 }

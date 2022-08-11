@@ -24,7 +24,7 @@ public interface HasType<T extends TypeMirror> {
 
   public T type();
 
-  public static interface Mutable<T extends TypeMirror, B extends HasType<T> & Mutable<T, B>> {
+  public static interface Mutable<T extends TypeMirror, B extends Mutable<T, B>> {
 
     public B type(final T type);
     

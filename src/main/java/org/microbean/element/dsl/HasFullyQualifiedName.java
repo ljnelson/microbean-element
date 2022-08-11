@@ -24,7 +24,7 @@ public interface HasFullyQualifiedName {
 
   public Name fullyQualifiedName();
 
-  public static interface Mutable<B extends HasFullyQualifiedName & Mutable<B>> {
+  public static interface Mutable<B extends Mutable<B>> {
 
     public B fullyQualifiedName(final Name fullyQualifiedName);
     

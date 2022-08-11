@@ -14,20 +14,18 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package org.microbean.element.dsl;
+package org.microbean.element.v2;
 
-import java.util.List;
+import javax.lang.model.type.TypeMirror;
+import javax.lang.model.type.TypeVariable;
+import javax.lang.model.type.WildcardType;
 
-import javax.lang.model.element.AnnotationMirror;
+public interface CapturedType extends TypeVariable {
 
-public interface HasAnnotations {
+  public WildcardType getWildcardType();
 
-  public List<? extends AnnotationMirror> annotations();
+  public void setUpperBound(final TypeMirror upperBound);
 
-  public static interface Mutable<B extends Mutable<B>> {
-
-    public B annotations(final List<? extends AnnotationMirror> annotations);
-    
-  }
+  public void setLowerBound(final TypeMirror lowerBound);
   
 }

@@ -14,29 +14,20 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package org.microbean.element.dsl;
+package org.microbean.element.v2;
 
 import java.util.List;
 
-import java.util.function.Supplier;
+import javax.lang.model.element.AnnotationMirror;
 
-import java.util.stream.Stream;
+public interface HasAnnotations {
 
-import javax.lang.model.element.Element;
+  public List<? extends AnnotationMirror> annotations();
 
-public interface HasEnclosedElements<E extends Element> {
+  public static interface Mutable<B extends Mutable<B>> {
 
-  public Supplier<? extends List<? extends E>> enclosedElements();
-
-  /**
-   * @param <E> the type of enclosed elements
-   *
-   * @param <B> the type of this {@link Mutable}
-   */
-  public static interface Mutable<E extends Element, B extends Mutable<E, B>> {
-
-    public B enclosedElements(final Stream<E> enclosedElements);
-
+    public B annotations(final List<? extends AnnotationMirror> annotations);
+    
   }
-
+  
 }

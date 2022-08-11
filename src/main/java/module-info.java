@@ -27,6 +27,6 @@ module org.microbean.element {
   requires transitive org.microbean.development.annotation;
 
   exports org.microbean.element;
-  exports org.microbean.element.dsl;
+  exports org.microbean.element.v2;
 
 }

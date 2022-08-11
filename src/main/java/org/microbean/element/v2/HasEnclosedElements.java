@@ -14,20 +14,29 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package org.microbean.element.dsl;
+package org.microbean.element.v2;
 
-import javax.lang.model.element.ModuleElement;
-import javax.lang.model.element.PackageElement;
-import javax.lang.model.element.TypeElement;
+import java.util.List;
 
-public interface PackageBuilder
-  extends Builder<PackageElement, PackageBuilder>,
-          HasAnnotations,
-          HasAnnotations.Mutable<PackageBuilder>,
-          HasEnclosedElements<TypeElement>,
-          HasEnclosedElements.Mutable<TypeElement, PackageBuilder>,
-          HasFullyQualifiedName,
-          HasFullyQualifiedName.Mutable<PackageBuilder> {
+import java.util.function.Supplier;
+
+import java.util.stream.Stream;
+
+import javax.lang.model.element.Element;
+
+public interface HasEnclosedElements<E extends Element> {
+
+  public Supplier<? extends List<? extends E>> enclosedElements();
+
+  /**
+   * @param <E> the type of enclosed elements
+   *
+   * @param <B> the type of this {@link Mutable}
+   */
+  public static interface Mutable<E extends Element, B extends Mutable<E, B>> {
+
+    public B enclosedElements(final Stream<E> enclosedElements);
+
+  }
 
 }
-

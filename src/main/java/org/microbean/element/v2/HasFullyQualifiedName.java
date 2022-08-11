@@ -14,19 +14,19 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package org.microbean.element.dsl;
+package org.microbean.element.v2;
 
 import java.util.List;
 
-import javax.lang.model.type.TypeKind;
+import javax.lang.model.element.Name;
 
-public interface HasTypeKind {
+public interface HasFullyQualifiedName {
 
-  public TypeKind typeKind();
+  public Name fullyQualifiedName();
 
   public static interface Mutable<B extends Mutable<B>> {
 
-    public B typeKind(final TypeKind kind);
+    public B fullyQualifiedName(final Name fullyQualifiedName);
     
   }
   

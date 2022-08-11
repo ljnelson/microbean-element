@@ -14,10 +14,18 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package org.microbean.element.dsl;
+package org.microbean.element.v2;
 
-public interface Builder<T, B extends Builder<T, B>> {
+import javax.lang.model.element.Element;
 
-  public T build();
+public interface HasEnclosingElement<E extends Element> {
+
+  public E enclosingElement();
+
+  public static interface Mutable<E extends Element, B extends Mutable<E, B>> {
+
+    public B enclosingElement(final E enclosingElement);
+    
+  }
   
 }

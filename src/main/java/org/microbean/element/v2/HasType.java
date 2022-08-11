@@ -14,19 +14,19 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package org.microbean.element.dsl;
+package org.microbean.element.v2;
 
 import java.util.List;
 
-import javax.lang.model.element.Element;
+import javax.lang.model.type.TypeMirror;
 
-public interface HasElement {
+public interface HasType<T extends TypeMirror> {
 
-  public Element element();
+  public T type();
 
-  public static interface Mutable<B extends Mutable<B>> {
+  public static interface Mutable<T extends TypeMirror, B extends Mutable<T, B>> {
 
-    public B element(final Element e);
+    public B type(final T type);
     
   }
   

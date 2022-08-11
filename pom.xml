@@ -124,7 +124,6 @@
           <configuration>
             <argLine>
               --add-opens=org.microbean.element/org.microbean.element=ALL-UNNAMED
-              --add-opens=org.microbean.element/org.microbean.element.dsl=ALL-UNNAMED
               --add-opens=org.microbean.element/org.microbean.element.v2=ALL-UNNAMED
             </argLine>
             <!-- See https://junit.org/junit5/docs/snapshot/user-guide/#running-tests-build-maven-config-params -->

@@ -14,20 +14,10 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package org.microbean.element.dsl;
+package org.microbean.element.v2;
 
-import java.util.List;
+public interface Builder<T, B extends Builder<T, B>> {
 
-import javax.lang.model.type.TypeMirror;
-
-public interface HasType<T extends TypeMirror> {
-
-  public T type();
-
-  public static interface Mutable<T extends TypeMirror, B extends Mutable<T, B>> {
-
-    public B type(final T type);
-    
-  }
+  public T build();
   
 }

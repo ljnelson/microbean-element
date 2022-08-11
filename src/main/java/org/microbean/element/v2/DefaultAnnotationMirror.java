@@ -26,26 +26,34 @@ import javax.lang.model.type.DeclaredType;
 
 public class DefaultAnnotationMirror implements AnnotationMirror {
 
+
+  /*
+   * Instance fields.
+   */
+
+
   private final DeclaredType annotationType;
 
   private final Map<? extends ExecutableElement, ? extends AnnotationValue> elementValues;
-  
+
+
+  /*
+   * Constructors.
+   */
+
+
   public DefaultAnnotationMirror(final DeclaredType annotationType,
                                  final Map<? extends ExecutableElement, ? extends AnnotationValue> elementValues) {
     super();
-    switch (annotationType.asElement().getKind()) {
-    case ANNOTATION_TYPE:
-      this.annotationType = annotationType;
-      break;
-    default:
-      throw new IllegalArgumentException("annotationType: " + annotationType);
-    }
-    if (elementValues == null || elementValues.isEmpty()) {
-      this.elementValues = Map.of();
-    } else {
-      this.elementValues = Map.copyOf(elementValues);
-    }
+    this.annotationType = validateType(annotationType);
+    this.elementValues = elementValues == null || elementValues.isEmpty() ? Map.of() : Map.copyOf(elementValues);
   }
+
+
+  /*
+   * Instance methods.
+   */
+
 
   @Override // AnnotationMirror
   public final DeclaredType getAnnotationType() {
@@ -73,6 +81,22 @@ public class DefaultAnnotationMirror implements AnnotationMirror {
     }
   }
 
+
+  /*
+   * Static methods.
+   */
+
+
+  private static final DeclaredType validateType(final DeclaredType annotationType) {
+    switch (annotationType.getKind()) {
+    case DECLARED:
+      return annotationType;
+    default:
+      throw new IllegalArgumentException("annotationType: " + annotationType);
+    }
+  }
+
+
   public static final DefaultAnnotationMirror of(final AnnotationMirror am) {
     if (am instanceof DefaultAnnotationMirror dam) {
       return dam;
@@ -84,5 +108,5 @@ public class DefaultAnnotationMirror implements AnnotationMirror {
                                                  final Map<? extends ExecutableElement, ? extends AnnotationValue> elementValues) {
     return new DefaultAnnotationMirror(annotationType, elementValues);
   }
-  
+
 }

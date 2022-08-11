@@ -14,11 +14,20 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package org.microbean.element.dsl;
+package org.microbean.element.v2;
 
-import javax.lang.model.type.NullType;
+import java.util.List;
 
-public interface NullTypeBuilder extends Builder<NullType, NullTypeBuilder> {
+import javax.lang.model.type.TypeKind;
 
+public interface HasTypeKind {
+
+  public TypeKind typeKind();
+
+  public static interface Mutable<B extends Mutable<B>> {
+
+    public B typeKind(final TypeKind kind);
+    
+  }
+  
 }
-

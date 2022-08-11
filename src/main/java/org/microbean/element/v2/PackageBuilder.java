@@ -14,20 +14,19 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package org.microbean.element.dsl;
+package org.microbean.element.v2;
 
-import java.util.List;
+import javax.lang.model.element.ModuleElement;
+import javax.lang.model.element.PackageElement;
+import javax.lang.model.element.TypeElement;
 
-import javax.lang.model.element.Name;
+public interface PackageBuilder
+  extends Builder<PackageElement, PackageBuilder>,
+          HasAnnotations,
+          HasAnnotations.Mutable<PackageBuilder>,
+          HasEnclosedElements<TypeElement>,
+          HasEnclosedElements.Mutable<TypeElement, PackageBuilder>,
+          HasFullyQualifiedName,
+          HasFullyQualifiedName.Mutable<PackageBuilder> {
 
-public interface HasFullyQualifiedName {
-
-  public Name fullyQualifiedName();
-
-  public static interface Mutable<B extends Mutable<B>> {
-
-    public B fullyQualifiedName(final Name fullyQualifiedName);
-    
-  }
-  
 }

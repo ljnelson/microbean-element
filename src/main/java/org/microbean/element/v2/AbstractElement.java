@@ -16,6 +16,8 @@
  */
 package org.microbean.element.v2;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -321,6 +323,34 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
     default:
       throw new IllegalArgumentException("type: " + type);
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  public static final <E extends Element & Encloseable> List<? extends E> encloseablesOf(final List<? extends Element> list) {
+    if (list == null || list.isEmpty()) {
+      return List.of();
+    }
+    final List<E> newList = new ArrayList<>(list.size());
+    for (final Element e : list) {
+      if (e instanceof Encloseable enc) {
+        newList.add((E)enc);
+      } else if (e instanceof ExecutableElement ee) {
+        newList.add((E)DefaultExecutableElement.of(ee));
+      } else if (e instanceof PackageElement pe) {
+        newList.add((E)DefaultPackageElement.of(pe));
+      } else if (e instanceof RecordComponentElement rce) {
+        newList.add((E)DefaultRecordComponentElement.of(rce));
+      } else if (e instanceof TypeElement te) {
+        newList.add((E)DefaultTypeElement.of(te));
+      } else if (e instanceof TypeParameterElement tpe) {
+        newList.add((E)DefaultTypeParameterElement.of(tpe));
+      } else if (e instanceof VariableElement ve) {
+        newList.add((E)DefaultVariableElement.of(ve));
+      } else {
+        throw new IllegalArgumentException("list: " + list);
+      }
+    }
+    return Collections.unmodifiableList(newList);
   }
 
   

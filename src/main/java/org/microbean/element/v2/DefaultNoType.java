@@ -67,4 +67,22 @@ public final class DefaultNoType extends AbstractTypeMirror implements NoType {
     }
   }
 
+  public static final DefaultNoType of(final NoType t) {
+    if (t instanceof DefaultNoType defaultNoType) {
+      return defaultNoType;
+    }
+    switch (t.getKind()) {
+    case MODULE:
+      return MODULE;
+    case NONE:
+      return NONE;
+    case PACKAGE:
+      return PACKAGE;
+    case VOID:
+      return VOID;
+    default:
+      throw new IllegalArgumentException("t: " + t);
+    }
+  }
+
 }

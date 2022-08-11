@@ -16,6 +16,8 @@
  */
 package org.microbean.element.v2;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -100,6 +102,36 @@ public final class DefaultVariableElement extends AbstractElement implements Var
     default:
       throw new IllegalArgumentException("type: " + type);
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  public static final <E extends VariableElement & Encloseable> List<? extends E> encloseableParametersOf(final List<? extends VariableElement> list) {
+    if (list == null || list.isEmpty()) {
+      return List.of();
+    }
+    final List<E> newList = new ArrayList<>(list.size());
+    for (final VariableElement e : list) {
+      if (e instanceof Encloseable enc) {
+        newList.add((E)enc);
+      } else {
+        newList.add((E)DefaultVariableElement.of(e));
+      }
+    }
+    return Collections.unmodifiableList(newList);
+  }
+
+  
+  public static final DefaultVariableElement of(final VariableElement e) {
+    if (e instanceof DefaultVariableElement defaultVariableElement) {
+      return defaultVariableElement;
+    }
+    return
+      new DefaultVariableElement(AnnotatedName.of(e.getAnnotationMirrors(), e.getSimpleName()),
+                                 e.getKind(),
+                                 e.asType(),
+                                 e.getModifiers(),
+                                 e.getEnclosingElement(),
+                                 e.getConstantValue());
   }
 
 }

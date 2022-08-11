@@ -153,4 +153,20 @@ public class DefaultExecutableElement extends AbstractParameterizableElement imp
     }
   }
 
+  public static final DefaultExecutableElement of(final ExecutableElement e) {
+    if (e instanceof DefaultExecutableElement defaultExecutableElement) {
+      return defaultExecutableElement;
+    }
+    return
+      new DefaultExecutableElement(AnnotatedName.of(e.getAnnotationMirrors(), e.getSimpleName()),
+                                   e.getKind(),
+                                   (ExecutableType)e.asType(),
+                                   e.getModifiers(),
+                                   DefaultTypeParameterElement.encloseableTypeParametersOf(e.getTypeParameters()),
+                                   DefaultVariableElement.encloseableParametersOf(e.getParameters()),
+                                   e.isVarArgs(),
+                                   e.isDefault(),
+                                   e.getDefaultValue());                                   
+  }
+
 }

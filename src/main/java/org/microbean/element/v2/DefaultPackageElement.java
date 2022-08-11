@@ -57,21 +57,29 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
    */
 
 
-  private DefaultPackageElement() {
-    this(AnnotatedName.of(DefaultName.of("")), DefaultNoType.PACKAGE);
+  public DefaultPackageElement() {
+    this(AnnotatedName.of(DefaultName.of("")), DefaultNoType.PACKAGE, List.of());
   }
 
-  private DefaultPackageElement(final AnnotatedName fullyQualifiedName) {
-    this(fullyQualifiedName, DefaultNoType.PACKAGE);
+  public DefaultPackageElement(final AnnotatedName fullyQualifiedName) {
+    this(fullyQualifiedName, DefaultNoType.PACKAGE, List.of());
   }
 
-  private DefaultPackageElement(final AnnotatedName fullyQualifiedName, final NoType packageType) {
+  public DefaultPackageElement(final AnnotatedName fullyQualifiedName, final NoType packageType) {
+    this(fullyQualifiedName, packageType, List.of());
+  }
+
+  public
+    <T extends TypeElement & Encloseable>
+    DefaultPackageElement(final AnnotatedName fullyQualifiedName,
+                          final NoType packageType,
+                          final List<? extends T> enclosedElements) {
     super(fullyQualifiedName,
           ElementKind.PACKAGE,
-          packageType,
+          validateType(packageType),
           Set.of(),
           null,
-          List.of());
+          enclosedElements);
     this.simpleName = DefaultName.ofSimple(fullyQualifiedName.getName());
   }
 
@@ -110,5 +118,31 @@ public class DefaultPackageElement extends AbstractElement implements PackageEle
   public final boolean isUnnamed() {
     return this.getSimpleName().length() <= 0;
   }
+
+
+  /*
+   * Static methods.
+   */
+
+
+  static final NoType validateType(final NoType type) {
+    switch (type.getKind()) {
+    case PACKAGE:
+      return type;
+    default:
+      throw new IllegalArgumentException("type: " + type);
+    }
+  }
+
+  public static final DefaultPackageElement of(final PackageElement e) {
+    if (e instanceof DefaultPackageElement defaultPackageElement) {
+      return defaultPackageElement;
+    }
+    return
+      new DefaultPackageElement(AnnotatedName.of(e.getAnnotationMirrors(), e.getQualifiedName()),
+                                (NoType)e.asType(),
+                                DefaultTypeElement.encloseableTypeElementsOf(e.getEnclosedElements()));
+  }
+  
 
 }

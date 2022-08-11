@@ -16,6 +16,8 @@
  */
 package org.microbean.element.v2;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -92,6 +94,12 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
     this.genericElement = validateGenericElement(genericElement);
   }
 
+
+  /*
+   * Static methods.
+   */
+
+  
   private static final TypeVariable validateTypeVariable(final TypeVariable tv) {
     switch (tv.getKind()) {
     case TYPEVAR:
@@ -128,6 +136,32 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
     default:
       throw new IllegalArgumentException("Not a valid generic element: " + element);
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  public static final <E extends TypeParameterElement & Encloseable> List<? extends E> encloseableTypeParametersOf(final List<? extends TypeParameterElement> list) {
+    if (list == null || list.isEmpty()) {
+      return List.of();
+    }
+    final List<E> newList = new ArrayList<>(list.size());
+    for (final TypeParameterElement e : list) {
+      if (e instanceof Encloseable enc) {
+        newList.add((E)enc);
+      } else {
+        newList.add((E)DefaultTypeParameterElement.of(e));
+      }
+    }
+    return Collections.unmodifiableList(newList);
+  }
+
+  public static final DefaultTypeParameterElement of(final TypeParameterElement e) {
+    if (e instanceof DefaultTypeParameterElement defaultTypeParameterElement) {
+      return defaultTypeParameterElement;
+    }
+    return
+      new DefaultTypeParameterElement(AnnotatedName.of(e.getAnnotationMirrors(), e.getSimpleName()),
+                                      (TypeVariable)e.asType(),
+                                      e.getModifiers());
   }
 
 }

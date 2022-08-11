@@ -74,4 +74,15 @@ public class DefaultRecordComponentElement extends AbstractElement implements Re
     }
   }
 
+  public static final DefaultRecordComponentElement of(final RecordComponentElement rce) {
+    if (rce instanceof DefaultRecordComponentElement defaultRecordComponentElement) {
+      return defaultRecordComponentElement;
+    }
+    return
+      new DefaultRecordComponentElement(AnnotatedName.of(rce.getAnnotationMirrors(), rce.getSimpleName()),
+                                        (DeclaredType)rce.asType(),
+                                        rce.getModifiers(),
+                                        rce.getAccessor());
+  }
+
 }

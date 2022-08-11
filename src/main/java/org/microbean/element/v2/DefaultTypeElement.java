@@ -47,6 +47,7 @@ import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
 
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
@@ -186,6 +187,44 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
     default:
       throw new IllegalArgumentException("type: " + type);
     }
+  }
+
+  public static final DefaultTypeElement of(final TypeElement t) {
+    if (t instanceof DefaultTypeElement defaultTypeElement) {
+      return defaultTypeElement;
+    }
+    return
+      new DefaultTypeElement(AnnotatedName.of(t.getAnnotationMirrors(), t.getSimpleName()),
+                             t.getKind(),
+                             DefaultExecutableType.of((ExecutableType)t.asType()),
+                             t.getModifiers(),
+                             t.getNestingKind(),
+                             t.getSuperclass(),
+                             t.getPermittedSubclasses(),
+                             t.getInterfaces(),
+                             t.getEnclosingElement(),
+                             AbstractElement.encloseablesOf(t.getEnclosedElements()),
+                             DefaultTypeParameterElement.encloseableTypeParametersOf(t.getTypeParameters()));
+  }
+
+  @SuppressWarnings("unchecked")
+  public static final <E extends TypeElement & Encloseable> List<? extends E> encloseableTypeElementsOf(final List<? extends Element> list) {
+    if (list == null || list.isEmpty()) {
+      return List.of();
+    }
+    final List<E> newList = new ArrayList<>(list.size());
+    for (final Element e : list) {
+      if (e instanceof TypeElement te) {
+        if (te instanceof Encloseable enc) {
+          newList.add((E)enc);
+        } else {
+          newList.add((E)DefaultTypeElement.of(te));
+        }
+      } else {
+        throw new IllegalArgumentException("list: " + list);
+      }
+    }
+    return Collections.unmodifiableList(newList);
   }
 
 }

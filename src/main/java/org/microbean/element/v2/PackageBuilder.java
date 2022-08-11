@@ -20,6 +20,8 @@ import javax.lang.model.element.ModuleElement;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 
+import javax.lang.model.type.NoType;
+
 public interface PackageBuilder
   extends Builder<PackageElement, PackageBuilder>,
           HasAnnotations,
@@ -27,6 +29,8 @@ public interface PackageBuilder
           HasEnclosedElements<TypeElement>,
           HasEnclosedElements.Mutable<TypeElement, PackageBuilder>,
           HasFullyQualifiedName,
-          HasFullyQualifiedName.Mutable<PackageBuilder> {
+          HasFullyQualifiedName.Mutable<PackageBuilder>,
+          HasType<NoType>,
+          HasType.Mutable<NoType, PackageBuilder> {
 
 }

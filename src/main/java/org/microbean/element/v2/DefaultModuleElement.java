@@ -112,4 +112,19 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
     return this.getSimpleName().length() <= 0;
   }
 
+
+  /*
+   * Static methods.
+   */
+
+  
+  public static final DefaultModuleElement of(final ModuleElement e) {
+    if (e instanceof DefaultModuleElement defaultModuleElement) {
+      return defaultModuleElement;
+    }
+    return new DefaultModuleElement(AnnotatedName.of(e.getAnnotationMirrors(), e.getSimpleName()),
+                                    e.isOpen(),
+                                    e.getDirectives());
+  }
+  
 }

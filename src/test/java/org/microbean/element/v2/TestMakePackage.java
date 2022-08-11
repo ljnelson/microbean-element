@@ -28,6 +28,8 @@ import javax.lang.model.element.Name;
 import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 
+import javax.lang.model.type.NoType;
+
 import org.junit.jupiter.api.Test;
 
 final class TestMakePackage {
@@ -57,11 +59,14 @@ final class TestMakePackage {
     private List<AnnotationMirror> annotations;
 
     private Stream<TypeElement> rawEnclosedElements;
+
+    private NoType type;
     
     private Packages() {
       super();
       this.annotations = List.of();
       this.rawEnclosedElements = Stream.of();
+      this.type = DefaultNoType.PACKAGE;
     }
     
     @Override
@@ -97,8 +102,22 @@ final class TestMakePackage {
     }
 
     @Override
+    public final NoType type() {
+      return this.type;
+    }
+
+    @Override
+    public final Packages type(final NoType type) {
+      this.type = DefaultPackageElement.validateType(type);
+      return this;
+    }
+
+    @Override
     public final PackageElement build() {
-      return null;
+      return
+        new DefaultPackageElement(AnnotatedName.of(this.annotations(), this.fullyQualifiedName()),
+                                  DefaultNoType.of(this.type()),
+                                  DefaultTypeElement.encloseableTypeElementsOf(this.enclosedElements().get()));
     }
     
   }

@@ -59,7 +59,7 @@ public class DefaultDeclaredType extends AbstractTypeMirror implements DeclaredT
                              final List<? extends AnnotationMirror> annotationMirrors) {
     super(TypeKind.DECLARED, annotationMirrors);
     this.enclosingType = validateEnclosingType(enclosingType);
-    this.typeArguments = typeArguments == null || typeArguments.isEmpty() ? List.of() : List.copyOf(typeArguments);
+    this.typeArguments = validateTypeArguments(typeArguments == null || typeArguments.isEmpty() ? List.of() : List.copyOf(typeArguments));
   }
 
   final void definingElement(final Element e) {
@@ -119,6 +119,32 @@ public class DefaultDeclaredType extends AbstractTypeMirror implements DeclaredT
     default:
       throw new IllegalArgumentException("t: " + t);
     }
+  }
+
+  private static final List<? extends TypeMirror> validateTypeArguments(final List<? extends TypeMirror> typeArguments) {
+    for (final TypeMirror t : typeArguments) {
+      switch (t.getKind()) {
+      case ARRAY:
+      case DECLARED:
+      // case INTERSECTION: // JLS says reference types and wildcards only
+      case TYPEVAR:
+      case WILDCARD:
+        break;
+      default:
+        throw new IllegalArgumentException("typeArguments: " + typeArguments + "; invalid type argument: " + t);
+      }
+    }
+    return typeArguments;
+  }
+
+  public static final DefaultDeclaredType of(final DeclaredType t) {
+    if (t instanceof DefaultDeclaredType defaultDeclaredType) {
+      return defaultDeclaredType;
+    }
+    return
+      new DefaultDeclaredType(t.getEnclosingType(),
+                              t.getTypeArguments(),
+                              t.getAnnotationMirrors());
   }
 
 }

@@ -105,8 +105,8 @@ public class DefaultTypeElement extends AbstractParameterizableElement implement
       throw new IllegalArgumentException("permittedSubclasses: " + permittedSubclasses);
     }
     this.permittedSubclasses = permittedSubclasses == null || permittedSubclasses.isEmpty() ? List.of() : List.copyOf(permittedSubclasses);
-    if (type instanceof DefaultDeclaredType ddt) {
-      ddt.definingElement(this);
+    if (type instanceof DefineableType dt) {
+      dt.setDefiningElement(this);
     }
   }
 

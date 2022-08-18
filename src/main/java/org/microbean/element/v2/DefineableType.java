@@ -16,16 +16,12 @@
  */
 package org.microbean.element.v2;
 
-import javax.lang.model.type.TypeMirror;
-import javax.lang.model.type.TypeVariable;
-import javax.lang.model.type.WildcardType;
+import javax.lang.model.element.Element;
 
-interface CapturedType extends TypeVariable {
+import javax.lang.model.type.DeclaredType;
 
-  WildcardType getWildcardType();
+public interface DefineableType extends DeclaredType {
 
-  void setUpperBound(final TypeMirror upperBound);
-
-  void setLowerBound(final TypeMirror lowerBound);
+  public void setDefiningElement(final Element definingElement);
   
 }

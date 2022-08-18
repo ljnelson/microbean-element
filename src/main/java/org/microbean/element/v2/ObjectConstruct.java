@@ -40,5 +40,36 @@ final class ObjectConstruct {
                            null, // enclosingElement; we don't bother to supply the java.lang package
                            List.of(), // enclosedElements; we don't bother to supply these here
                            List.of()); // typeParameters
+
+  static final DefaultDeclaredType JAVA_IO_SERIALIZABLE_TYPE = new DefaultDeclaredType(null, null, null);
   
+  public static final DefaultTypeElement JAVA_IO_SERIALIZABLE_ELEMENT =
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.io.Serializable")),
+                           ElementKind.INTERFACE,
+                           JAVA_IO_SERIALIZABLE_TYPE,
+                           Set.of(Modifier.PUBLIC),
+                           NestingKind.TOP_LEVEL,
+                           null,
+                           List.of(),
+                           List.of(),
+                           null,
+                           List.of(),
+                           List.of());
+
+  static final DefaultDeclaredType JAVA_LANG_CLONEABLE_TYPE = new DefaultDeclaredType(null, null, null);
+
+  // kind of a stub; we don't include enclosed objects like methods and fields and so on
+  public static final DefaultTypeElement JAVA_LANG_CLONEABLE_ELEMENT =
+    new DefaultTypeElement(AnnotatedName.of(DefaultName.of("java.lang.Cloneable")),
+                           ElementKind.INTERFACE,
+                           JAVA_LANG_CLONEABLE_TYPE,
+                           Set.of(Modifier.PUBLIC),
+                           NestingKind.TOP_LEVEL,
+                           null,
+                           List.of(),
+                           List.of(),
+                           null,
+                           List.of(),
+                           List.of());
+
 }

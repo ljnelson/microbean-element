@@ -21,11 +21,11 @@ import java.util.Set;
 
 import javax.lang.model.element.ElementKind;
 
-final class ArrayElement extends AbstractElement {
+final class SyntheticArrayElement extends AbstractElement {
 
-  static final ArrayElement INSTANCE = new ArrayElement();
+  static final SyntheticArrayElement INSTANCE = new SyntheticArrayElement();
   
-  private ArrayElement() {
+  private SyntheticArrayElement() {
     super(AnnotatedName.of(DefaultName.of("Array")), // emulate javac
           ElementKind.CLASS, // emulate javac
           new DefaultDeclaredType(), // emulate javac

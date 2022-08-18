@@ -33,15 +33,19 @@ public class DefaultTypeVariable extends AbstractTypeMirror implements TypeVaria
 
   private final TypeMirror upperBound;
 
+  private final TypeMirror lowerBound;
+
   public DefaultTypeVariable(final TypeMirror upperBound,
+                             final TypeMirror lowerBound,
                              final List<? extends AnnotationMirror> annotationMirrors) {
     super(TypeKind.TYPEVAR, annotationMirrors);
     this.upperBound = upperBound == null ? ObjectConstruct.JAVA_LANG_OBJECT_TYPE : upperBound;
+    this.lowerBound = lowerBound;
   }
 
   @Override // TypeVariable
   public final TypeMirror getLowerBound() {
-    return null;
+    return this.lowerBound;
   }
 
   @Override // TypeVariable

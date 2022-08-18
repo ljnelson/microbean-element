@@ -14,7 +14,7 @@
  * implied.  See the License for the specific language governing
  * permissions and limitations under the License.
  */
-package org.microbean.element;
+package org.microbean.element.v2;
 
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
@@ -432,7 +432,7 @@ final class Types {
 
   private static final ArrayType arrayType(final TypeMirror componentType,
                                            final List<? extends AnnotationMirror> annotationMirrors) {
-    return DefaultArrayType.of(componentType, annotationMirrors);
+    return new DefaultArrayType(componentType, annotationMirrors);
   }
 
   private static final Element asElement(final TypeMirror t) {
@@ -481,7 +481,7 @@ final class Types {
     case ARRAY:
       if (generateSyntheticElements) {
         synchronized (syntheticElements) {
-          return syntheticElements.computeIfAbsent(t, s -> ArrayElement.INSTANCE);
+          return syntheticElements.computeIfAbsent(t, s -> SyntheticArrayElement.INSTANCE);
         }
       }
       return null;
@@ -505,7 +505,7 @@ final class Types {
     case WILDCARD:
       if (generateSyntheticElements) {
         synchronized (syntheticElements) {
-          return syntheticElements.computeIfAbsent(t, s -> WildcardElement.INSTANCE);
+          return syntheticElements.computeIfAbsent(t, s -> SyntheticWildcardElement.INSTANCE);
         }
       }
       return null;
@@ -513,7 +513,7 @@ final class Types {
     case BOOLEAN:
       if (generateSyntheticElements) {
         synchronized (syntheticElements) {
-          return syntheticElements.computeIfAbsent(t, s -> PrimitiveElement.BOOLEAN);
+          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.BOOLEAN);
         }
       }
       return null;
@@ -521,7 +521,7 @@ final class Types {
     case BYTE:
       if (generateSyntheticElements) {
         synchronized (syntheticElements) {
-          return syntheticElements.computeIfAbsent(t, s -> PrimitiveElement.BYTE);
+          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.BYTE);
         }
       }
       return null;
@@ -529,7 +529,7 @@ final class Types {
     case CHAR:
       if (generateSyntheticElements) {
         synchronized (syntheticElements) {
-          return syntheticElements.computeIfAbsent(t, s -> PrimitiveElement.CHAR);
+          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.CHAR);
         }
       }
       return null;
@@ -537,7 +537,7 @@ final class Types {
     case DOUBLE:
       if (generateSyntheticElements) {
         synchronized (syntheticElements) {
-          return syntheticElements.computeIfAbsent(t, s -> PrimitiveElement.DOUBLE);
+          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.DOUBLE);
         }
       }
       return null;
@@ -545,7 +545,7 @@ final class Types {
     case FLOAT:
       if (generateSyntheticElements) {
         synchronized (syntheticElements) {
-          return syntheticElements.computeIfAbsent(t, s -> PrimitiveElement.FLOAT);
+          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.FLOAT);
         }
       }
       return null;
@@ -553,7 +553,7 @@ final class Types {
     case INT:
       if (generateSyntheticElements) {
         synchronized (syntheticElements) {
-          return syntheticElements.computeIfAbsent(t, s -> PrimitiveElement.INT);
+          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.INT);
         }
       }
       return null;
@@ -561,7 +561,7 @@ final class Types {
     case LONG:
       if (generateSyntheticElements) {
         synchronized (syntheticElements) {
-          return syntheticElements.computeIfAbsent(t, s -> PrimitiveElement.LONG);
+          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.LONG);
         }
       }
       return null;
@@ -569,7 +569,7 @@ final class Types {
     case SHORT:
       if (generateSyntheticElements) {
         synchronized (syntheticElements) {
-          return syntheticElements.computeIfAbsent(t, s -> PrimitiveElement.SHORT);
+          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.SHORT);
         }
       }
       return null;
@@ -805,9 +805,9 @@ final class Types {
         captured = true;
         TypeMirror Ui = currentAHead instanceof TypeVariable tv ? tv.getUpperBound() : null;
         if (Ui == null) {
-          Ui = DefaultDeclaredType.JAVA_LANG_OBJECT;
+          Ui = ObjectConstruct.JAVA_LANG_OBJECT_TYPE;
         }
-        final CapturedType Si = (CapturedType)currentSHead;
+        final SyntheticCapturedType Si = (SyntheticCapturedType)currentSHead;
         final WildcardType Ti = (WildcardType)currentTHead;
         Si.setLowerBound(Ti.getSuperBound());
         final TypeMirror TiExtendsBound = Ti.getExtendsBound();
@@ -827,7 +827,7 @@ final class Types {
   private static final boolean capturedTypeVariable(final TypeMirror t) {
     switch (t.getKind()) {
     case TYPEVAR:
-      return t instanceof CapturedType;
+      return t instanceof SyntheticCapturedType;
     default:
       return false;
     case ERROR:
@@ -863,12 +863,12 @@ final class Types {
   private static final boolean captures(final TypeMirror tv, final TypeMirror w) {
     return
       tv.getKind() == TypeKind.TYPEVAR &&
-      tv instanceof CapturedType ct &&
+      tv instanceof SyntheticCapturedType ct &&
       w.getKind() == TypeKind.WILDCARD &&
       captures(ct, (WildcardType)w);
   }
 
-  private static final boolean captures(final CapturedType ct, final WildcardType w) {
+  private static final boolean captures(final SyntheticCapturedType ct, final WildcardType w) {
     assert ct.getKind() == TypeKind.TYPEVAR;
     assert w.getKind() == TypeKind.WILDCARD;
     // isSameWildcard(), you'll note, does not check annotations.
@@ -1279,12 +1279,12 @@ final class Types {
                                                      final List<? extends TypeVariable> typeVariables,
                                                      final List<? extends AnnotationMirror> annotationMirrors) {
     return
-      DefaultExecutableType.of(parameterTypes,
-                               receiverType,
-                               returnType,
-                               thrownTypes,
-                               typeVariables,
-                               annotationMirrors);
+      new DefaultExecutableType(parameterTypes,
+                                receiverType,
+                                returnType,
+                                thrownTypes,
+                                typeVariables,
+                                annotationMirrors);
   }
 
   private static final Name flatName(final Element e) {
@@ -1916,7 +1916,7 @@ final class Types {
   }
 
   private static final DeclaredType objectType() {
-    return DefaultDeclaredType.JAVA_LANG_OBJECT;
+    return ObjectConstruct.JAVA_LANG_OBJECT_TYPE;
   }
 
   private static final boolean parameterized(final TypeMirror t) {
@@ -2567,7 +2567,7 @@ final class Types {
     // 3.
     final List<TypeVariable> newTvs = new ArrayList<>(tvs.size());
     for (final TypeVariable tv : tvs) {
-      newTvs.add(typeVariable(tv, null));
+      newTvs.add(typeVariable(tv, (TypeMirror)null));
     }
 
     // Phase 3: Perform substitution over the substituted bounds
@@ -2898,8 +2898,8 @@ final class Types {
     assert t.getKind() == TypeKind.ARRAY;
     return
       intersectionType(List.of(objectType(),
-                               DefaultDeclaredType.JAVA_IO_SERIALIZABLE,
-                               DefaultDeclaredType.JAVA_LANG_CLONEABLE));
+                               ObjectConstruct.JAVA_IO_SERIALIZABLE_TYPE,
+                               ObjectConstruct.JAVA_LANG_CLONEABLE_TYPE));
   }
 
   // This is frighteningly awful code.
@@ -3031,7 +3031,7 @@ final class Types {
   private static final DeclaredType syntheticDeclaredType(final DeclaredType canonicalType,
                                                           final List<? extends TypeMirror> typeArguments) {
     final DefaultDeclaredType t = new DefaultDeclaredType(canonicalType.getEnclosingType(), typeArguments, List.of());
-    t.element(canonicalType.asElement());
+    t.setDefiningElement(canonicalType.asElement());
     return t;
   }
 
@@ -3051,15 +3051,14 @@ final class Types {
   private static final TypeVariable typeVariable(final TypeVariable tv, final TypeMirror upperBound) {
     assert tv.getKind() == TypeKind.TYPEVAR;
     final DefaultTypeVariable returnValue = new DefaultTypeVariable(upperBound, tv.getLowerBound(), tv.getAnnotationMirrors());
-    returnValue.element((TypeParameterElement)tv.asElement());
+    returnValue.definingElement((TypeParameterElement)tv.asElement());
     assert returnValue.asElement().asType() == tv;
     return returnValue;
   }
 
   private static final TypeVariable typeVariable(final TypeMirror upperBound,
-                                                 final TypeMirror lowerBound, // use with caution; normally null
                                                  final List<? extends AnnotationMirror> annotationMirrors) {
-    return new DefaultTypeVariable(upperBound, lowerBound, annotationMirrors);
+    return new DefaultTypeVariable(upperBound, null, annotationMirrors);
   }
 
   // A port/translation of Types#newInstances(List)
@@ -3191,7 +3190,7 @@ final class Types {
     for (final TypeMirror typeArgument : typeArguments) {
       switch (typeArgument.getKind()) {
       case WILDCARD:
-        list.add(new DefaultCapturedType((WildcardType)typeArgument));
+        list.add(new SyntheticCapturedType((WildcardType)typeArgument));
         break;
       default:
         list.add(typeArgument);
@@ -3240,7 +3239,7 @@ final class Types {
     }
 
     private static final AnnotatedName generateName(final TypeMirror t) {
-      return AnnotatedName.of(DefaultName.EMPTY); // TODO if it turns out to be important
+      return AnnotatedName.of(DefaultName.of()); // TODO if it turns out to be important
     }
 
   }

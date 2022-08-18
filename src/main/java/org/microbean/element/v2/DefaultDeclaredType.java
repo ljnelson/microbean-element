@@ -42,7 +42,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.TypeVisitor;
 
-public class DefaultDeclaredType extends AbstractTypeMirror implements DeclaredType {
+public class DefaultDeclaredType extends AbstractTypeMirror implements DefineableType {
 
   private TypeMirror enclosingType;
 
@@ -62,7 +62,8 @@ public class DefaultDeclaredType extends AbstractTypeMirror implements DeclaredT
     this.typeArguments = validateTypeArguments(typeArguments == null || typeArguments.isEmpty() ? List.of() : List.copyOf(typeArguments));
   }
 
-  final void definingElement(final Element e) {
+  @Override // DefineableType
+  public final void setDefiningElement(final Element e) {
     if (this.asElement() != null) {
       throw new IllegalStateException();
     } else if (e.asType() != this) {

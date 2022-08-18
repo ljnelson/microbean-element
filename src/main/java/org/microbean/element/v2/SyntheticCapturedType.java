@@ -27,10 +27,11 @@ import javax.lang.model.element.TypeParameterElement;
 
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.TypeVisitor;
 import javax.lang.model.type.WildcardType;
 
-final class SyntheticCapturedType extends AbstractTypeMirror implements CapturedType {
+final class SyntheticCapturedType extends AbstractTypeMirror implements TypeVariable {
 
   private TypeMirror upperBound;
 
@@ -92,7 +93,6 @@ final class SyntheticCapturedType extends AbstractTypeMirror implements Captured
     this.upperBound = upperBound;
   }
   
-  @Override // CapturedType
   public final WildcardType getWildcardType() {
     return this.wildcardType;
   }

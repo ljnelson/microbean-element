@@ -728,11 +728,11 @@ final class Types {
     case DECLARED:
       final DeclaredType dt = (DeclaredType)t;
       final TypeMirror enclosingType = dt.getEnclosingType();
-      final TypeMirror boundingClass = boundingClass(enclosingType);
+      final TypeMirror boundingClass = boundingClass(enclosingType); // RECURSIVE
       return enclosingType == boundingClass ? t : declaredType(boundingClass, dt.getTypeArguments(), dt.getAnnotationMirrors());
     case TYPEVAR:
       // UnaryVisitor-based so also handles captured type variables
-      return boundingClass(supertype(t));
+      return boundingClass(supertype(t)); // RECURSIVE
     case INTERSECTION:
     default:
       return t;

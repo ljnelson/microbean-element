@@ -965,6 +965,7 @@ final class Types {
     }
   }
 
+  /*
   // See Types#elemtype(Type); bonkers bananas crazy town
   private static final TypeMirror componentType(final TypeMirror t) {
     switch (t.getKind()) {
@@ -998,6 +999,7 @@ final class Types {
       throw new IllegalArgumentException("t: " + t);
     }
   }
+  */
 
   private static final boolean contains(final List<? extends TypeMirror> ts,
                                         final List<? extends TypeMirror> ss) {
@@ -1746,7 +1748,7 @@ final class Types {
   private static final boolean models(final ArrayType t, final ArrayType s) {
     assert t.getKind() == TypeKind.ARRAY;
     assert s.getKind() == TypeKind.ARRAY;
-    return containsEquivalent(t.getComponentType(), componentType(s));
+    return containsEquivalent(t.getComponentType(), s.getComponentType());
   }
 
   private static final boolean models(final DeclaredType t, final TypeMirror s) {
@@ -2702,9 +2704,9 @@ final class Types {
     assert s.getKind() == TypeKind.ARRAY;
     final TypeMirror componentType = t.getComponentType();
     if (componentType.getKind().isPrimitive()) {
-      return models(componentType, componentType(s));
+      return models(componentType, s.getComponentType());
     } else {
-      return subtype(componentType, componentType(s), false);
+      return subtype(componentType, s.getComponentType(), false);
     }
   }
 

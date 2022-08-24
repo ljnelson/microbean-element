@@ -46,45 +46,16 @@ public class Types2 {
     super();
   }
 
-  public final boolean canonical(final TypeMirror t) {
-    final Element e = this.asElement(t);
-    return e == null || t == e.asType();
-  }
-
-  @SuppressWarnings("unchecked")
-  final <T extends TypeMirror> T canonicalType(final T t) {
-    final Element e = this.asElement(t);
-    return e == null ? t : (T)e.asType();
-  }
-  
-  public boolean capturedTypeVariable(final TypeMirror t) {
-    switch (t.getKind()) {
-    case TYPEVAR:
-      return t instanceof SyntheticCapturedType;
-    default:
-      return false;
-    case ERROR:
-    case UNION:
-      throw new IllegalArgumentException("t: " + t);
-    }
-  }
-
-
-  /*
-   * Purely convenience methods.
-   */
-
-
   // Not visitor-based in javac
-  private final List<? extends TypeMirror> allTypeArguments(final TypeMirror t) {
+  private static final List<? extends TypeMirror> allTypeArguments(final TypeMirror t) {
     if (t == null) {
       return List.of();
     }
     switch (t.getKind()) {
     case ARRAY:
-      return this.allTypeArguments(((ArrayType)t).getComponentType()); // RECURSIVE
+      return allTypeArguments(((ArrayType)t).getComponentType()); // RECURSIVE
     case DECLARED:
-      return this.allTypeArguments((DeclaredType)t);
+      return allTypeArguments((DeclaredType)t); // RECURSIVE
     case INTERSECTION:
       // Verified; see
       // https://github.com/openjdk/jdk/blob/jdk-19+25/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Type.java#L1265. A
@@ -98,23 +69,22 @@ public class Types2 {
     }
   }
 
-  public final List<? extends TypeMirror> allTypeArguments(final DeclaredType t) {
+  private static final List<? extends TypeMirror> allTypeArguments(final DeclaredType t) {
     assert t.getKind() == TypeKind.DECLARED;
-    final List<? extends TypeMirror> enclosingTypeTypeArguments = this.allTypeArguments(t.getEnclosingType()); // RECURSIVE
+    final List<? extends TypeMirror> enclosingTypeTypeArguments = allTypeArguments(t.getEnclosingType()); // RECURSIVE
     final List<? extends TypeMirror> typeArguments = t.getTypeArguments();
     if (enclosingTypeTypeArguments.isEmpty()) {
-      return typeArguments;
+      return typeArguments.isEmpty() ? List.of() : typeArguments;
     } else if (typeArguments.isEmpty()) {
       return enclosingTypeTypeArguments;
-    } else {
-      final List<TypeMirror> list = new ArrayList<>(enclosingTypeTypeArguments.size() + typeArguments.size());
-      list.addAll(enclosingTypeTypeArguments);
-      list.addAll(typeArguments);
-      return Collections.unmodifiableList(list);
     }
+    final List<TypeMirror> list = new ArrayList<>(enclosingTypeTypeArguments.size() + typeArguments.size());
+    list.addAll(enclosingTypeTypeArguments);
+    list.addAll(typeArguments);
+    return Collections.unmodifiableList(list);
   }
 
-  private final Element asElement(final TypeMirror t) {
+  private static final Element asElement(final TypeMirror t) {
     return asElement(t, true);
   }
 
@@ -300,41 +270,34 @@ public class Types2 {
     }
   }
 
-  // See Types#elemtype(Type); bonkers bananas crazy town
-  final TypeMirror componentType(final TypeMirror t) {
+  private static final boolean canonical(final TypeMirror t) {
+    final Element e = asElement(t);
+    return e == null || t == e.asType();
+  }
+
+  @SuppressWarnings("unchecked")
+  private static final <T extends TypeMirror> T canonicalType(final T t) {
+    final Element e = asElement(t, false);
+    return e == null ? t : (T)e.asType();
+  }
+
+  private static final boolean capturedTypeVariable(final TypeMirror t) {
     switch (t.getKind()) {
-    case ARRAY:
-      // Straightforward and makes sense.
-      return ((ArrayType)t).getComponentType();
-    case EXECUTABLE:
-      // For some really weird reason elemtype(ForAll) yields
-      // elemtype(((ForAll)t).qtype), which reduces to
-      // elemtype(MethodType) which returns null.  Why this isn't just
-      // handled by the default clause is beyond me.  I separate it
-      // here in case I've misread things.
-      return null;
     case TYPEVAR:
-      // It seems weird to me that elemtype(Type) would explicitly
-      // handle wildcards but not type variables.  Maybe I'm not
-      // thinking clearly.  Can't you have T extends Object[]?
-      // Wouldn't you want the component type returned to be Object
-      // rather than null?  I return null here because the case is not
-      // handled in javac.
-      return null;
-    case WILDCARD:
-      // I guess this just erases the wildcardness out of the mix and
-      // (in most cases) will return null again, unless of course it's
-      // an array?
-      return componentType(extendsBound(t)); // RECURSIVE
+      return t instanceof SyntheticCapturedType;
     default:
-      return null;
+      return false;
     case ERROR:
     case UNION:
       throw new IllegalArgumentException("t: " + t);
     }
   }
 
-  public final TypeMirror extendsBound(final TypeMirror t) {
+  static final boolean erased(final TypeMirror t) {
+    return t instanceof DefaultDeclaredType ddt && ddt.erased();
+  }
+  
+  private static final TypeMirror extendsBound(final TypeMirror t) {
     // See
     // https://github.com/openjdk/jdk/blob/jdk-18+37/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L130-L143.
     switch (t.getKind()) {
@@ -348,12 +311,51 @@ public class Types2 {
     }
   }
 
-  public final boolean hasTypeArguments(final TypeMirror t) {
+  static final TypeMirror extendsBound(final WildcardType w) {
+    // See
+    // https://github.com/openjdk/jdk/blob/jdk-18+37/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L130-L143
+    switch (w.getKind()) {
+    case WILDCARD:
+      final TypeMirror superBound = w.getSuperBound();
+      if (superBound == null) {
+        final TypeMirror extendsBound = w.getExtendsBound();
+        if (extendsBound == null) {
+          return null; // actually java.lang.Object type
+        } else {
+          assert
+            extendsBound.getKind() == TypeKind.ARRAY ||
+            extendsBound.getKind() == TypeKind.DECLARED ||
+            extendsBound.getKind() == TypeKind.TYPEVAR;
+          // No need to recurse, because we know extendsBound cannot be
+          // a wildcard, so we just return it.
+          return extendsBound;
+        }
+      } else if (superBound.getKind() == TypeKind.TYPEVAR) {
+        // A wildcard can only have one bound, of course, and the bound
+        // must be either an array type, a declared type or a type
+        // variable.  If the bound is a type variable, then for all
+        // practical purposes it is simply the type variable's upper
+        // bound.  The compiler packs this type-variable-stripping
+        // functionality for some reason into this method.
+        //
+        // There appears to be no reason to do this in the
+        // corresponding extendsBound case, probably because a normal
+        // type variable would not have a corresponding lower bound.
+        return ((TypeVariable)superBound).getUpperBound();
+      } else {
+        return null; // actually java.lang.Object type
+      }      
+    default:
+      throw new IllegalArgumentException("w: " + w);
+    }
+  }
+
+  private static final boolean hasTypeArguments(final TypeMirror t) {
     // This is modeled after javac's allparams() method.  javac
     // frequently confuses type parameters and type arguments in its
     // terminology.  This implementation could probably be made more
     // efficient. See
-    // https://github.com/openjdk/jdk/blob/67ecd30327086c5d7628c4156f8d9dcccb0f4d09/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Type.java#L1137
+    // https://github.com/openjdk/jdk/blob/67ecd30327086c5d7628c4156f8d9dcccb0f4d09/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Type.java#L1137    
     switch (t.getKind()) {
     case ARRAY:
     case DECLARED:
@@ -366,7 +368,7 @@ public class Types2 {
     }
   }
 
-  private static final boolean isInterface(final Element e) {    
+  private static final boolean isInterface(final Element e) {
     switch (e.getKind()) {
     case ANNOTATION_TYPE:
     case INTERFACE:
@@ -391,7 +393,7 @@ public class Types2 {
   private static final boolean isPrimitive(final Element e) {
     return isPrimitive(e.asType());
   }
-  
+
   private static final boolean isPrimitive(final TypeMirror t) {
     final TypeKind kind = t.getKind();
     switch (kind) {
@@ -409,7 +411,7 @@ public class Types2 {
 
   // See
   // https://github.com/openjdk/jdk/blob/67ecd30327086c5d7628c4156f8d9dcccb0f4d09/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Type.java#L1154-L1164
-  public final boolean raw(final TypeMirror t) {
+  private final boolean raw(final TypeMirror t) {
     switch (t.getKind()) {
     case ARRAY:
       return raw(((ArrayType)t).getComponentType());
@@ -427,13 +429,14 @@ public class Types2 {
     }
   }
 
-  public final TypeMirror superBound(final TypeMirror t) {
+  private final TypeMirror superBound(final TypeMirror t) {
     // See
     // https://github.com/openjdk/jdk/blob/jdk-18+37/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L157-L167
     switch (t.getKind()) {
     case WILDCARD:
       return ((WildcardType)t).getSuperBound();
     default:
+      // This seems really weird.  For a declared type, shouldn't this be the bottom type, i.e. the null type, i.e. DefaultNullType.INSTANCE?
       return t;
     case ERROR:
     case UNION:
@@ -481,7 +484,5 @@ public class Types2 {
     }
 
   }
-
-
 
 }

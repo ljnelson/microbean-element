@@ -39,7 +39,7 @@ final class TestMakePackage {
   }
 
   @Test
-  final void test() throws Exception {
+  final void test() throws Exception {    
     
   }
 

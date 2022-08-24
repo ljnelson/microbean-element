@@ -21,6 +21,8 @@ import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Objects;
 
+import java.util.function.BiFunction;
+
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 
@@ -43,9 +45,12 @@ public final class DefaultTypeMirror implements ArrayType, ErrorType, Executable
 
   private final TypeMirror delegate;
 
+  private final BiFunction<? super DefaultTypeMirror, ? super TypeMirror, ? extends Boolean> equals;
+
   private DefaultTypeMirror(final TypeMirror delegate) {
     super();
     this.delegate = Objects.requireNonNull(delegate);
+    this.equals = (me, t) -> Equality.equals(me, t, true);
   }
 
   @Override // TypeMirror

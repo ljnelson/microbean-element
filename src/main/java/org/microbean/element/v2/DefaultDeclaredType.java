@@ -50,36 +50,55 @@ public class DefaultDeclaredType extends AbstractTypeMirror implements Defineabl
 
   private final List<? extends TypeMirror> typeArguments;
 
+  // See
+  // https://github.com/openjdk/jdk/blob/jdk-20+11/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Type.java#L1197-L1200
+  private final boolean erased;
+
   public DefaultDeclaredType() {
-    this(null, List.of(), List.of());
+    this(null, List.of(), false, List.of());
   }
   
   public DefaultDeclaredType(final TypeMirror enclosingType,
                              final List<? extends TypeMirror> typeArguments,
                              final List<? extends AnnotationMirror> annotationMirrors) {
-    super(TypeKind.DECLARED, annotationMirrors);
-    this.enclosingType = validateEnclosingType(enclosingType);
-    this.typeArguments = validateTypeArguments(typeArguments == null || typeArguments.isEmpty() ? List.of() : List.copyOf(typeArguments));
+    this(enclosingType, typeArguments, false, annotationMirrors);
   }
 
+  DefaultDeclaredType(final TypeMirror enclosingType,
+                      final List<? extends TypeMirror> typeArguments,
+                      final boolean erased,
+                      final List<? extends AnnotationMirror> annotationMirrors) {
+    super(TypeKind.DECLARED, erased ? List.of() : annotationMirrors);
+    this.erased = erased;
+    this.enclosingType = validateEnclosingType(enclosingType);
+    this.typeArguments = validateTypeArguments(erased || typeArguments == null || typeArguments.isEmpty() ? List.of() : List.copyOf(typeArguments));
+  }
+
+  final boolean erased() {
+    return this.erased;
+  }
+  
   @Override // DefineableType
   public final void setDefiningElement(final Element e) {
     if (this.asElement() != null) {
       throw new IllegalStateException();
-    } else if (e.asType() != this) {
-      // Wildcard capture makes this impossible.
-      // throw new IllegalArgumentException("e: " + e);
     }
-    switch (e.getKind()) {
-    case ANNOTATION_TYPE:
-    case CLASS:
-    case ENUM:
-    case INTERFACE:
-    case RECORD:
-      this.definingElement = e;
-      break;
-    default:
-      throw new IllegalArgumentException("e: " + e);
+    if (e != null) {
+      if (e.asType() != this) {
+        // Wildcard capture makes this impossible.
+        // throw new IllegalArgumentException("e: " + e);
+      } 
+      switch (e.getKind()) {
+      case ANNOTATION_TYPE:
+      case CLASS:
+      case ENUM:
+      case INTERFACE:
+      case RECORD:
+        this.definingElement = e;
+        break;
+      default:
+        throw new IllegalArgumentException("e: " + e);
+      }
     }
   }
 

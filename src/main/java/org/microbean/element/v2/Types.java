@@ -137,15 +137,31 @@ final class Types {
                                   final List<TypeMirror> to) {
     adapt(source, target, from, to, new HashMap<>(), new HashSet<>());
   }
-
+  
   // I have no idea what this method is doing. Ported slavishly from javac.
+  // See
+  // https://github.com/openjdk/jdk/blob/jdk-20+11/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4583-L4588.
+  // Original documentation follows.
+  /*
+   * Adapt a type by computing a substitution which maps a source type
+   * to a target type.
+   *
+   * @param source the source type
+   *
+   * @param target the target type
+   *
+   * @param from the type variables of the computed substitution
+   *
+   * @param to the types of the computed substitution
+   *
+   */
   private static final void adapt(final TypeMirror source,
                                   final TypeMirror target,
                                   final List<TypeMirror> from,
                                   final List<TypeMirror> to,
-                                  final Map<Element, TypeMirror> mapping,
+                                  final Map<TypeParameterElement, TypeMirror> mapping,
                                   final Set<TypeMirrorPair> adaptCache) {
-    // First do the visiting
+    // First do the visiting. This appears to affect the mapping parameter.
     switch (source.getKind()) {
     case ARRAY:
       adapt((ArrayType)source, target, from, to, mapping, adaptCache);
@@ -193,7 +209,7 @@ final class Types {
                                   final TypeMirror target,
                                   final List<TypeMirror> from,
                                   final List<TypeMirror> to,
-                                  final Map<Element, TypeMirror> mapping,
+                                  final Map<TypeParameterElement, TypeMirror> mapping,
                                   final Set<TypeMirrorPair> adaptCache) {
     switch (target.getKind()) {
     case ARRAY:
@@ -211,7 +227,7 @@ final class Types {
                                   final ArrayType target,
                                   final List<TypeMirror> from,
                                   final List<TypeMirror> to,
-                                  final Map<Element, TypeMirror> mapping,
+                                  final Map<TypeParameterElement, TypeMirror> mapping,
                                   final Set<TypeMirrorPair> adaptCache) {
     assert source.getKind() == TypeKind.ARRAY;
     assert target.getKind() == TypeKind.ARRAY;
@@ -222,7 +238,7 @@ final class Types {
                                    final TypeMirror target,
                                    final List<TypeMirror> from,
                                    final List<TypeMirror> to,
-                                   final Map<Element, TypeMirror> mapping,
+                                   final Map<TypeParameterElement, TypeMirror> mapping,
                                    final Set<TypeMirrorPair> adaptCache) {
     assert source.getKind() == TypeKind.DECLARED || source.getKind() == TypeKind.INTERSECTION;
     switch (target.getKind()) {
@@ -242,10 +258,10 @@ final class Types {
                                   final TypeMirror target,
                                   final List<TypeMirror> from,
                                   final List<TypeMirror> to,
-                                  final Map<Element, TypeMirror> mapping,
+                                  final Map<TypeParameterElement, TypeMirror> mapping,
                                   final Set<TypeMirrorPair> adaptCache) {
     assert source.getKind() == TypeKind.TYPEVAR;
-    final Element sourceElement = asElement(source);
+    final TypeParameterElement sourceElement = (TypeParameterElement)asElement(source);
     TypeMirror val = mapping.get(sourceElement);
     if (val == null) {
       val = target;
@@ -258,25 +274,25 @@ final class Types {
         switch (target.getKind()) {
         case WILDCARD:
           final WildcardType targetW = (WildcardType)target;
-          final TypeMirror valLowerBound = valW.getSuperBound();
-          final TypeMirror valUpperBound = valW.getExtendsBound();
-          final TypeMirror targetLowerBound = targetW.getSuperBound();
-          final TypeMirror targetUpperBound = targetW.getExtendsBound();
-          if (valLowerBound == null) {
-            if (valUpperBound == null) {
+          final TypeMirror valSuperBound = valW.getSuperBound();
+          final TypeMirror valExtendsBound = valW.getExtendsBound();
+          final TypeMirror targetSuperBound = targetW.getSuperBound();
+          final TypeMirror targetExtendsBound = targetW.getExtendsBound();
+          if (valSuperBound == null) {
+            if (valExtendsBound == null) {
               // valW is lower-bounded (and upper-bounded)
-              if (targetUpperBound == null && subtype(wildcardLowerBound(val), wildcardLowerBound(target), true)) {
+              if (targetExtendsBound == null && subtype(wildcardSuperBound(val), wildcardSuperBound(target), true)) {
                 // targetW is lower-bounded (and maybe unbounded)
                 val = target;
               }
-            } else if (targetLowerBound == null && !subtype(wildcardUpperBound(val), wildcardUpperBound(target), true)) {
+            } else if (targetSuperBound == null && !subtype(wildcardExtendsBound(val), wildcardExtendsBound(target), true)) {
               // valW is upper-bounded
               // targetW is upper-bounded (and maybe unbounded)
               val = target;
             }
-          } else if (valUpperBound == null) {
+          } else if (valExtendsBound == null) {
             // valW is lower-bounded
-            if (targetUpperBound == null && subtype(wildcardLowerBound(val), wildcardLowerBound(target), true)) {
+            if (targetExtendsBound == null && subtype(wildcardSuperBound(val), wildcardSuperBound(target), true)) {
               // targetW is lower-bounded (and maybe unbounded)
               val = target;
             }
@@ -308,14 +324,14 @@ final class Types {
                                   final TypeMirror target,
                                   final List<TypeMirror> from,
                                   final List<TypeMirror> to,
-                                  final Map<Element, TypeMirror> mapping,
+                                  final Map<TypeParameterElement, TypeMirror> mapping,
                                   final Set<TypeMirrorPair> adaptCache) {
     assert source.getKind() == TypeKind.WILDCARD;
     if (source.getSuperBound() == null) {
       // upper-bounded; maybe unbounded
-      adaptRecursive(wildcardUpperBound(source), wildcardUpperBound(target), from, to, mapping, adaptCache);
+      adaptRecursive(wildcardExtendsBound(source), wildcardExtendsBound(target), from, to, mapping, adaptCache);
     } else if (source.getExtendsBound() == null) {
-      adaptRecursive(wildcardLowerBound(source), wildcardLowerBound(target), from, to, mapping, adaptCache);
+      adaptRecursive(wildcardSuperBound(source), wildcardSuperBound(target), from, to, mapping, adaptCache);
     } else {
       throw new IllegalArgumentException("source: " + source);
     }
@@ -325,7 +341,7 @@ final class Types {
                                            final TypeMirror target,
                                            final List<TypeMirror> from,
                                            final List<TypeMirror> to,
-                                           final Map<Element, TypeMirror> mapping,
+                                           final Map<TypeParameterElement, TypeMirror> mapping,
                                            final Set<TypeMirrorPair> adaptCache) {
     final TypeMirrorPair pair = new TypeMirrorPair(source, target);
     if (adaptCache.add(pair)) {
@@ -341,7 +357,7 @@ final class Types {
                                            final List<? extends TypeMirror> target,
                                            final List<TypeMirror> from,
                                            final List<TypeMirror> to,
-                                           final Map<Element, TypeMirror> mapping,
+                                           final Map<TypeParameterElement, TypeMirror> mapping,
                                            final Set<TypeMirrorPair> adaptCache) {
     final int sourceSize = source.size();
     if (sourceSize > 0 && sourceSize == target.size()) {
@@ -360,7 +376,7 @@ final class Types {
   private static final void adaptSelf(final TypeMirror t,
                                       final List<TypeMirror> from,
                                       final List<TypeMirror> to,
-                                      final Map<Element, TypeMirror> mapping,
+                                      final Map<TypeParameterElement, TypeMirror> mapping,
                                       final Set<TypeMirrorPair> adaptCache) {
     adapt(canonicalType(t), t, from, to, mapping, adaptCache);
   }
@@ -965,6 +981,7 @@ final class Types {
     }
   }
 
+  /*
   // See Types#elemtype(Type); bonkers bananas crazy town
   private static final TypeMirror componentType(final TypeMirror t) {
     switch (t.getKind()) {
@@ -990,7 +1007,7 @@ final class Types {
       // I guess this just erases the wildcardness out of the mix and
       // (in most cases) will return null again, unless of course it's
       // an array?
-      return componentType(wildcardUpperBound(t)); // RECURSIVE
+      return componentType(wildcardExtendsBound(t)); // RECURSIVE
     default:
       return null;
     case ERROR:
@@ -998,6 +1015,7 @@ final class Types {
       throw new IllegalArgumentException("t: " + t);
     }
   }
+  */
 
   private static final boolean contains(final List<? extends TypeMirror> ts,
                                         final List<? extends TypeMirror> ss) {
@@ -1031,9 +1049,9 @@ final class Types {
       return true;
     }
     if (w.getSuperBound() == null) {
-      return subtype(wildcardUpperBound(s), wildcardUpperBound(w), false);
+      return subtype(wildcardExtendsBound(s), wildcardExtendsBound(w), false);
     }
-    return subtype(wildcardLowerBound(w), wildcardLowerBound(s), false);
+    return subtype(wildcardSuperBound(w), wildcardSuperBound(s), false);
   }
 
   // Models Types#containsTypeEquivalent(Type, Type).
@@ -1086,7 +1104,7 @@ final class Types {
         }
       }
     } else {
-      return contains(tTypeArguments, typeArguments(rewriteSuperBoundedWildcardTypes(s)));
+      return contains(tTypeArguments, typeArguments(rewriteLowerBoundedWildcardTypes(s)));
     }
   }
 
@@ -1222,9 +1240,9 @@ final class Types {
     final TypeMirror enclosingType = t.getEnclosingType();
     switch (enclosingType.getKind()) {
     case DECLARED:
-      return declaredType(erase((DeclaredType)enclosingType), List.of(), t.getAnnotationMirrors());
+      return declaredType(erase((DeclaredType)enclosingType), List.of(), t.getAnnotationMirrors()); // TODO: not right; I think List.of() is wrong
     case NONE:
-      return t.getTypeArguments().isEmpty() ? t : declaredType(enclosingType, List.of(), t.getAnnotationMirrors());
+      return t.getTypeArguments().isEmpty() ? t : declaredType(enclosingType, List.of(), t.getAnnotationMirrors()); // TODO: not right; I think List.of() is wrong
     case ERROR:
     case UNION:
     default:
@@ -1269,7 +1287,7 @@ final class Types {
     // Runnable.  The erasure, once all is said and done, of ? extends
     // T will be Runnable.]
     assert t.getKind() == TypeKind.WILDCARD;
-    return erase(wildcardUpperBound(t));
+    return erase(wildcardExtendsBound(t));
   }
 
   private static final ExecutableType executableType(final List<? extends TypeMirror> parameterTypes,
@@ -1547,9 +1565,9 @@ final class Types {
     return e.getModifiers().contains(Modifier.STATIC);
   }
 
-  private static final WildcardType lowerBoundedWildcardType(final TypeMirror lowerBound,
+  private static final WildcardType lowerBoundedWildcardType(final TypeMirror superBound,
                                                              final List<? extends AnnotationMirror> annotationMirrors) {
-    return DefaultWildcardType.lowerBoundedWildcardType(lowerBound, annotationMirrors);
+    return DefaultWildcardType.lowerBoundedWildcardType(superBound, annotationMirrors);
   }
 
   // SimpleVisitor-based
@@ -1618,7 +1636,7 @@ final class Types {
 
   private static final TypeMirror memberType(final WildcardType w, final Element e) {
     assert w.getKind() == TypeKind.WILDCARD;
-    return memberType(wildcardUpperBound(w), e); // RECURSIVE
+    return memberType(wildcardExtendsBound(w), e); // RECURSIVE
   }
 
   // compoundMin
@@ -1746,7 +1764,7 @@ final class Types {
   private static final boolean models(final ArrayType t, final ArrayType s) {
     assert t.getKind() == TypeKind.ARRAY;
     assert s.getKind() == TypeKind.ARRAY;
-    return containsEquivalent(t.getComponentType(), componentType(s));
+    return containsEquivalent(t.getComponentType(), s.getComponentType());
   }
 
   private static final boolean models(final DeclaredType t, final TypeMirror s) {
@@ -1756,8 +1774,8 @@ final class Types {
       return models(t, (WildcardType)s);
     default:
       return
-        Equality.equals(asElement(t, false), asElement(s, true), true) &&
-        models(enclosingType(t), enclosingType(s)) &&
+        Equality.equals(asElement(t, false), asElement(s, true), true) && // both types' elements are equal and
+        models(enclosingType(t), enclosingType(s)) && // both types' enclosing types are equal and
         containsEquivalent(typeArguments(t), typeArguments(s));
     case ERROR:
     case UNION:
@@ -1771,8 +1789,8 @@ final class Types {
     assert s.getKind() == TypeKind.WILDCARD;
     if (s.getSuperBound() != null) {
       return
-        models(t, wildcardUpperBound(s)) &&
-        models(t, wildcardLowerBound(s));
+        models(t, wildcardExtendsBound(s)) &&
+        models(t, wildcardSuperBound(s));
     }
     return
       Equality.equals(asElement(t, false), asElement(s, true), true) &&
@@ -1849,7 +1867,7 @@ final class Types {
   private static final boolean models(final TypeVariable t, final WildcardType s) {
     assert t.getKind() == TypeKind.TYPEVAR;
     assert s.getKind() == TypeKind.WILDCARD;
-    return s.getExtendsBound() == null && models(t, wildcardUpperBound(s));
+    return s.getExtendsBound() == null && models(t, wildcardExtendsBound(s)); // models https://github.com/openjdk/jdk/blob/jdk-20+11/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1374-L1378
   }
 
   private static final boolean models(final WildcardType t, final TypeMirror s) {
@@ -1860,17 +1878,17 @@ final class Types {
   private static final boolean models(final WildcardType t, final WildcardType s) {
     assert t.getKind() == TypeKind.WILDCARD;
     assert s.getKind() == TypeKind.WILDCARD;
-    final TypeMirror tLower = t.getSuperBound();
-    if (tLower == null) {
-      final TypeMirror tUpper = t.getExtendsBound();
-      final TypeMirror sLower = s.getSuperBound();
-      final TypeMirror sUpper = s.getExtendsBound();
-      if (tUpper == null) {
-        if (sLower == null) {
-          return sUpper == null || models(objectType(), sUpper);
+    final TypeMirror tSuper = t.getSuperBound();
+    if (tSuper == null) {
+      final TypeMirror tExtends = t.getExtendsBound();
+      final TypeMirror sSuper = s.getSuperBound();
+      final TypeMirror sExtends = s.getExtendsBound();
+      if (tExtends == null) {
+        if (sSuper == null) {
+          return sExtends == null || models(objectType(), sExtends);
         }
-      } else if (sLower == null) {
-        return models(tUpper, sUpper == null ? objectType() : sUpper);
+      } else if (sSuper == null) {
+        return models(tExtends, sExtends == null ? objectType() : sExtends);
       }
     }
     return false;
@@ -2141,12 +2159,12 @@ final class Types {
   // Models Type#contains(Type), not Types#containsType(Type, Type).
   private static final boolean references(final WildcardType t1, final TypeMirror t2) {
     assert t1.getKind() == TypeKind.WILDCARD;
-    final TypeMirror upperBound = t1.getExtendsBound();
-    final TypeMirror lowerBound = t1.getSuperBound();
-    if (upperBound == null) {
-      return lowerBound != null && references(lowerBound, t2); // RECURSIVE
-    } else if (lowerBound == null) {
-      return references(upperBound, t2); // RECURSIVE
+    final TypeMirror extendsBound = t1.getExtendsBound();
+    final TypeMirror superBound = t1.getSuperBound();
+    if (extendsBound == null) {
+      return superBound != null && references(superBound, t2); // RECURSIVE
+    } else if (superBound == null) {
+      return references(extendsBound, t2); // RECURSIVE
     } else {
       throw new IllegalArgumentException("t1: " + t1);
     }
@@ -2166,7 +2184,7 @@ final class Types {
   }
 
   // Ported slavishly from javac.
-  private static final TypeMirror rewriteSuperBoundedWildcardTypes(final TypeMirror t) {
+  private static final TypeMirror rewriteLowerBoundedWildcardTypes(final TypeMirror t) {
     if (parameterized(t)) {
       List<TypeMirror> from = new ArrayList<>();
       List<TypeMirror> to = new ArrayList<>();
@@ -2175,7 +2193,7 @@ final class Types {
         final List<TypeMirror> rewrite = new ArrayList<>();
         boolean changed = false;
         for (final TypeMirror orig : to) {
-          TypeMirror s = rewriteSuperBoundedWildcardTypes(orig); // RECURSIVE
+          TypeMirror s = rewriteLowerBoundedWildcardTypes(orig); // RECURSIVE
           switch (s.getKind()) {
           case WILDCARD:
             if (((WildcardType)s).getSuperBound() != null) {
@@ -2189,7 +2207,7 @@ final class Types {
             if (s != orig) { // Don't need Equality.equals() here
               // TODO: maybe need to somehow ensure this shows up as
               // non-canonical/synthetic
-              s = upperBoundedWildcardType(wildcardUpperBound(s), s.getAnnotationMirrors());
+              s = upperBoundedWildcardType(wildcardExtendsBound(s), s.getAnnotationMirrors());
               changed = true;
             }
             break;
@@ -2481,23 +2499,23 @@ final class Types {
     // https://github.com/openjdk/jdk/blob/0f2113cee79b9645105b4753c7d7eacb83b872c2/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3367-L3374
     // which references
     // https://github.com/openjdk/jdk/blob/67ecd30327086c5d7628c4156f8d9dcccb0f4d09/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Type.java#L261-L275
-    TypeMirror upperBound = wt.getExtendsBound();
-    TypeMirror lowerBound = wt.getSuperBound();
-    if (lowerBound == null) {
-      if (upperBound == null) {
+    TypeMirror extendsBound = wt.getExtendsBound();
+    TypeMirror superBound = wt.getSuperBound();
+    if (superBound == null) {
+      if (extendsBound == null) {
         // Unbounded.  No need to do anything else.
         return wt;
       }
       // Upper-bounded.
-      final TypeMirror x = subst(upperBound, from, to); // RECURSIVE
-      if (x == upperBound) {
+      final TypeMirror x = subst(extendsBound, from, to); // RECURSIVE
+      if (x == extendsBound) {
         return wt;
       }
       return upperBoundedWildcardType(x, wt.getAnnotationMirrors());
-    } else if (upperBound == null) {
+    } else if (extendsBound == null) {
       // Lower-bounded.
-      final TypeMirror x = subst(lowerBound, from, to); // RECURSIVE
-      if (x == lowerBound) {
+      final TypeMirror x = subst(superBound, from, to); // RECURSIVE
+      if (x == superBound) {
         return wt;
       }
       return lowerBoundedWildcardType(x, wt.getAnnotationMirrors());
@@ -2602,7 +2620,7 @@ final class Types {
       case INTERSECTION:
         break;
       default:
-        final TypeMirror lowerBound = capturedTypeVariableLowerBound(wildcardLowerBound(s));
+        final TypeMirror lowerBound = capturedTypeVariableLowerBound(wildcardSuperBound(s));
         if (s != lowerBound && !bottomType(lowerBound)) {
           return subtype(capture ? capture(t) : t, lowerBound, false); // RECURSIVE
         }
@@ -2702,9 +2720,9 @@ final class Types {
     assert s.getKind() == TypeKind.ARRAY;
     final TypeMirror componentType = t.getComponentType();
     if (componentType.getKind().isPrimitive()) {
-      return models(componentType, componentType(s));
+      return models(componentType, s.getComponentType());
     } else {
-      return subtype(componentType, componentType(s), false);
+      return subtype(componentType, s.getComponentType(), false);
     }
   }
 
@@ -3091,15 +3109,15 @@ final class Types {
   }
   
   private static final WildcardType upperBoundedWildcardType(final TypeMirror upperBound,
-                                                             final List<? extends AnnotationMirror> annotationMirrors) {
+                                                               final List<? extends AnnotationMirror> annotationMirrors) {
     return DefaultWildcardType.upperBoundedWildcardType(upperBound, annotationMirrors);
   }
 
   // https://github.com/openjdk/jdk/blob/jdk-18+37/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L157-L167
-  private static final TypeMirror wildcardLowerBound(final TypeMirror t) {
+  private static final TypeMirror wildcardSuperBound(final TypeMirror t) {
     switch (t.getKind()) {
     case WILDCARD:
-      return wildcardLowerBound((WildcardType)t);
+      return wildcardSuperBound((WildcardType)t);
     default:
       return t;
     case ERROR:
@@ -3108,14 +3126,14 @@ final class Types {
     }
   }
 
-  private static final TypeMirror wildcardLowerBound(final WildcardType w) {
+  private static final TypeMirror wildcardSuperBound(final WildcardType w) {
     assert w.getKind() == TypeKind.WILDCARD;
-    final TypeMirror lowerBound = w.getSuperBound();
-    if (lowerBound == null) {
+    final TypeMirror superBound = w.getSuperBound();
+    if (superBound == null) {
       return null;
     } else if (w.getExtendsBound() == null) {
-      assert lowerBound.getKind() != TypeKind.WILDCARD;
-      return lowerBound;
+      assert superBound.getKind() != TypeKind.WILDCARD;
+      return superBound;
     } else {
       throw new IllegalArgumentException("w: " + w);
     }
@@ -3126,17 +3144,17 @@ final class Types {
   private static final WildcardType wildcardTypeWithTypeVariableBound(final WildcardType w, final TypeVariable tv) {
     assert w.getKind() == TypeKind.WILDCARD;
     assert tv.getKind() == TypeKind.TYPEVAR;
-    final TypeMirror upperBound = w.getExtendsBound();
-    final TypeMirror lowerBound = w.getSuperBound();
-    if (lowerBound == null) {
-      if (upperBound == null || !Equality.equals(tv, upperBound, false)) {
+    final TypeMirror extendsBound = w.getExtendsBound();
+    final TypeMirror superBound = w.getSuperBound();
+    if (superBound == null) {
+      if (extendsBound == null || !Equality.equals(tv, extendsBound, false)) {
         // Return a (normally new) wildcard type whose upper bound is
         // the TypeVariable.
         return upperBoundedWildcardType(tv, w.getAnnotationMirrors());
       }
       return w;
-    } else if (upperBound == null) {
-      if (Equality.equals(tv, lowerBound, false)) {
+    } else if (extendsBound == null) {
+      if (Equality.equals(tv, superBound, false)) {
         return w;
       }
       // Return a (normally new) wildcard type whose lower bound is
@@ -3148,10 +3166,10 @@ final class Types {
   }
 
   // https://github.com/openjdk/jdk/blob/jdk-18+37/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L130-L143
-  private static final TypeMirror wildcardUpperBound(final TypeMirror t) {
+  private static final TypeMirror wildcardExtendsBound(final TypeMirror t) {
     switch (t.getKind()) {
     case WILDCARD:
-      return wildcardUpperBound((WildcardType)t);
+      return wildcardExtendsBound((WildcardType)t);
     default:
       return t;
     case ERROR:
@@ -3160,23 +3178,29 @@ final class Types {
     }
   }
 
-  private static final TypeMirror wildcardUpperBound(final WildcardType w) {
-    final TypeMirror lowerBound = w.getSuperBound();
-    if (lowerBound == null) {
-      final TypeMirror upperBound = w.getExtendsBound();
-      if (upperBound == null) {
+  private static final TypeMirror wildcardExtendsBound(final WildcardType w) {
+    final TypeMirror superBound = w.getSuperBound();
+    if (superBound == null) {
+      final TypeMirror extendsBound = w.getExtendsBound();
+      if (extendsBound == null) {
         return objectType(); // e.g. java.lang.Object type
       } else {
         assert
-          upperBound.getKind() == TypeKind.ARRAY ||
-          upperBound.getKind() == TypeKind.DECLARED ||
-          upperBound.getKind() == TypeKind.TYPEVAR;
-        // No need to recurse, because we know upperBound cannot be
+          extendsBound.getKind() == TypeKind.ARRAY ||
+          extendsBound.getKind() == TypeKind.DECLARED ||
+          extendsBound.getKind() == TypeKind.TYPEVAR;
+        // No need to recurse, because we know extendsBound cannot be
         // a wildcard, so we just return it.
-        return upperBound;
+        return extendsBound;
       }
-    } else if (lowerBound.getKind() == TypeKind.TYPEVAR) {
-      return ((TypeVariable)lowerBound).getUpperBound();
+    } else if (superBound.getKind() == TypeKind.TYPEVAR) {
+      // A wildcard can only have one bound, of course, and the bound
+      // must be either an array type, a declared type or a type
+      // variable.  If the bound is a type variable, then for all
+      // practical purposes it is simply the type variable's upper
+      // bound.  The compiler packs this type-variable-stripping
+      // functionality for some reason into this method.
+      return ((TypeVariable)superBound).getUpperBound();
     } else {
       return objectType(); // e.g. java.lang.Object type
     }
@@ -3336,16 +3360,16 @@ final class Types {
       final TypeKind tk = t.getKind();
       assert tk == TypeKind.WILDCARD;
       int result = tk.hashCode();
-      final TypeMirror lowerBound = t.getSuperBound();
-      final TypeMirror upperBound = t.getExtendsBound();
-      if (lowerBound == null) {
-        if (upperBound != null) {
+      final TypeMirror superBound = t.getSuperBound();
+      final TypeMirror extendsBound = t.getExtendsBound();
+      if (superBound == null) {
+        if (extendsBound != null) {
           result *= 127;
-          result += hashCode(upperBound);
+          result += hashCode(extendsBound);
         }
-      } else if (upperBound == null) {
+      } else if (extendsBound == null) {
         result *= 127;
-        result += hashCode(lowerBound);
+        result += hashCode(superBound);
       } else {
         throw new IllegalArgumentException("t: " + t);
       }

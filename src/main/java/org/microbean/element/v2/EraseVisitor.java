@@ -99,16 +99,27 @@ final class EraseVisitor extends StructuralTypeMapping<Boolean> {
     } else {
       erasedType = new DefaultDeclaredType((DeclaredType)this.visit(t.getEnclosingType(), false), List.of(), true, List.of());
       ((DefineableType)erasedType).setDefiningElement(t.asElement());
+      assert this.types2.raw(erasedType);
     }
-    if (recurse) {
+    // Commenting this out because it does not appear to be necessary
+    // in the compiler.
+    /*
+    if (Boolean.TRUE.equals(recurse)) {
       // This is extremely weird.  In the compiler, if recurse is
       // true, then an ErasedClassType (subtype of ClassType) is
       // created to decorate the already-decorated ClassType being
       // erased.  An ErasedClassType differs from a regular ClassType
       // only in that it returns true from its hasErasedSuperclasses()
-      // method.
+      // method, whereas ClassType#hasErasedSuperclasses() returns
+      // isRaw().  Maybe this is just a performance optimization?
+      //
+      // ErasedClassType does not appear anywhere else in all of the JDK,
+      // so it seems to exist solely to return true from its
+      // hasErasedSuperclasses().  Note that isRaw() will also return
+      // true for erased classes.
       erasedType = new DefaultDeclaredType(erasedType.getEnclosingType(), List.of(), true, List.of());
     }
+    */
     return erasedType;
   }
 

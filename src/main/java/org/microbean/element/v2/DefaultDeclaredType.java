@@ -74,6 +74,10 @@ public class DefaultDeclaredType extends AbstractTypeMirror implements Defineabl
     this.typeArguments = validateTypeArguments(erased || typeArguments == null || typeArguments.isEmpty() ? List.of() : List.copyOf(typeArguments));
   }
 
+  final DefaultDeclaredType withEnclosingType(final TypeMirror enclosingType) {
+    return withEnclosingType(this, enclosingType);
+  }
+  
   final boolean erased() {
     return this.erased;
   }
@@ -84,10 +88,6 @@ public class DefaultDeclaredType extends AbstractTypeMirror implements Defineabl
       throw new IllegalStateException();
     }
     if (e != null) {
-      if (e.asType() != this) {
-        // Wildcard capture makes this impossible.
-        // throw new IllegalArgumentException("e: " + e);
-      } 
       switch (e.getKind()) {
       case ANNOTATION_TYPE:
       case CLASS:
@@ -165,6 +165,16 @@ public class DefaultDeclaredType extends AbstractTypeMirror implements Defineabl
       new DefaultDeclaredType(t.getEnclosingType(),
                               t.getTypeArguments(),
                               t.getAnnotationMirrors());
+  }
+
+  public static final DefaultDeclaredType withEnclosingType(final DeclaredType t,
+                                                            final TypeMirror enclosingType) {
+    final DefaultDeclaredType r =
+      new DefaultDeclaredType(enclosingType,
+                              t.getTypeArguments(),
+                              t.getAnnotationMirrors());
+    r.setDefiningElement(t.asElement());
+    return r;
   }
 
 }

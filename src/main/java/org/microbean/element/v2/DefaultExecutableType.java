@@ -52,6 +52,10 @@ public class DefaultExecutableType extends AbstractTypeMirror implements Executa
     this.typeVariables = typeVariables == null || typeVariables.isEmpty() ? List.of() : List.copyOf(typeVariables);
   }
 
+  final DefaultExecutableType withTypeVariables(final List<? extends TypeVariable> tvs) {
+    return withTypeVariables(this, tvs);
+  }
+
   @Override // TypeMirror
   public <R, P> R accept(final TypeVisitor<R, P> v, P p) {
     return v.visitExecutable(this, p);
@@ -98,6 +102,17 @@ public class DefaultExecutableType extends AbstractTypeMirror implements Executa
                                 e.getReturnType(),
                                 e.getThrownTypes(),
                                 e.getTypeVariables(),
+                                e.getAnnotationMirrors());
+  }
+
+  public static DefaultExecutableType withTypeVariables(final ExecutableType e,
+                                                        final List<? extends TypeVariable> tvs) {
+    return
+      new DefaultExecutableType(e.getParameterTypes(),
+                                e.getReceiverType(),
+                                e.getReturnType(),
+                                e.getThrownTypes(),
+                                tvs,
                                 e.getAnnotationMirrors());
   }
 

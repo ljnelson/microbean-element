@@ -16,45 +16,42 @@
  */
 package org.microbean.element.v2;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
-import javax.lang.model.element.TypeElement;
 
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.type.TypeVariable;
 
 import javax.lang.model.util.SimpleTypeVisitor14;
 
-final class InterfacesVisitor extends SimpleTypeVisitor14<List<DeclaredType>, Void> {
+final class BoundingClassVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
 
-  private final Types2 types2;
+  private final SupertypeVisitor supertypeVisitor;
 
-  private final EraseVisitor eraseVisitor;
+  BoundingClassVisitor(final SupertypeVisitor supertypeVisitor) {
+    super();
+    this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
+  }
 
-  SubstituteVisitor substVisitor;
-  
-  InterfacesVisitor(final Types2 types2,
-                    final EraseVisitor eraseVisitor) {
-    super(List.of());
-    this.types2 = Objects.requireNonNull(types2, "types2");
-    this.eraseVisitor = Objects.requireNonNull(eraseVisitor, "eraseVisitor");
+  @Override // SimpleTypeVisitor14
+  protected final TypeMirror defaultAction(final TypeMirror t, final Void x) {
+    return t;
   }
 
   @Override
-  public final List<DeclaredType> visitDeclared(final DeclaredType t, final Void x) {
+  public final DeclaredType visitDeclared(final DeclaredType t, final Void x) {
     assert t.getKind() == TypeKind.DECLARED;
-    final List<? extends TypeMirror> interfaces = ((TypeElement)t.asElement()).getInterfaces();
-    
-
-    
-    return List.of();
+    final TypeMirror enclosingType = t.getEnclosingType();
+    final TypeMirror visitedEnclosingType = this.visit(enclosingType);
+    return enclosingType == visitedEnclosingType ? t : DefaultDeclaredType.withEnclosingType(t, visitedEnclosingType);
   }
 
-  private final boolean hasErasedSupertypes(final TypeMirror t) {
-    return this.types2.raw(t);
+  @Override
+  public final TypeMirror visitTypeVariable(final TypeVariable t, final Void x) {
+    assert t.getKind() == TypeKind.TYPEVAR;
+    return this.visit(this.supertypeVisitor.visitTypeVariable(t, x));
   }
-  
+
 }

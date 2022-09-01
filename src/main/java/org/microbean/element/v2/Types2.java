@@ -265,13 +265,19 @@ public class Types2 {
     }
   }
 
-  static final boolean canonical(final TypeMirror t) {
+  // Does the supplied TypeMirror represent a type that is being
+  // declared (rather than used)?
+  static final boolean declaration(final TypeMirror t) {
     final Element e = asElement(t, false);
     return e == null || t == e.asType();
   }
 
+  // Return the TypeMirror representing the declaration whose type may
+  // currently be being used.  E.g. given a type representing
+  // List<String>, return List<E> (from List<String>'s usage of
+  // List<E>)
   @SuppressWarnings("unchecked")
-  static final <T extends TypeMirror> T canonicalType(final T t) {
+  static final <T extends TypeMirror> T declaredTypeMirror(final T t) {
     final Element e = asElement(t, false);
     return e == null ? t : (T)e.asType();
   }
@@ -294,20 +300,10 @@ public class Types2 {
   
   static final TypeMirror extendsBound(final TypeMirror t) {
     // See
-    // https://github.com/openjdk/jdk/blob/jdk-18+37/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L130-L143.
+    // https://github.com/openjdk/jdk/blob/jdk-18+37/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L130-L143
     switch (t.getKind()) {
     case WILDCARD:
-      return extendsBound((WildcardType)t);
-    default:
-      return t;
-    }
-  }
-
-  static final TypeMirror extendsBound(final WildcardType w) {
-    // See
-    // https://github.com/openjdk/jdk/blob/jdk-18+37/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L130-L143
-    switch (w.getKind()) {
-    case WILDCARD:
+      final WildcardType w = (WildcardType)t;
       TypeMirror superBound = w.getSuperBound();
       if (superBound == null) {
         // Unbounded or upper-bounded.
@@ -320,27 +316,64 @@ public class Types2 {
           assert
             extendsBound.getKind() == TypeKind.ARRAY ||
             extendsBound.getKind() == TypeKind.DECLARED ||
-            extendsBound.getKind() == TypeKind.TYPEVAR;
-          // No need to recurse, because we know extendsBound cannot be
-          // a wildcard, so we just return it.
+            extendsBound.getKind() == TypeKind.TYPEVAR :
+          "extendsBound kind: " + extendsBound.getKind();
           return extendsBound;
         }
-      } else if (superBound.getKind() == TypeKind.TYPEVAR) {
-        // Lower-bounded with a type variable.  For some reason the
-        // compiler special-cases this.
-        //
-        // See
-        // https://github.com/openjdk/jdk/blob/jdk-20+11/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L138,
-        // particularly "w.bound.getUpperBound()".  This seems very
-        // wrong.  See also
-        // https://github.com/openjdk/jdk/commit/849ed753e2052eade5193e30faa8a13a9ec507c9.
-        superBound = ((TypeVariable)superBound).getUpperBound();
-        return superBound == null ? ObjectConstruct.JAVA_LANG_OBJECT_TYPE : superBound;
       } else {
+        // See
+        // https://github.com/openjdk/jdk/blob/jdk-20+11/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L138.
+        // A (javac) WildcardType's bound field is NOT the same as its
+        // type field.  The lang model only exposes the type field.
+        //
+        // Consider some context like this:
+        //
+        //   interface Foo<T extends Serializable> {}
+        //
+        // And then a wildcard like this:
+        //
+        //   Foo<? super String> f;
+        //
+        // The (javac) WildcardType's bound field will be initialized
+        // to T extends Serializable.  Its type field will be
+        // initialized to String.  wildUpperBound(thisWildcardType)
+        // will return Serializable.class, not Object.class.
+        //
+        // The lang model makes this impossible, because bound is not
+        // exposed, and getSuperBound() doesn't do anything fancy to
+        // return it.
+        //
+        // Dan Smith writes:
+        //
+        // "It turns out 'bound' is used to represent the
+        // *corresponding type parameter* of the wildcard, where
+        // additional bounds can be found (for things like capture
+        // conversion), not anything about the wildcard itself."
+        //
+        // And:
+        //
+        // "Honestly, it's a little sketchy that the compiler
+        // internals are doing this at all. I'm not totally sure that,
+        // for example, uses of 'wildUpperBound' aren't violating the
+        // language spec somewhere. For lang.model, no, the 'bound'
+        // field is not at all part of the specified API, so shouldn't
+        // have any impact on API behavior.
+        //
+        // "(The right thing to do, per the language spec, to
+        // incorporate the corresponding type parameter bounds, is to
+        // perform capture on the wildcard's enclosing parameterized
+        // type, and then work with the resulting capture type
+        // variables.)"
+        //
+        // So bound gets set to T extends Serializable.
+        // There is no way to extract T extends Serializable from a
+        // javax.lang.model.type.WildcardType, and without that
+        // ability we have no other information, so we must return
+        // Object.class.
         return ObjectConstruct.JAVA_LANG_OBJECT_TYPE;
       }      
     default:
-      throw new IllegalArgumentException("w: " + w);
+      return t;
     }
   }
 
@@ -372,7 +405,7 @@ public class Types2 {
     }
   }
 
-  private static final boolean isInterface(final TypeMirror t) {
+  static final boolean isInterface(final TypeMirror t) {
     switch (t.getKind()) {
     case DECLARED:
       return isInterface(((DeclaredType)t).asElement());
@@ -410,11 +443,11 @@ public class Types2 {
     case ARRAY:
       return raw(((ArrayType)t).getComponentType());
     case DECLARED:
-      final TypeMirror canonicalType = canonicalType(t);
+      final TypeMirror declaredTypeMirror = declaredTypeMirror(t);
       return
-        t != canonicalType && // t is synthetic and
-        hasTypeArguments(canonicalType) && // the canonical type has type arguments and
-        !hasTypeArguments(t); // t does not have type arguments
+        t != declaredTypeMirror && // t is a parameterized type, i.e. a type usage, and
+        hasTypeArguments(declaredTypeMirror) && // the type it parameterizes has type arguments (type variables declared by type parameters) and
+        !hasTypeArguments(t); // t does not supply type arguments
     default:
       return false;
     case ERROR:

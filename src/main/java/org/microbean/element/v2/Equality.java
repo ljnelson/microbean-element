@@ -621,6 +621,14 @@ public final class Equality {
    */
 
 
+  public static final boolean equalsIncludingAnnotations(final Object o1, final Object o2) {
+    return equals(o1, o2, true);
+  }
+
+  public static final boolean equalsNotIncludingAnnotations(final Object o1, final Object o2) {
+    return equals(o1, o2, false);
+  }
+  
   public static final boolean equals(final Object o1, final Object o2, final boolean ia) {
     if (o1 == o2) {
       return true;
@@ -907,8 +915,9 @@ public final class Equality {
     } else if (e1 == null || e2 == null || ia && !equals(e1.getAnnotationMirrors(), e2.getAnnotationMirrors(), ia)) {
       return false;
     }
-    // This is the equality contract of
-    // sun.reflect.generics.reflectiveObjects.TypeVariableImpl.
+    // This is also the equality contract of
+    // sun.reflect.generics.reflectiveObjects.TypeVariableImpl,
+    // interestingly.
     return
       e1.getKind() == ElementKind.TYPE_PARAMETER && e2.getKind() == ElementKind.TYPE_PARAMETER &&
       equals(e1.getSimpleName(), e2.getSimpleName()) &&

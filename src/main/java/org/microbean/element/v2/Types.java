@@ -3141,7 +3141,7 @@ final class Types {
 
   // Translation of "withTypeVar"; see
   // https://github.com/openjdk/jdk/blob/0f2113cee79b9645105b4753c7d7eacb83b872c2/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Type.java#L895-L902
-  private static final WildcardType wildcardTypeWithTypeVariableBound(final WildcardType w, final TypeVariable tv) {
+  static final WildcardType wildcardTypeWithTypeVariableBound(final WildcardType w, final TypeVariable tv) {
     assert w.getKind() == TypeKind.WILDCARD;
     assert tv.getKind() == TypeKind.TYPEVAR;
     final TypeMirror extendsBound = w.getExtendsBound();

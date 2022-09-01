@@ -43,6 +43,10 @@ public class DefaultTypeVariable extends AbstractTypeMirror implements TypeVaria
     this.lowerBound = lowerBound;
   }
 
+  final DefaultTypeVariable withUpperBound(final TypeMirror upperBound) {
+    return withUpperBound(this, upperBound);
+  }
+  
   @Override // TypeVariable
   public final TypeMirror getLowerBound() {
     return this.lowerBound;
@@ -70,6 +74,19 @@ public class DefaultTypeVariable extends AbstractTypeMirror implements TypeVaria
   @Override // TypeVariable
   public final TypeParameterElement asElement() {
     return this.definingElement;
+  }
+
+
+  /*
+   * Static methods.
+   */
+  
+
+  public static DefaultTypeVariable withUpperBound(final TypeVariable tv, final TypeMirror upperBound) {
+    final DefaultTypeVariable r = new DefaultTypeVariable(upperBound, tv.getLowerBound(), tv.getAnnotationMirrors());
+    r.definingElement((TypeParameterElement)tv.asElement());
+    assert r.asElement().asType() == tv;
+    return r;
   }
 
 }

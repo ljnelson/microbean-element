@@ -29,7 +29,7 @@ import javax.lang.model.util.SimpleTypeVisitor14;
 
 final class EraseVisitor extends StructuralTypeMapping<Boolean> {
 
-  Types2 types2;
+  private final Types2 types2;
   
   EraseVisitor(final Types2 types2) {
     super();
@@ -38,7 +38,7 @@ final class EraseVisitor extends StructuralTypeMapping<Boolean> {
 
   // https://github.com/openjdk/jdk/blob/jdk-20+11/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L2442-L2459
   @Override // StructuralTypeMapping
-  public TypeMirror visitDeclared(final DeclaredType t, final Boolean recurse) {
+  public final TypeMirror visitDeclared(final DeclaredType t, final Boolean recurse) {
     assert t.getKind() == TypeKind.DECLARED;
     // In the compiler, there's a LOT going on here.
     //
@@ -51,18 +51,16 @@ final class EraseVisitor extends StructuralTypeMapping<Boolean> {
     // javax.lang.model.type.DeclaredType#asElement() and
     // Element#asType() but there are no nonsensical Elements.
     //
-    // A Type's Symbol holds what amounts to the canonical Type.  As
+    // A Type's Symbol holds what amounts to the *canonical* Type.  As
     // javac goes about its business, it can take a Type (with its
     // Symbol, which references, in most cases, that very Type in a
     // circular fashion), and decorate it with another Type.  When
     // this happens, the decorating Type's Symbol's Type will be the
-    // decorated Type.
-    //
-    // We will call the decorated Type the *canonical* Type.
+    // decorated Type, which is therefore canonical.
     //
     // A Symbol has various methods on it that can cache various bits
-    // of ancillary Type data.  Symbol#erasure(Types) is one such
-    // method.
+    // of ancillary data related to its Type.  Symbol#erasure(Types)
+    // is one such method.
     //
     // It looks like this:
     //
@@ -124,13 +122,13 @@ final class EraseVisitor extends StructuralTypeMapping<Boolean> {
   }
 
   @Override // SimpleTypeVisitor6
-  public TypeMirror visitTypeVariable(final TypeVariable t, final Boolean recurse) {
+  public final TypeMirror visitTypeVariable(final TypeVariable t, final Boolean recurse) {
     assert t.getKind() == TypeKind.TYPEVAR;
     return this.visit(t.getUpperBound(), recurse);
   }
 
   @Override // StructuralTypeMapping
-  public TypeMirror visitWildcard(final WildcardType t, final Boolean recurse) {
+  public final TypeMirror visitWildcard(final WildcardType t, final Boolean recurse) {
     assert t.getKind() == TypeKind.WILDCARD;
     return this.visit(Types2.extendsBound(t), recurse);
   }

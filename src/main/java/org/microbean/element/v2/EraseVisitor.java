@@ -27,6 +27,7 @@ import javax.lang.model.type.WildcardType;
 
 import javax.lang.model.util.SimpleTypeVisitor14;
 
+// Basically done.
 final class EraseVisitor extends StructuralTypeMapping<Boolean> {
 
   private final Types2 types2;
@@ -36,7 +37,7 @@ final class EraseVisitor extends StructuralTypeMapping<Boolean> {
     this.types2 = Objects.requireNonNull(types2, "types2");
   }
 
-  // https://github.com/openjdk/jdk/blob/jdk-20+11/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L2442-L2459
+  // https://github.com/openjdk/jdk/blob/jdk-20+12/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L2442-L2459
   @Override // StructuralTypeMapping
   public final TypeMirror visitDeclared(final DeclaredType t, final Boolean recurse) {
     assert t.getKind() == TypeKind.DECLARED;
@@ -51,12 +52,12 @@ final class EraseVisitor extends StructuralTypeMapping<Boolean> {
     // javax.lang.model.type.DeclaredType#asElement() and
     // Element#asType() but there are no nonsensical Elements.
     //
-    // A Type's Symbol holds what amounts to the *canonical* Type.  As
+    // A Type's Symbol holds what amounts to the *declared* Type.  As
     // javac goes about its business, it can take a Type (with its
     // Symbol, which references, in most cases, that very Type in a
     // circular fashion), and decorate it with another Type.  When
     // this happens, the decorating Type's Symbol's Type will be the
-    // decorated Type, which is therefore canonical.
+    // decorated declared Type.
     //
     // A Symbol has various methods on it that can cache various bits
     // of ancillary data related to its Type.  Symbol#erasure(Types)
@@ -73,7 +74,7 @@ final class EraseVisitor extends StructuralTypeMapping<Boolean> {
     //   }
     //
     // BUT NOTE: ClassSymbol overrides it (see
-    // https://github.com/openjdk/jdk/blob/jdk-20%2B11/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Symbol.java#L1352-L1358):
+    // https://github.com/openjdk/jdk/blob/jdk-20+12/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Symbol.java#L1352-L1358):
     //
     //   public Type erasure(Types type) {
     //       if (erasure_field == null)
@@ -95,7 +96,7 @@ final class EraseVisitor extends StructuralTypeMapping<Boolean> {
     if (Types2.erased(t)) {
       erasedType = t;
     } else {
-      erasedType = new DefaultDeclaredType((DeclaredType)this.visit(t.getEnclosingType(), false), List.of(), true, List.of());
+      erasedType = new DefaultDeclaredType(this.visit(t.getEnclosingType(), false), List.of(), true, List.of());
       ((DefineableType)erasedType).setDefiningElement(t.asElement());
       assert this.types2.raw(erasedType);
     }

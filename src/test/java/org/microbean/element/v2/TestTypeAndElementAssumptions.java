@@ -43,6 +43,8 @@ import javax.tools.SimpleJavaFileObject;
 
 import javax.tools.JavaCompiler.CompilationTask;
 
+import com.sun.tools.javac.code.Type.ClassType;
+
 import org.junit.jupiter.api.Test;
 
 import static javax.lang.model.SourceVersion.RELEASE_17;
@@ -51,6 +53,7 @@ import static javax.tools.ToolProvider.getSystemJavaCompiler;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -77,6 +80,11 @@ final class TestTypeAndElementAssumptions {
     // The element declares a type, of course.
     final DeclaredType elementType = (DeclaredType)comparableElement.asType();
     assertEquals(TypeKind.DECLARED, elementType.getKind());
+    assertTrue(elementType instanceof ClassType);
+
+    // More exploring.
+    assertSame(comparableElement, ((ClassType)elementType).tsym);
+    assertSame(comparableElement, elementType.asElement());
     
     // The declared type has one type argument.  The sole type
     // argument is definitionally a TypeVariable.

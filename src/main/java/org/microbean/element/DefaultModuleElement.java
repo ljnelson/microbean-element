@@ -196,11 +196,16 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
     try {
       returnValue = cache.get(name);
       if (returnValue == null) {
-        final ModuleDescriptor md = m.getDescriptor();
-        returnValue = new DefaultModuleElement(name, md.modifiers().contains(ModuleDescriptor.Modifier.OPEN));
+        final ModuleDescriptor md = m.getDescriptor();        
+        returnValue = new DefaultModuleElement(name, md == null || md.modifiers().contains(ModuleDescriptor.Modifier.OPEN));
         cache.put(name, returnValue);
 
-        final Set<ModuleDescriptor.Exports> exports = new TreeSet<>(md.exports());
+        final Set<ModuleDescriptor.Exports> exports;
+        if (md == null) {
+          exports = Set.of();
+        } else {
+          exports = new TreeSet<>(md.exports());
+        }
         for (final ModuleDescriptor.Exports export : exports) {
           final DefaultPackageElement packageElement = DefaultPackageElement.of(DefaultName.of(export.source())); // INDIRECT RECURSIVE
           returnValue.addEnclosedElement(packageElement);
@@ -221,7 +226,12 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
           returnValue.addDirective(new DefaultExportsDirective(packageElement, targetModuleElements));
         }
 
-        final Set<ModuleDescriptor.Opens> openses = new TreeSet<>(md.opens());
+        final Set<ModuleDescriptor.Opens> openses;
+        if (md == null) {
+          openses = Set.of();
+        } else {
+          openses = new TreeSet<>(md.opens());
+        }
         for (final ModuleDescriptor.Opens opens : openses) {
           final DefaultPackageElement packageElement = DefaultPackageElement.of(DefaultName.of(opens.source())); // INDIRECT RECURSIVE
           returnValue.addEnclosedElement(packageElement);
@@ -242,7 +252,12 @@ public class DefaultModuleElement extends AbstractElement implements ModuleEleme
           returnValue.addDirective(new DefaultOpensDirective(packageElement, targetModuleElements));
         }
 
-        final Set<ModuleDescriptor.Provides> provideses = new TreeSet<>(md.provides());
+        final Set<ModuleDescriptor.Provides> provideses;
+        if (md == null) {
+          provideses = Set.of();
+        } else {
+          provideses = new TreeSet<>(md.provides());
+        }
         for (final ModuleDescriptor.Provides provides : provideses) {
           final DefaultTypeElement service = DefaultTypeElement.of(Class.forName(provides.service(), false, cl));
           final Collection<? extends String> providers = provides.providers();

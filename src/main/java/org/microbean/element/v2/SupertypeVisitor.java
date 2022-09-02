@@ -34,38 +34,56 @@ import javax.lang.model.type.TypeVariable;
 
 import javax.lang.model.util.SimpleTypeVisitor14;
 
+import com.sun.tools.javac.code.Symbol;
+
 final class SupertypeVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
+
+
+  /*
+   * Static fields.
+   */
+
 
   private static final TypeMirror TOP_LEVEL_ARRAY_SUPERTYPE =
     DefaultIntersectionType.of(List.of(ObjectConstruct.JAVA_LANG_OBJECT_TYPE,
                                        ObjectConstruct.JAVA_IO_SERIALIZABLE_TYPE,
                                        ObjectConstruct.JAVA_LANG_CLONEABLE_TYPE));
-  
+
+
+  /*
+   * Instance fields.
+   */
+
+
   private final Types2 types2;
 
   private final InterfacesVisitor interfacesVisitor;
-  
-  EraseVisitor eraseVisitor;
 
-  BoundingClassVisitor boundingClassVisitor;
+  private final EraseVisitor eraseVisitor;
 
-  SupertypeVisitor(final Types2 types2,
-                   final InterfacesVisitor interfacesVisitor) {
-    super();
-    this.types2 = Objects.requireNonNull(types2, "types2");
-    this.interfacesVisitor = Objects.requireNonNull(interfacesVisitor, "interfacesVisitor");
-  }
-  
+  private final BoundingClassVisitor boundingClassVisitor;
+
+
+  /*
+   * Constructors.
+   */
+
+
   SupertypeVisitor(final Types2 types2,
                    final InterfacesVisitor interfacesVisitor,
-                   final EraseVisitor eraseVisitor,
-                   final BoundingClassVisitor boundingClassVisitor) {
+                   final EraseVisitor eraseVisitor) {
     super();
     this.types2 = Objects.requireNonNull(types2, "types2");
     this.interfacesVisitor = Objects.requireNonNull(interfacesVisitor, "interfacesVisitor");
     this.eraseVisitor = Objects.requireNonNull(eraseVisitor, "eraseVisitor");
-    this.boundingClassVisitor = Objects.requireNonNull(boundingClassVisitor, "boundingClassVisitor");
+    this.boundingClassVisitor = new BoundingClassVisitor();
   }
+
+
+  /*
+   * Instance methods.
+   */
+
 
   @Override // SimpleTypeVisitor14
   public final TypeMirror visitArray(final ArrayType t, final Void x) {
@@ -114,7 +132,7 @@ final class SupertypeVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
       new SubstituteVisitor(this,
                             this.interfacesVisitor,
                             formals,
-                            (List<? extends TypeVariable>)Types2.allTypeArguments(this.boundingClassVisitor.visit(t)))
+                            (List<? extends TypeVariable>)Types2.allTypeArguments(this.boundingClassVisitor.visitDeclared(t, x)))
       .visit(supertype);
   }
 
@@ -144,11 +162,49 @@ final class SupertypeVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
     }
   }
 
+
+  /*
+   * Static methods.
+   */
+
+
   private static final boolean isObjectType(final TypeMirror t) {
     return
       t.getKind() == TypeKind.DECLARED &&
       ((DeclaredType)t).asElement() instanceof QualifiedNameable qn &&
       qn.getQualifiedName().contentEquals("java.lang.Object");
   }
-  
+
+
+  /*
+   * Inner and nested classes.
+   */
+
+
+  private final class BoundingClassVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
+
+    private BoundingClassVisitor() {
+      super();
+    }
+
+    @Override // SimpleTypeVisitor14
+    protected final TypeMirror defaultAction(final TypeMirror t, final Void x) {
+      return t;
+    }
+
+    @Override
+    public final DeclaredType visitDeclared(final DeclaredType t, final Void x) {
+      assert t.getKind() == TypeKind.DECLARED;
+      final TypeMirror enclosingType = t.getEnclosingType();
+      final TypeMirror visitedEnclosingType = this.visit(enclosingType);
+      return enclosingType == visitedEnclosingType ? t : DefaultDeclaredType.withEnclosingType(t, visitedEnclosingType);
+    }
+
+    @Override
+    public final TypeMirror visitTypeVariable(final TypeVariable t, final Void x) {
+      assert t.getKind() == TypeKind.TYPEVAR;
+      return this.visit(SupertypeVisitor.this.visitTypeVariable(t, x));
+    }
+  }
+
 }

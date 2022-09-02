@@ -34,7 +34,7 @@ final class InterfacesVisitor extends SimpleTypeVisitor14<List<DeclaredType>, Vo
 
   private final EraseVisitor eraseVisitor;
 
-  SubstituteVisitor substVisitor;
+  private SubstituteVisitor substituteVisitor;
   
   InterfacesVisitor(final Types2 types2,
                     final EraseVisitor eraseVisitor) {
@@ -43,14 +43,16 @@ final class InterfacesVisitor extends SimpleTypeVisitor14<List<DeclaredType>, Vo
     this.eraseVisitor = Objects.requireNonNull(eraseVisitor, "eraseVisitor");
   }
 
+  final void setSubstituteVisitor(final SubstituteVisitor substituteVisitor) {
+    this.substituteVisitor = Objects.requireNonNull(substituteVisitor, "substituteVisitor");
+  }
+
   @Override
   public final List<DeclaredType> visitDeclared(final DeclaredType t, final Void x) {
     assert t.getKind() == TypeKind.DECLARED;
     final List<? extends TypeMirror> interfaces = ((TypeElement)t.asElement()).getInterfaces();
     
-
-    
-    return List.of();
+    throw new UnsupportedOperationException();
   }
 
   private final boolean hasErasedSupertypes(final TypeMirror t) {

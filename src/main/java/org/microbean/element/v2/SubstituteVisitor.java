@@ -66,7 +66,7 @@ final class SubstituteVisitor extends StructuralTypeMapping<Void> {
     super();
     this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
     this.interfacesVisitor = Objects.requireNonNull(interfacesVisitor, "interfacesVisitor");
-    interfacesVisitor.substVisitor = this;
+    interfacesVisitor.setSubstituteVisitor(this);
     // https://github.com/openjdk/jdk/blob/jdk-20+12/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3321-L3322
     // "If lists have different length, discard leading elements of
     // the longer list."

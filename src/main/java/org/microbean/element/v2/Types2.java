@@ -97,6 +97,11 @@ public class Types2 {
     // (which aren't even types!) all have elements somehow, but these
     // are not in the lang model.
     //
+    // Although, see
+    // https://github.com/openjdk/jdk/blob/jdk-20%2B12/src/jdk.compiler/share/classes/com/sun/tools/javac/model/JavacTypes.java#L76,
+    // which *is* in the lang model and will return an element for an
+    // intersection type.  What a mess.
+    //
     // Much of javac's algorithmic behavior is based on most types
     // having elements, even where the elements make no sense.  In
     // fact, the only types in javac that have no elements at all are:

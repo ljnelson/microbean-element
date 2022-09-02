@@ -191,7 +191,10 @@
           <version>3.10.1</version>
           <configuration>
             <compilerArgs>
-              <arg>--add-exports=jdk.compiler/com.sun.tools.javac.code=org.microbean.element</arg>
+              <arg>--add-exports</arg>
+              <arg>jdk.compiler/com.sun.tools.javac.code=org.microbean.element</arg>
+              <arg>--add-exports</arg>
+              <arg>jdk.compiler/com.sun.tools.javac.model=org.microbean.element</arg>
               <arg>-parameters</arg>
               <arg>-Xlint:all</arg>
               <arg>-Xlint:-preview</arg>
@@ -282,9 +285,10 @@
           <version>3.0.0-M7</version>
           <configuration>
             <argLine>
-              --add-exports=jdk.compiler/com.sun.tools.javac.code=org.microbean.element
-              --add-opens=org.microbean.element/org.microbean.element=ALL-UNNAMED
-              --add-opens=org.microbean.element/org.microbean.element.v2=ALL-UNNAMED
+              --add-exports jdk.compiler/com.sun.tools.javac.code=org.microbean.element
+              --add-opens jdk.compiler/com.sun.tools.javac.model=org.microbean.element
+              --add-opens org.microbean.element/org.microbean.element=ALL-UNNAMED
+              --add-opens org.microbean.element/org.microbean.element.v2=ALL-UNNAMED
             </argLine>
             <!-- See https://junit.org/junit5/docs/snapshot/user-guide/#running-tests-build-maven-config-params -->
             <!-- See https://github.com/apache/maven-surefire/blob/eb48f1b59ca5ccf6954ef33ecab03dbaf93214cd/surefire-providers/surefire-junit-platform/src/main/java/org/apache/maven/surefire/junitplatform/JUnitPlatformProvider.java#L242-L262 -->

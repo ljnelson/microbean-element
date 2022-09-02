@@ -18,6 +18,8 @@ package org.microbean.element.v2;
 
 import java.io.IOException;
 
+import java.lang.reflect.Field;
+
 import java.net.URI;
 
 import java.util.List;
@@ -45,6 +47,8 @@ import javax.tools.JavaCompiler.CompilationTask;
 
 import com.sun.tools.javac.code.Type.ClassType;
 
+import com.sun.tools.javac.model.JavacTypes;
+
 import org.junit.jupiter.api.Test;
 
 import static javax.lang.model.SourceVersion.RELEASE_17;
@@ -52,10 +56,12 @@ import static javax.lang.model.SourceVersion.RELEASE_17;
 import static javax.tools.ToolProvider.getSystemJavaCompiler;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 final class TestTypeAndElementAssumptions {
 
@@ -71,7 +77,19 @@ final class TestTypeAndElementAssumptions {
 
   private final void testAssumptions(final ProcessingEnvironment env) {
     final javax.lang.model.util.Elements elements = env.getElementUtils();
+    final javax.lang.model.util.Types javacModelTypes = env.getTypeUtils();
+    assertTrue(javacModelTypes instanceof JavacTypes);
 
+    com.sun.tools.javac.code.Types javacTypes = null;
+    try {
+      final Field f = JavacTypes.class.getDeclaredField("types");
+      assertTrue(f.trySetAccessible());
+      javacTypes = (com.sun.tools.javac.code.Types)f.get(javacModelTypes);
+    } catch (final ReflectiveOperationException reflectiveOperationException) {
+      fail(reflectiveOperationException);
+    }
+    assertNotNull(javacTypes);
+    
     // Here we have an element representing a declaration,
     // i.e. "public interface Comparable<T>".
     final TypeElement comparableElement = elements.getTypeElement("java.lang.Comparable");

@@ -99,6 +99,7 @@ final class SupertypeVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
   // The compiler's code is borderline incomprehensible.
   // https://github.com/openjdk/jdk/blob/jdk-20+11/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L2531-L2552
   @Override // SimpleTypeVisitor14
+  @SuppressWarnings("unchecked")
   public final TypeMirror visitDeclared(final DeclaredType t, final Void x) {
     assert t.getKind() == TypeKind.DECLARED;
     final TypeMirror supertype = ((TypeElement)t.asElement()).getSuperclass();

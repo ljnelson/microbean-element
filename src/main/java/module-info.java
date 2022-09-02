@@ -24,7 +24,7 @@
 module org.microbean.element {
 
   requires transitive java.compiler;
-  requires jdk.compiler;
+  requires static jdk.compiler;
   requires transitive org.microbean.development.annotation;
 
   exports org.microbean.element;

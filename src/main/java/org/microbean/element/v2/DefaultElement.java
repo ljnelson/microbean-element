@@ -52,15 +52,18 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
 
   private final Element delegate;
 
-
+  private final EqualsAndHashCode<? super Element> ehc;
+  
+  
   /*
    * Constructors.
    */
 
 
-  private DefaultElement(final Element delegate) {
+  private DefaultElement(final Element delegate, final EqualsAndHashCode<? super Element> ehc) {
     super();
     this.delegate = Objects.requireNonNull(delegate, "delegate");
+    this.ehc = ehc == null ? new EqualityBasedEqualsAndHashCode() : ehc;
   }
 
 
@@ -329,7 +332,7 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
 
   @Override // Element
   public final int hashCode() {
-    return Equality.hashCode(this.delegate, true);
+    return this.ehc.hashCode(this.delegate);
   }
 
   @Override // Element
@@ -337,7 +340,7 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
     if (this == other) {
       return true;
     } else if (other instanceof Element e) { // instanceof on purpose
-      return Equality.equals(this.delegate, e, true);
+      return this.ehc.equals(this.delegate, e);
     } else {
       return false;
     }
@@ -355,7 +358,11 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
 
 
   public static final DefaultElement of(final Element e) {
-    return e instanceof DefaultElement d ? d : new DefaultElement(e);
+    return of(e, null);
+  }
+
+  public static final DefaultElement of(final Element e, final EqualsAndHashCode<? super Element> ehc) {
+    return e instanceof DefaultElement d ? d : new DefaultElement(e, ehc);
   }
 
 }

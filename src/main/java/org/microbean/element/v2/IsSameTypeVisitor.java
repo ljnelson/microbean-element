@@ -25,14 +25,14 @@ import javax.lang.model.util.SimpleTypeVisitor14;
 // isSameType() in javac's Types.java
 final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
-  private final ContainsVisitor containsVisitor;
+  private final ContainsTypeVisitor containsVisitor;
   
   IsSameTypeVisitor() {
     super(Boolean.FALSE);
-    this.containsVisitor = new ContainsVisitor(this);
+    this.containsVisitor = new ContainsTypeVisitor(this);
   }
 
-  IsSameTypeVisitor(final ContainsVisitor containsVisitor) {
+  IsSameTypeVisitor(final ContainsTypeVisitor containsVisitor) {
     super(Boolean.FALSE);
     this.containsVisitor = containsVisitor;
     containsVisitor.isSameTypeVisitor = this;

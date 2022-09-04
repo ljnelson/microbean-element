@@ -45,12 +45,13 @@ public final class DefaultTypeMirror implements ArrayType, ErrorType, Executable
 
   private final TypeMirror delegate;
 
-  private final BiFunction<? super DefaultTypeMirror, ? super TypeMirror, ? extends Boolean> equals;
+  // private final BiFunction<? super DefaultTypeMirror, ? super TypeMirror, ? extends Boolean> equals;
+  private final EqualsAndHashCode<? super TypeMirror> ehc;
 
-  private DefaultTypeMirror(final TypeMirror delegate) {
+  private DefaultTypeMirror(final TypeMirror delegate, final EqualsAndHashCode<? super TypeMirror> ehc) {
     super();
-    this.delegate = Objects.requireNonNull(delegate);
-    this.equals = (me, t) -> Equality.equals(me, t, true);
+    this.delegate = Objects.requireNonNull(delegate, "delegate");
+    this.ehc = ehc == null ? new EqualityBasedEqualsAndHashCode() : ehc;
   }
 
   @Override // TypeMirror
@@ -236,7 +237,7 @@ public final class DefaultTypeMirror implements ArrayType, ErrorType, Executable
 
   @Override // TypeMirror
   public final int hashCode() {
-    return Equality.hashCode(this.delegate, true);
+    return this.ehc.hashCode(this.delegate);
   }
 
   @Override // TypeMirror
@@ -244,7 +245,7 @@ public final class DefaultTypeMirror implements ArrayType, ErrorType, Executable
     if (this == other) {
       return true;
     } else if (other instanceof TypeMirror t) { // instanceof on purpose
-      return Equality.equals(this.delegate, t, true);
+      return this.ehc.equals(this.delegate, t);
     } else {
       return false;
     }
@@ -256,10 +257,14 @@ public final class DefaultTypeMirror implements ArrayType, ErrorType, Executable
   }
 
   public static final DefaultTypeMirror of(final TypeMirror t) {
+    return of(t, null);
+  }
+  
+  public static final DefaultTypeMirror of(final TypeMirror t, final EqualsAndHashCode<? super TypeMirror> ehc) {
     if (t instanceof DefaultTypeMirror d) {
       return d;
     }
-    return new DefaultTypeMirror(t);
+    return new DefaultTypeMirror(t, ehc);
   }
 
 }

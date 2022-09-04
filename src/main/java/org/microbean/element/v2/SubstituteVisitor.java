@@ -51,7 +51,7 @@ final class SubstituteVisitor extends StructuralTypeMapping<Void> {
 
   private final List<TypeVariable> from;
 
-  private final List<TypeVariable> to;
+  private final List<TypeMirror> to;
 
 
   /*
@@ -62,11 +62,10 @@ final class SubstituteVisitor extends StructuralTypeMapping<Void> {
   SubstituteVisitor(final SupertypeVisitor supertypeVisitor,
                     final InterfacesVisitor interfacesVisitor,
                     List<? extends TypeVariable> from,
-                    List<? extends TypeVariable> to) {
+                    List<? extends TypeMirror> to) {
     super();
     this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
     this.interfacesVisitor = Objects.requireNonNull(interfacesVisitor, "interfacesVisitor");
-    interfacesVisitor.setSubstituteVisitor(this);
     // https://github.com/openjdk/jdk/blob/jdk-20+12/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3321-L3322
     // "If lists have different length, discard leading elements of
     // the longer list."
@@ -93,8 +92,8 @@ final class SubstituteVisitor extends StructuralTypeMapping<Void> {
    */
 
 
-  private final SubstituteVisitor with(final List<? extends TypeVariable> from,
-                                       final List<? extends TypeVariable> to) {
+  final SubstituteVisitor with(final List<? extends TypeVariable> from,
+                                       final List<? extends TypeMirror> to) {
     return new SubstituteVisitor(this.supertypeVisitor, this.interfacesVisitor, from, to);
   }
 

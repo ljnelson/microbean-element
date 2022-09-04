@@ -18,13 +18,20 @@ package org.microbean.element.v2;
 
 import javax.lang.model.type.TypeMirror;
 
-import javax.lang.model.util.SimpleTypeVisitor14;
+public final class IdentityBasedEqualsAndHashCode implements EqualsAndHashCode<Object> {
 
-// See https://github.com/openjdk/jdk/blob/jdk-20+13/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4590-L4690
-final class AdaptingVisitor extends SimpleTypeVisitor14<Void, TypeMirror> {
-
-  AdaptingVisitor() {
+  public IdentityBasedEqualsAndHashCode() {
     super();
   }
+
+  @Override
+  public final boolean equals(final Object t, final Object o) {
+    return t == o;
+  }
+  
+  @Override
+  public final int hashCode(final Object t) {
+    return t == null ? 0 : System.identityHashCode(t);
+  }  
   
 }

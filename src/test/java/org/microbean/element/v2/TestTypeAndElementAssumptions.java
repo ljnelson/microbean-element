@@ -126,6 +126,8 @@ final class TestTypeAndElementAssumptions {
 
     // Now let's look at a place where a related type is used.
     final TypeElement stringElement = elements.getTypeElement("java.lang.String");
+    final DeclaredType stringType = (DeclaredType)stringElement.asType();
+    javacTypes.interfaces((com.sun.tools.javac.code.Type)stringType);
     final TypeMirror comparableStringType = stringElement.getInterfaces().stream()
       .filter(i -> i.getKind() == TypeKind.DECLARED && i instanceof DeclaredType d && d.asElement().getSimpleName().contentEquals("Comparable"))
       .findFirst()

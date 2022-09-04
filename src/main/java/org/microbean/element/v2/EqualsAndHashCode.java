@@ -16,15 +16,10 @@
  */
 package org.microbean.element.v2;
 
-import javax.lang.model.type.TypeMirror;
+public interface EqualsAndHashCode<T> {
 
-import javax.lang.model.util.SimpleTypeVisitor14;
+  public boolean equals(final T o1, final Object o2);
 
-// See https://github.com/openjdk/jdk/blob/jdk-20+13/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4590-L4690
-final class AdaptingVisitor extends SimpleTypeVisitor14<Void, TypeMirror> {
+  public int hashCode(final T o1);
 
-  AdaptingVisitor() {
-    super();
-  }
-  
 }

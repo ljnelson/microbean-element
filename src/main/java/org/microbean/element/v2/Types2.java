@@ -461,6 +461,20 @@ public class Types2 {
     }
   }
 
+  static final boolean parameterized(final TypeMirror t) {
+    switch (t.getKind()) {
+    case ARRAY:
+      return parameterized(((ArrayType)t).getComponentType());
+    case DECLARED:
+      return !allTypeArguments(t).isEmpty();
+    default:
+      return false;
+    case ERROR:
+    case UNION:
+      throw new IllegalArgumentException("t: " + t);
+    }
+  }
+  
   static final TypeMirror superBound(final TypeMirror t) {
     // See
     // https://github.com/openjdk/jdk/blob/jdk-20+11/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L157-L167

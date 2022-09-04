@@ -36,6 +36,7 @@ import javax.lang.model.util.SimpleTypeVisitor14;
 
 import com.sun.tools.javac.code.Symbol;
 
+// Basically done
 final class SupertypeVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
 
 
@@ -70,13 +71,12 @@ final class SupertypeVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
 
 
   SupertypeVisitor(final Types2 types2,
-                   final InterfacesVisitor interfacesVisitor,
                    final EraseVisitor eraseVisitor) {
     super();
     this.types2 = Objects.requireNonNull(types2, "types2");
-    this.interfacesVisitor = Objects.requireNonNull(interfacesVisitor, "interfacesVisitor");
     this.eraseVisitor = Objects.requireNonNull(eraseVisitor, "eraseVisitor");
-    this.boundingClassVisitor = new BoundingClassVisitor();
+    this.boundingClassVisitor = new BoundingClassVisitor(); // (inner class)
+    this.interfacesVisitor = new InterfacesVisitor(types2, eraseVisitor, this);                                                       
   }
 
 

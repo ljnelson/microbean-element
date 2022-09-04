@@ -1937,7 +1937,7 @@ final class Types {
     return ObjectConstruct.JAVA_LANG_OBJECT_TYPE;
   }
 
-  private static final boolean parameterized(final TypeMirror t) {
+  static final boolean parameterized(final TypeMirror t) {
     switch (t.getKind()) {
     case ARRAY:
       return parameterized(((ArrayType)t).getComponentType());

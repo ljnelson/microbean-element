@@ -56,6 +56,9 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
   }
 
   final SubtypeVisitor withCapture(final boolean capture) {
+    if (capture == this.capture) {
+      return this;
+    }
     final SubtypeVisitor subtypeVisitor = new SubtypeVisitor(this.types2, capture);
     subtypeVisitor.containsTypeVisitor = this.containsTypeVisitor;
     subtypeVisitor.interfacesVisitor = this.interfacesVisitor;

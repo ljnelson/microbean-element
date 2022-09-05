@@ -16,6 +16,10 @@
  */
 package org.microbean.element.v2;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import javax.lang.model.element.Name;
 import javax.lang.model.element.QualifiedNameable;
 import javax.lang.model.element.TypeElement;
@@ -45,14 +49,19 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
   SubstituteVisitor substituteVisitor;
 
+  AsSuperVisitor asSuperVisitor;
+
   private final Types2 types2;
 
   private final boolean capture;
+
+  private final Set<TypeMirrorPair> cache;
   
   SubtypeVisitor(final Types2 types2, final boolean capture) {
     super(Boolean.FALSE);
     this.types2 = types2;
     this.capture = capture;
+    this.cache = new HashSet<>();
   }
 
   final SubtypeVisitor withCapture(final boolean capture) {
@@ -104,6 +113,28 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
   }
 
   @Override
+  public final Boolean visitDeclared(final DeclaredType t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.DECLARED;
+    return this.visitDeclaredOrIntersection(t, s);
+  }
+
+  private final Boolean visitDeclaredOrIntersection(final TypeMirror t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.DECLARED || t.getKind() == TypeKind.INTERSECTION;
+    final TypeMirror sup = this.asSuperVisitor.visit(t, this.types2.asElement(s, true));
+    if (sup == null) {
+      return false;
+    }
+    switch (sup.getKind()) {
+    case DECLARED:
+      break;
+    default:
+      return this.withCapture(false).visit(sup, s);
+    }
+    
+    throw new UnsupportedOperationException();
+  }
+  
+  @Override
   public final Boolean visitError(final ErrorType t, final TypeMirror s) {
     assert t.getKind() == TypeKind.ERROR;
     return true;
@@ -116,7 +147,7 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     // https://github.com/openjdk/jdk/blob/jdk-20+13/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1191-L1192
     // and
     // https://github.com/openjdk/jdk/blob/jdk-20+13/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1088-L1094
-    throw new UnsupportedOperationException();
+    return this.visitDeclaredOrIntersection(t, s);
   }
 
   @Override
@@ -229,6 +260,27 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     // and
     // https://bugs.java.com/bugdatabase/view_bug.do?bug_id=7034922
     return false;
+  }
+
+  private final boolean containsTypeRecursive(final TypeMirror t, final TypeMirror s) {
+    final TypeMirrorPair pair = new TypeMirrorPair(this.types2, this.isSameTypeVisitor, t, s);
+    if (this.cache.add(pair)) {
+      try {
+        return
+          this.containsTypeVisitor.visit(t.getKind() == TypeKind.DECLARED ? ((DeclaredType)t).getTypeArguments() : List.of(),
+                                         s.getKind() == TypeKind.DECLARED ? ((DeclaredType)s).getTypeArguments() : List.of());
+      } finally {
+        this.cache.remove(pair);
+      }
+    } else {
+      return
+        this.containsTypeVisitor.visit(t.getKind() == TypeKind.DECLARED ? ((DeclaredType)t).getTypeArguments() : List.of(),
+                                       s.getKind() == TypeKind.DECLARED ? ((DeclaredType)s).getTypeArguments() : List.of());
+    }
+  }
+
+  private final TypeMirror rewriteSupers(final TypeMirror t) {
+    throw new UnsupportedOperationException();
   }
 
   /*

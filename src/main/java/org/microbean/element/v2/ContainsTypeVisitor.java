@@ -16,6 +16,8 @@
  */
 package org.microbean.element.v2;
 
+import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 
 import javax.lang.model.type.ArrayType;
@@ -81,6 +83,18 @@ final class ContainsTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror>
     this.isSameTypeVisitor = Objects.requireNonNull(isSameTypeVisitor);
   }
 
+  final boolean visit(final List<? extends TypeMirror> t, final List<? extends TypeMirror> s) {
+    final Iterator<? extends TypeMirror> tIterator = t.iterator();
+    final Iterator<? extends TypeMirror> sIterator = s.iterator();
+    while (tIterator.hasNext() && sIterator.hasNext() && this.visit(tIterator.next(), sIterator.next())) {
+      // do nothing
+    }
+    if (tIterator.hasNext() || sIterator.hasNext()) {
+      return false;
+    }
+    return true;
+  }
+  
   @Override
   protected final Boolean defaultAction(final TypeMirror t, final TypeMirror s) {
     return this.isSameTypeVisitor().visit(t, s);

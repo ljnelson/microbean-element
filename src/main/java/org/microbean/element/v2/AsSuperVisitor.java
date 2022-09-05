@@ -32,19 +32,21 @@ import javax.lang.model.type.TypeVariable;
 
 import javax.lang.model.util.SimpleTypeVisitor14;
 
+// Basically done
+//
 // https://github.com/openjdk/jdk/blob/jdk-20+13/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L2165-L2221
 final class AsSuperVisitor extends SimpleTypeVisitor14<TypeMirror, Element> {
 
   private final Set<DefaultElement> seenTypes; // in the compiler, the field is called seenTypes and stores Symbols (Elements).
 
   private final Types2 types2;
-  
+
   private final SupertypeVisitor supertypeVisitor;
-  
+
   private final InterfacesVisitor interfacesVisitor;
 
   private final SubtypeVisitor subtypeVisitor;
-  
+
   AsSuperVisitor(final Types2 types2,
                  final SupertypeVisitor supertypeVisitor,
                  final InterfacesVisitor interfacesVisitor,
@@ -99,7 +101,7 @@ final class AsSuperVisitor extends SimpleTypeVisitor14<TypeMirror, Element> {
               if (x != null) {
                 return x;
               }
-            }          
+            }
           }
         } finally {
           this.seenTypes.remove(c);
@@ -114,7 +116,7 @@ final class AsSuperVisitor extends SimpleTypeVisitor14<TypeMirror, Element> {
     assert t.getKind() == TypeKind.ERROR;
     return t;
   }
-  
+
   @Override
   public final TypeMirror visitIntersection(final IntersectionType t, final Element sym) {
     assert t.getKind() == TypeKind.INTERSECTION;
@@ -130,7 +132,7 @@ final class AsSuperVisitor extends SimpleTypeVisitor14<TypeMirror, Element> {
     return this.visit(t.getUpperBound(), sym);
   }
 
-  
-  
-  
+
+
+
 }

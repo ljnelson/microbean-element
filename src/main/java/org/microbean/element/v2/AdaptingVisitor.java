@@ -34,9 +34,19 @@ import javax.lang.model.type.WildcardType;
 
 import javax.lang.model.util.SimpleTypeVisitor14;
 
-// Basically done
+// Not thread safe.
+// Basically done.
 // See https://github.com/openjdk/jdk/blob/jdk-20+13/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4590-L4690
 final class AdaptingVisitor extends SimpleTypeVisitor14<Void, TypeMirror> {
+
+  /*
+   * Ported mostly slavishly from the compiler.  Some thoughts:
+   *
+   * The compiler code is really bad, but presumably battle-tested.
+   * I'm guessing that a list of "from" and a list of "to" rather than
+   * a Map<From, To> was done on purpose.  I cannot begin to think of
+   * what the purpose is.
+   */
 
   // The compiler's implementation mutates this list.
   private final List<TypeMirror> from;
@@ -45,7 +55,7 @@ final class AdaptingVisitor extends SimpleTypeVisitor14<Void, TypeMirror> {
   private final List<TypeMirror> to;
 
   private final Types2 types2;
-  
+
   private final Map<DefaultElement, TypeMirror> mapping;
 
   private final IsSameTypeVisitor isSameTypeVisitor;
@@ -53,7 +63,7 @@ final class AdaptingVisitor extends SimpleTypeVisitor14<Void, TypeMirror> {
   private final SubtypeVisitor subtypeVisitor;
 
   private final Set<TypeMirrorPair> cache;
-  
+
   AdaptingVisitor(final Types2 types2,
                   final IsSameTypeVisitor isSameTypeVisitor,
                   final SubtypeVisitor subtypeVisitor,
@@ -69,9 +79,9 @@ final class AdaptingVisitor extends SimpleTypeVisitor14<Void, TypeMirror> {
     this.to = Objects.requireNonNull(to, "to");
   }
 
-  public final void adapt(final TypeMirror source, final TypeMirror target) {
+  final void adapt(final TypeMirror source, final TypeMirror target) {
     this.visit(source, target);
-    final int fromSize = this.from.size();    
+    final int fromSize = this.from.size();
     for (int i = 0; i < fromSize; i++) {
       final TypeMirror val = this.mapping.get(DefaultElement.of(this.types2.asElement(this.from.get(i), true)));
       if (this.to.get(i) != val) {
@@ -79,7 +89,7 @@ final class AdaptingVisitor extends SimpleTypeVisitor14<Void, TypeMirror> {
       }
     }
   }
-  
+
   @Override
   public final Void visitArray(final ArrayType source, final TypeMirror target) {
     assert source.getKind() == TypeKind.ARRAY;
@@ -88,7 +98,7 @@ final class AdaptingVisitor extends SimpleTypeVisitor14<Void, TypeMirror> {
     }
     return null;
   }
-  
+
   @Override
   public final Void visitDeclared(final DeclaredType source, final TypeMirror target) {
     assert source.getKind() == TypeKind.DECLARED;
@@ -97,7 +107,7 @@ final class AdaptingVisitor extends SimpleTypeVisitor14<Void, TypeMirror> {
     }
     return null;
   }
-  
+
   @Override
   public final Void visitTypeVariable(final TypeVariable source, final TypeMirror target) {
     assert source.getKind() == TypeKind.TYPEVAR;
@@ -111,7 +121,7 @@ final class AdaptingVisitor extends SimpleTypeVisitor14<Void, TypeMirror> {
       final WildcardType valWc = (WildcardType)val;
       final TypeMirror valSuperBound = valWc.getSuperBound();
       final TypeMirror valExtendsBound = valWc.getExtendsBound();
-      
+
       final WildcardType targetWc = (WildcardType)target;
       final TypeMirror targetSuperBound = targetWc.getSuperBound();
       final TypeMirror targetExtendsBound = targetWc.getExtendsBound();
@@ -187,5 +197,5 @@ final class AdaptingVisitor extends SimpleTypeVisitor14<Void, TypeMirror> {
       }
     }
   }
-  
+
 }

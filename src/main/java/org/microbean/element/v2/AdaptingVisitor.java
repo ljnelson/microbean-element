@@ -34,6 +34,12 @@ import javax.lang.model.type.WildcardType;
 
 import javax.lang.model.util.SimpleTypeVisitor14;
 
+/**
+ * Does something adapting-like.
+ *
+ * <p>Usage: call {@link #adapt(TypeMirror, TypeMirror)}, not {@link
+ * #visit(TypeMirror, TypeMirror)}.</p>
+ */
 // Not thread safe.
 // Basically done.
 // See https://github.com/openjdk/jdk/blob/jdk-20+13/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4590-L4690
@@ -49,7 +55,7 @@ final class AdaptingVisitor extends SimpleTypeVisitor14<Void, TypeMirror> {
    */
 
   // The compiler's implementation mutates this list.
-  private final List<TypeMirror> from;
+  private final List<TypeVariable> from;
 
   // The compiler's implementation mutates this list.
   private final List<TypeMirror> to;
@@ -67,7 +73,7 @@ final class AdaptingVisitor extends SimpleTypeVisitor14<Void, TypeMirror> {
   AdaptingVisitor(final Types2 types2,
                   final IsSameTypeVisitor isSameTypeVisitor,
                   final SubtypeVisitor subtypeVisitor,
-                  final List<TypeMirror> from, // mutated
+                  final List<TypeVariable> from, // mutated
                   final List<TypeMirror> to) { // mutated
     super();
     this.types2 = Objects.requireNonNull(types2, "types2");
@@ -79,8 +85,8 @@ final class AdaptingVisitor extends SimpleTypeVisitor14<Void, TypeMirror> {
     this.to = Objects.requireNonNull(to, "to");
   }
 
-  final void adapt(final TypeMirror source, final TypeMirror target) {
-    this.visit(source, target);
+  final void adapt(final DeclaredType source, final DeclaredType target) {
+    this.visitDeclared(source, target);
     final int fromSize = this.from.size();
     for (int i = 0; i < fromSize; i++) {
       final TypeMirror val = this.mapping.get(DefaultElement.of(this.types2.asElement(this.from.get(i), true)));
@@ -88,6 +94,10 @@ final class AdaptingVisitor extends SimpleTypeVisitor14<Void, TypeMirror> {
         this.to.set(i, val);
       }
     }
+  }
+
+  final void adaptSelf(final DeclaredType target) {
+    this.adapt((DeclaredType)target.asElement().asType(), target);
   }
 
   @Override

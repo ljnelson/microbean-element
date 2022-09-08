@@ -16,6 +16,7 @@
  */
 package org.microbean.element.v2;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -38,6 +39,7 @@ import javax.lang.model.type.WildcardType;
 
 import javax.lang.model.util.SimpleTypeVisitor14;
 
+// Basically done
 // See https://github.com/openjdk/jdk/blob/jdk-20+13/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1109-L1238
 final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
@@ -56,7 +58,7 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
   private final boolean capture;
 
   private final Set<TypeMirrorPair> cache;
-  
+
   SubtypeVisitor(final Types2 types2, final boolean capture) {
     super(Boolean.FALSE);
     this.types2 = types2;
@@ -90,7 +92,7 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     switch (sKind) {
     case ARRAY:
       final TypeMirror tct = t.getComponentType();
-      final TypeMirror sct = ((ArrayType)s).getComponentType();      
+      final TypeMirror sct = ((ArrayType)s).getComponentType();
       if (tct.getKind().isPrimitive()) {
         return isSameTypeVisitor.visit(tct, sct);
       } else if (this.capture) {
@@ -123,17 +125,23 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     final TypeMirror sup = this.asSuperVisitor.visit(t, this.types2.asElement(s, true));
     if (sup == null) {
       return false;
-    }
-    switch (sup.getKind()) {
-    case DECLARED:
-      break;
-    default:
+    } else if (sup.getKind() != TypeKind.DECLARED) {
       return this.withCapture(false).visit(sup, s);
+    } else if (s.getKind() != TypeKind.DECLARED) {
+      // The compiler ultimately does some logic that will ultimately
+      // return false if s is not a non-compound ClassType, i.e. if s
+      // is anything other than a DeclaredType.  Handle that case
+      // early here.
+      return false;
     }
-    
-    throw new UnsupportedOperationException();
+    final DeclaredType supDt = (DeclaredType)sup;
+    final DeclaredType sDt = (DeclaredType)s;
+    return
+      supDt.asElement() == sDt.asElement() &&
+      (!Types2.parameterized(sDt) || this.containsTypeRecursive(sDt, supDt)) &&
+      this.withCapture(false).visit(supDt.getEnclosingType(), sDt.getEnclosingType());
   }
-  
+
   @Override
   public final Boolean visitError(final ErrorType t, final TypeMirror s) {
     assert t.getKind() == TypeKind.ERROR;
@@ -263,24 +271,73 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
   }
 
   private final boolean containsTypeRecursive(final TypeMirror t, final TypeMirror s) {
-    final TypeMirrorPair pair = new TypeMirrorPair(this.types2, this.isSameTypeVisitor, t, s);
-    if (this.cache.add(pair)) {
-      try {
-        return
-          this.containsTypeVisitor.visit(t.getKind() == TypeKind.DECLARED ? ((DeclaredType)t).getTypeArguments() : List.of(),
-                                         s.getKind() == TypeKind.DECLARED ? ((DeclaredType)s).getTypeArguments() : List.of());
-      } finally {
-        this.cache.remove(pair);
+    if (t.getKind() == TypeKind.DECLARED && s.getKind() == TypeKind.DECLARED) {
+      final List<? extends TypeMirror> tTypeArguments = ((DeclaredType)t).getTypeArguments();
+      final DeclaredType dts = (DeclaredType)s;
+      List<? extends TypeMirror> sTypeArguments = dts.getTypeArguments();
+      if (tTypeArguments.isEmpty() || sTypeArguments.isEmpty()) {
+        return false;
       }
-    } else {
-      return
-        this.containsTypeVisitor.visit(t.getKind() == TypeKind.DECLARED ? ((DeclaredType)t).getTypeArguments() : List.of(),
-                                       s.getKind() == TypeKind.DECLARED ? ((DeclaredType)s).getTypeArguments() : List.of());
+      final TypeMirrorPair pair = new TypeMirrorPair(this.types2, this.isSameTypeVisitor, t, s);
+      if (this.cache.add(pair)) {
+        try {
+          return this.containsTypeVisitor.visit(tTypeArguments, sTypeArguments);
+        } finally {
+          this.cache.remove(pair);
+        }
+      }
+      final TypeMirror rewrittenS = this.rewriteSupers(dts);
+      switch (rewrittenS.getKind()) {
+      case DECLARED:
+        sTypeArguments = ((DeclaredType)rewrittenS).getTypeArguments();
+        return !sTypeArguments.isEmpty() && this.containsTypeVisitor.visit(tTypeArguments, sTypeArguments);
+      default:
+        return false;
+      }
     }
+    return false;
   }
 
   private final TypeMirror rewriteSupers(final TypeMirror t) {
-    throw new UnsupportedOperationException();
+    // I guess t could be an ArrayType (i.e. generic array type)
+    if (this.types2.parameterized(t)) {
+      List<TypeVariable> from = new ArrayList<>();
+      List<TypeMirror> to = new ArrayList<>();
+      new AdaptingVisitor(this.types2, this.isSameTypeVisitor, this, from, to).adaptSelf((DeclaredType)t);
+      if (!from.isEmpty()) {
+        final List<TypeMirror> rewrite = new ArrayList<>();
+        boolean changed = false;
+        for (final TypeMirror orig : to) {
+          TypeMirror s = this.rewriteSupers(orig); // RECURSIVE
+          switch (s.getKind()) {
+          case WILDCARD:
+            // TODO: I'm not sure this case is actually possible.  Ported from the compiler.
+            if (((WildcardType)s).getSuperBound() != null) {
+              // TODO: maybe need to somehow ensure this shows up as
+              // non-canonical/synthetic
+              s = Types2.unboundedWildcardType(s.getAnnotationMirrors());
+              changed = true;
+            }
+            break;
+          default:
+            if (s != orig) { // Don't need Equality.equals() here
+              // TODO: maybe need to somehow ensure this shows up as
+              // non-canonical/synthetic
+              s = Types2.upperBoundedWildcardType(Types2.extendsBound(s), s.getAnnotationMirrors());
+              changed = true;
+            }
+            break;
+          }
+          rewrite.add(s);
+        }
+        if (changed) {
+          // (If t is a DeclaredType or a TypeVariable, call
+          // asElement().asType() and visit that.)
+          return this.substituteVisitor.with(from, rewrite).visit(this.types2.declaredTypeMirror(t));
+        }
+      }
+    }
+    return t;
   }
 
   /*
@@ -326,5 +383,5 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     }
   }
   */
-  
+
 }

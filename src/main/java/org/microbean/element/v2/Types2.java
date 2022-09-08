@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.WeakHashMap;
 
+import javax.lang.model.element.AnnotationMirror;
+
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
@@ -281,6 +283,8 @@ public class Types2 {
   // currently be being used.  E.g. given a type representing
   // List<String>, return List<E> (from List<String>'s usage of
   // List<E>)
+  //
+  // I don't like this name.
   @SuppressWarnings("unchecked")
   static final <T extends TypeMirror> T declaredTypeMirror(final T t) {
     final Element e = asElement(t, false);
@@ -302,7 +306,7 @@ public class Types2 {
   static final boolean erased(final TypeMirror t) {
     return t instanceof DefaultDeclaredType ddt && ddt.erased();
   }
-  
+
   static final TypeMirror extendsBound(final TypeMirror t) {
     // See
     // https://github.com/openjdk/jdk/blob/jdk-18+37/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L130-L143
@@ -376,7 +380,7 @@ public class Types2 {
         // ability we have no other information, so we must return
         // Object.class.
         return ObjectConstruct.JAVA_LANG_OBJECT_TYPE;
-      }      
+      }
     default:
       return t;
     }
@@ -387,7 +391,7 @@ public class Types2 {
     // frequently confuses type parameters and type arguments in its
     // terminology.  This implementation could probably be made more
     // efficient. See
-    // https://github.com/openjdk/jdk/blob/67ecd30327086c5d7628c4156f8d9dcccb0f4d09/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Type.java#L1137    
+    // https://github.com/openjdk/jdk/blob/67ecd30327086c5d7628c4156f8d9dcccb0f4d09/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Type.java#L1137
     switch (t.getKind()) {
     case ARRAY:
     case DECLARED:
@@ -400,7 +404,7 @@ public class Types2 {
     }
   }
 
-  private static final boolean isInterface(final Element e) {    
+  private static final boolean isInterface(final Element e) {
     switch (e.getKind()) {
     case ANNOTATION_TYPE:
     case INTERFACE:
@@ -474,7 +478,7 @@ public class Types2 {
       throw new IllegalArgumentException("t: " + t);
     }
   }
-  
+
   static final TypeMirror superBound(final TypeMirror t) {
     // See
     // https://github.com/openjdk/jdk/blob/jdk-20+11/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L157-L167
@@ -485,6 +489,19 @@ public class Types2 {
     default:
       return t;
     }
+  }
+
+  static final WildcardType unboundedWildcardType() {
+    return DefaultWildcardType.UNBOUNDED;
+  }
+
+  static final WildcardType unboundedWildcardType(final List<? extends AnnotationMirror> annotationMirrors) {
+    return DefaultWildcardType.unboundedWildcardType(annotationMirrors);
+  }
+
+  static final WildcardType upperBoundedWildcardType(final TypeMirror upperBound,
+                                                     final List<? extends AnnotationMirror> annotationMirrors) {
+    return DefaultWildcardType.upperBoundedWildcardType(upperBound, annotationMirrors);
   }
 
 

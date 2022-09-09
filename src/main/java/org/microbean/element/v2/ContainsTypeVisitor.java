@@ -32,6 +32,7 @@ import javax.lang.model.type.WildcardType;
 
 import javax.lang.model.util.SimpleTypeVisitor14;
 
+// Basically done.
 /*
  * <p>From the documentation of {@code
  * com.sun.tools.javac.code.Types#containsType(Type, Type)}:</p>
@@ -70,17 +71,15 @@ import javax.lang.model.util.SimpleTypeVisitor14;
 // https://github.com/openjdk/jdk/blob/jdk-20+12/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1562-L1611
 final class ContainsTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
+  private final Types2 types2;
+  
   IsSameTypeVisitor isSameTypeVisitor;
 
   SubtypeVisitor subtypeVisitor;
 
-  ContainsTypeVisitor() {
+  ContainsTypeVisitor(final Types2 types2) {
     super(Boolean.FALSE);
-  }
-  
-  ContainsTypeVisitor(final IsSameTypeVisitor isSameTypeVisitor) {
-    super(Boolean.FALSE);
-    this.isSameTypeVisitor = Objects.requireNonNull(isSameTypeVisitor);
+    this.types2 = Objects.requireNonNull(types2, "types2");
   }
 
   final boolean visit(final List<? extends TypeMirror> t, final List<? extends TypeMirror> s) {
@@ -97,7 +96,7 @@ final class ContainsTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror>
   
   @Override
   protected final Boolean defaultAction(final TypeMirror t, final TypeMirror s) {
-    return this.isSameTypeVisitor().visit(t, s);
+    return this.isSameTypeVisitor.visit(t, s);
   }
 
   @Override
@@ -109,31 +108,34 @@ final class ContainsTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror>
   @Override
   public final Boolean visitWildcard(final WildcardType w, final TypeMirror s) {    
     assert w.getKind() == TypeKind.WILDCARD;
-    if (isSameTypeVisitor().visitWildcard(w, s) || captures(s, w)) {
+    switch (s.getKind()) {
+    case TYPEVAR:
+      // Return true if s is a SyntheticCapturedType that captures w,
+      // which just means that the wildcard that s captures is the
+      // same one as w.
+      return s instanceof SyntheticCapturedType sct && this.visitWildcard(w, sct.getWildcardType());
+    case WILDCARD:
+      return this.visitWildcard(w, (WildcardType)s);
+    default:
+      return false;
+    }
+  }
+
+  private final boolean visitWildcard(final WildcardType t, final WildcardType s) {
+    assert t.getKind() == TypeKind.WILDCARD && s.getKind() == TypeKind.WILDCARD;
+    if (this.isSameTypeVisitor.visit(t, s)) {
       return true;
     }
-    // TODO: subtype visitor with capture turned off
-    throw new UnsupportedOperationException();
-  }
-
-  // Does tv capture w?  Is tv a capture of w?
-  //
-  // https://github.com/openjdk/jdk/blob/jdk-20+12/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1613-L1617
-  private final boolean captures(final TypeMirror tv, final WildcardType w) {
-    assert w.getKind() == TypeKind.WILDCARD;
-    return
-      tv.getKind() == TypeKind.TYPEVAR &&
-      tv instanceof SyntheticCapturedType ct &&
-      isSameTypeVisitor().visit(w, ct.getWildcardType());
-  }
-
-  private final IsSameTypeVisitor isSameTypeVisitor() {
-    final IsSameTypeVisitor isSameTypeVisitor = this.isSameTypeVisitor;
-    if (isSameTypeVisitor == null) {
-      throw new IllegalStateException("this.isSameTypeVisitor == null");
+    final TypeMirror tSuperBound = t.getSuperBound();
+    if (tSuperBound == null) {
+      // Extends bounded (or unbounded).  So extends bounded AND:
+      return this.subtypeVisitor.withCapture(false).visit(this.types2.extendsBound(s), this.types2.extendsBound(t));
+    } else if (t.getExtendsBound() == null) {
+      // Super bounded.  So super bounded AND:
+      return this.subtypeVisitor.withCapture(false).visit(tSuperBound, this.types2.superBound(s));      
+    } else {
+      throw new IllegalArgumentException("t: " + t + "; s: " + s);
     }
-    return isSameTypeVisitor;
   }
 
-  
 }

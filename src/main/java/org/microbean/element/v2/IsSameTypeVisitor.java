@@ -16,9 +16,23 @@
  */
 package org.microbean.element.v2;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 import javax.lang.model.type.ArrayType;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.ErrorType;
+import javax.lang.model.type.ExecutableType;
+import javax.lang.model.type.IntersectionType;
+import javax.lang.model.type.NoType;
+import javax.lang.model.type.NullType;
+import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.type.TypeVariable;
+import javax.lang.model.type.WildcardType;
 
 import javax.lang.model.util.SimpleTypeVisitor14;
 
@@ -26,20 +40,32 @@ import javax.lang.model.util.SimpleTypeVisitor14;
 final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
   private final ContainsTypeVisitor containsVisitor;
-  
-  IsSameTypeVisitor() {
-    super(Boolean.FALSE);
-    this.containsVisitor = new ContainsTypeVisitor(this);
-  }
 
-  IsSameTypeVisitor(final ContainsTypeVisitor containsVisitor) {
+  private final SupertypeVisitor supertypeVisitor;
+
+  private final SubstituteVisitor substituteVisitor;
+  
+  IsSameTypeVisitor(final ContainsTypeVisitor containsVisitor,
+                    final SupertypeVisitor supertypeVisitor,
+                    final SubstituteVisitor substituteVisitor) {
     super(Boolean.FALSE);
     this.containsVisitor = containsVisitor;
     containsVisitor.isSameTypeVisitor = this;
+    this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
+    this.substituteVisitor = Objects.requireNonNull(substituteVisitor, "substituteVisitor");
+  }
+
+  @Override
+  protected final Boolean defaultAction(final TypeMirror t, final TypeMirror s) {
+    return t == s || Equality.equalsNotIncludingAnnotations(t, s);
   }
 
   @Override
   public final Boolean visitArray(final ArrayType t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.ARRAY;
+    if (t == s) {
+      return true;
+    }
     switch (s.getKind()) {
     case ARRAY:
       return this.visitArray(t, (ArrayType)s);
@@ -59,6 +85,219 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     return
       this.visit(tct, sct) ||
       this.containsVisitor.visit(tct, sct) && this.containsVisitor.visit(sct, tct);
+  }
+
+  @Override
+  public final Boolean visitDeclared(final DeclaredType t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.DECLARED;
+    if (t == s) {
+      return true;
+    }
+    switch (s.getKind()) {
+    case DECLARED:
+      return this.visitDeclared(t, (DeclaredType)s);
+    case INTERSECTION:
+      // (Basically returns false.)
+      return this.visitDeclared(t, (IntersectionType)s);
+    case WILDCARD:
+      return this.visitDeclared(t, (WildcardType)s);
+    default:
+      return false;
+    }
+  }
+
+  // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1424-L1426
+  private final boolean visitDeclared(final DeclaredType t, final DeclaredType s) {
+    assert t.getKind() == TypeKind.DECLARED && s.getKind() == TypeKind.DECLARED;
+    assert t != s;
+    return
+      t.asElement() == s.asElement() && // TODO: *true* identity? Or just extreme equality?
+      this.visit(t.getEnclosingType(), s.getEnclosingType()) && // RECURSIVE
+      this.containsTypeEquivalent(t.getTypeArguments(), s.getTypeArguments());
+  }
+
+  private final boolean visitDeclared(final DeclaredType t, final IntersectionType s) {
+    assert t.getKind() == TypeKind.DECLARED && s.getKind() == TypeKind.INTERSECTION;
+    // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1424-L1426
+    //
+    // javac falls back on some common code that starts with:
+    //
+    //   return t.tsym == s.tsym
+    //       && ...
+    //
+    // But the Symbol of an IntersectionClassType will never be the
+    // same as the Symbol of any other Type.  That's because
+    // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L2497-L2504
+    // is the only place where a new IntersectionClassType is created
+    // (https://github.com/openjdk/jdk/search?q=%22new+IntersectionClassType%22),
+    // and you can see that a new synthetic Symbol is created each
+    // time as well.
+    //
+    // Therefore we can just return false.
+    return false;
+  }
+
+  private final boolean visitDeclared(final DeclaredType t, final WildcardType s) {
+    assert t.getKind() == TypeKind.DECLARED && s.getKind() == TypeKind.WILDCARD;
+    throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  public final Boolean visitIntersection(final IntersectionType t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.INTERSECTION;
+    if (t == s) {
+      return true;
+    }
+    switch (s.getKind()) {
+    case INTERSECTION:
+      return this.visitIntersection(t, (IntersectionType)s);
+    default:
+      // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1424-L1426
+      //
+      // javac falls back on some common code that starts with:
+      //
+      //   return t.tsym == s.tsym
+      //       && ...
+      //
+      // But the Symbol of an IntersectionClassType will never be the
+      // same as the Symbol of any other Type.  That's because
+      // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L2497-L2504
+      // is the only place where a new IntersectionClassType is
+      // created
+      // (https://github.com/openjdk/jdk/search?q=%22new+IntersectionClassType%22),
+      // and you can see that a new synthetic Symbol is created each
+      // time as well.
+      //
+      // Therefore we can just return false.
+      return false;
+    }
+  }
+
+  // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1404-L1423
+  private final boolean visitIntersection(final IntersectionType t, final IntersectionType s) {
+    assert t.getKind() == TypeKind.INTERSECTION && s.getKind() == TypeKind.INTERSECTION;
+    assert t != s;
+    if (!this.visit(this.supertypeVisitor.visit(t), this.supertypeVisitor.visit(s))) {
+      return false;
+    }
+    final Map<DefaultElement, TypeMirror> tMap = new HashMap<>();
+    for (final TypeMirror ti : this.supertypeVisitor.interfacesVisitor().visitIntersection(t, null)) {
+      assert ti.getKind() == TypeKind.DECLARED;
+      assert ti instanceof DeclaredType;
+      tMap.put(DefaultElement.of(((DeclaredType)t).asElement()), ti);
+    }
+    for (final TypeMirror si : this.supertypeVisitor.interfacesVisitor().visitIntersection(s, null)) {
+      assert si.getKind() == TypeKind.DECLARED;
+      assert si instanceof DeclaredType;
+      final TypeMirror ti = tMap.remove(((DeclaredType)si).asElement());
+      if (ti == null || !this.visit(ti, si)) {
+        return false;
+      }
+    }
+    return tMap.isEmpty();
+  }
+
+  @Override
+  public final Boolean visitError(final ErrorType t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.ERROR;
+    return true;
+  }
+
+  @Override
+  public final Boolean visitNoType(final NoType t, final TypeMirror s) {
+    final TypeKind tKind = t.getKind();    
+    assert
+      tKind == TypeKind.MODULE ||
+      tKind == TypeKind.NONE ||
+      tKind == TypeKind.PACKAGE ||
+      tKind == TypeKind.VOID;
+    if (t == s) {
+      return true;
+    }
+    switch (s.getKind()) {
+    case NONE:
+      return tKind == s.getKind();
+    default:
+      return Equality.equalsNotIncludingAnnotations(t, s);
+    }
+  }
+  
+  @Override
+  public final Boolean visitNull(final NullType t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.NULL;
+    if (t == s) {
+      return true;
+    }
+    switch (s.getKind()) {
+    case NULL:
+      return true;
+    default:
+      return Equality.equalsNotIncludingAnnotations(t, s);
+    }
+  }
+
+  @Override
+  public final Boolean visitPrimitive(final PrimitiveType t, final TypeMirror s) {
+    final TypeKind tKind = t.getKind();
+    assert tKind.isPrimitive();
+    if (t == s) {
+      return true;
+    }
+    final TypeKind sKind = s.getKind();
+    switch (s.getKind()) {
+    case BOOLEAN:
+    case BYTE:
+    case CHAR:
+    case DOUBLE:
+    case FLOAT:
+    case INT:
+    case LONG:
+    case SHORT:
+      assert s.getKind().isPrimitive();
+      return tKind == sKind;
+    default:
+      return Equality.equalsNotIncludingAnnotations(t, s);
+    }
+  }
+
+  @Override
+  public final Boolean visitExecutable(final ExecutableType t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.EXECUTABLE;
+    if (t == s) {
+      return true;
+    }
+    switch (s.getKind()) {
+    case EXECUTABLE:
+      return this.visitExecutable(t, (ExecutableType)s);
+    default:
+      return false;
+    }
+  }
+
+  private final boolean visitExecutable(final ExecutableType t, final ExecutableType s) {
+    assert t.getKind() == TypeKind.EXECUTABLE && s.getKind() == TypeKind.EXECUTABLE;
+    assert t != s;
+    if (!hasSameBounds(t, s)) {
+      return false;
+    }
+    // subst s -> t
+    final ExecutableType substitutedS = new SubstituteVisitor(this.supertypeVisitor, s.getTypeVariables(), t.getTypeVariables()).visitExecutable(s, null);
+    if (s != substitutedS) {
+      return this.visitExecutable(t, substitutedS); // RECURSIVE
+    }
+    return hasSameArgs(t, s) && this.visit(t.getReturnType(), s.getReturnType());
+  }
+
+  private final boolean hasSameArgs(final ExecutableType t, final ExecutableType s) {
+    throw new UnsupportedOperationException();
+  }
+  
+  private final boolean hasSameBounds(final ExecutableType t, final ExecutableType s) {
+    throw new UnsupportedOperationException();
+  }
+
+  private final boolean containsTypeEquivalent(final List<? extends TypeMirror> ts, final List<? extends TypeMirror> ss) {
+    throw new UnsupportedOperationException();
   }
   
 }

@@ -43,9 +43,13 @@ import javax.lang.model.util.SimpleTypeVisitor14;
 // See https://github.com/openjdk/jdk/blob/jdk-20+13/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1109-L1238
 final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
-  ContainsTypeVisitor containsTypeVisitor;
+  private final Types2 types2;
 
-  InterfacesVisitor interfacesVisitor;
+  private final boolean capture;
+
+  private final Set<TypeMirrorPair> cache;
+
+  ContainsTypeVisitor containsTypeVisitor;
 
   IsSameTypeVisitor isSameTypeVisitor;
 
@@ -53,12 +57,10 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
   AsSuperVisitor asSuperVisitor;
 
-  private final Types2 types2;
-
-  private final boolean capture;
-
-  private final Set<TypeMirrorPair> cache;
-
+  SubtypeVisitor(final Types2 types2) {
+    this(types2, true);
+  }
+  
   SubtypeVisitor(final Types2 types2, final boolean capture) {
     super(Boolean.FALSE);
     this.types2 = types2;
@@ -72,7 +74,6 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     }
     final SubtypeVisitor subtypeVisitor = new SubtypeVisitor(this.types2, capture);
     subtypeVisitor.containsTypeVisitor = this.containsTypeVisitor;
-    subtypeVisitor.interfacesVisitor = this.interfacesVisitor;
     subtypeVisitor.isSameTypeVisitor = this.isSameTypeVisitor;
     subtypeVisitor.substituteVisitor = this.substituteVisitor;
     return subtypeVisitor;
@@ -340,49 +341,5 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     }
     return t;
   }
-
-  /*
-  // "supers" here in the sense of a wildcard's super bound
-  private final TypeMirror rewriteSupers(final TypeMirror t) {
-    if (!this.types2.parameterized(t)) {
-      return t;
-    }
-    List<TypeMirror> from = new ArrayList<>();
-    List<TypeMirror> to = new ArrayList<>();
-    adaptSelf(t, from, to);
-    if (!from.isEmpty()) {
-      final List<TypeMirror> rewrite = new ArrayList<>();
-      boolean changed = false;
-      for (final TypeMirror orig : to) {
-        TypeMirror s = rewriteLowerBoundedWildcardTypes(orig); // RECURSIVE
-        switch (s.getKind()) {
-        case WILDCARD:
-          if (((WildcardType)s).getSuperBound() != null) {
-            // TODO: maybe need to somehow ensure this shows up as
-            // non-canonical/synthetic
-            s = unboundedWildcardType(s.getAnnotationMirrors());
-            changed = true;
-          }
-          break;
-        default:
-          if (s != orig) { // Don't need Equality.equals() here
-            // TODO: maybe need to somehow ensure this shows up as
-            // non-canonical/synthetic
-            s = upperBoundedWildcardType(wildcardExtendsBound(s), s.getAnnotationMirrors());
-            changed = true;
-          }
-          break;
-        case ERROR:
-        case UNION:
-          throw new IllegalStateException("s: " + s);
-        }
-        rewrite.add(s);
-      }
-      if (changed) {
-        return subst(canonicalType(t), from, rewrite);
-      }
-    }
-  }
-  */
 
 }

@@ -95,9 +95,12 @@ final class InterfacesVisitor extends SimpleTypeVisitor14<List<? extends TypeMir
       // (Technically an illegal state.)
       return List.of();
     case 1:
-      return Types2.isInterface(bounds.get(0)) ? bounds : List.of();
+      return this.types2.isInterface(bounds.get(0)) ? bounds : List.of();
     default:
-      return Types2.isInterface(bounds.get(0)) ? bounds : bounds.subList(1, size);
+      // TODO: if we want to get fancy and permit multiple classes in
+      // here we have to not presume that everything from position 1
+      // on is a non-interface
+      return this.types2.isInterface(bounds.get(0)) ? bounds : bounds.subList(1, size);
     }
   }
 

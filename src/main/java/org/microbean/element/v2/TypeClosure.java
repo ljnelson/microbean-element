@@ -37,7 +37,9 @@ import javax.lang.model.type.TypeVariable;
 // A type closure list builder.
 public final class TypeClosure {
 
-  private final List<TypeMirror> list;
+  // DefaultTypeMirror so things like list.contains(t) will work with
+  // arbitrary TypeMirror implementations
+  private final List<DefaultTypeMirror> list;
 
   private final BiPredicate<? super Element, ? super Element> precedesPredicate;
 
@@ -52,7 +54,7 @@ public final class TypeClosure {
   }
 
   TypeClosure(final BiPredicate<? super Element, ? super Element> precedesPredicate,
-          final BiPredicate<? super Element, ? super Element> equalsPredicate) {
+              final BiPredicate<? super Element, ? super Element> equalsPredicate) {
     super();
     this.list = new ArrayList<>(10);
     this.precedesPredicate = Objects.requireNonNull(precedesPredicate, "precedesPredicate");
@@ -60,12 +62,12 @@ public final class TypeClosure {
   }
 
   final boolean insert(final TypeMirror t) {
-    return this.insert(this.list, t);
+    return this.insert(this.list, DefaultTypeMirror.of(t));
   }
 
-  private final boolean insert(final List<TypeMirror> list, final TypeMirror t) {
+  private final boolean insert(final List<DefaultTypeMirror> list, final TypeMirror t) {
     if (list.isEmpty()) {
-      list.add(0, t);
+      list.add(0, DefaultTypeMirror.of(t));
       return true;
     }
     final Element e;
@@ -95,7 +97,7 @@ public final class TypeClosure {
       // Already have it.
       return false;
     } else if (this.precedesPredicate.test(e, headE)) {
-      list.add(0, t);
+      list.add(0, DefaultTypeMirror.of(t));
       return true;
     } else {
       return this.insert(list.subList(1, list.size()), t); // RECURSIVE
@@ -110,9 +112,11 @@ public final class TypeClosure {
     this.union(this.list, c2);
   }
 
-  private final void union(final List<TypeMirror> c1, final List<? extends TypeMirror> c2) {
+  private final void union(final List<DefaultTypeMirror> c1, final List<? extends TypeMirror> c2) {
     if (c1.isEmpty()) {
-      c1.addAll(c2);
+      for (final TypeMirror t : c2) {
+        c1.add(DefaultTypeMirror.of(t));
+      }
       return;
     } else if (c2.isEmpty()) {
       return;
@@ -143,13 +147,13 @@ public final class TypeClosure {
     }
     if (this.equalsPredicate.test(head1E, head2E)) {
       this.union(c1.subList(1, c1.size()), c2.subList(1, c2.size())); // RECURSIVE
-      c1.add(0, head1);
+      c1.add(0, DefaultTypeMirror.of(head1));
     } else if (this.precedesPredicate.test(head2E, head1E)) {
       this.union(c1, c2.subList(1, c2.size())); // RECURSIVE
-      c1.add(0, head2);
+      c1.add(0, DefaultTypeMirror.of(head2));
     } else {
       this.union(c1.subList(1, c1.size()), c2); // RECURSIVE
-      c1.add(0, head1);
+      c1.add(0, DefaultTypeMirror.of(head1));
     }
   }
 
@@ -157,7 +161,7 @@ public final class TypeClosure {
   // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3717-L3718.
   final void prepend(final TypeVariable t) {
     assert t.getKind() == TypeKind.TYPEVAR;
-    this.list.add(0, t);
+    this.list.add(0, DefaultTypeMirror.of(t));
   }
 
   // Port of javac's Types#closureMin(List<Type>)

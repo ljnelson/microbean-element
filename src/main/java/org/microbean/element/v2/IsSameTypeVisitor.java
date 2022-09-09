@@ -17,6 +17,7 @@
 package org.microbean.element.v2;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,6 +45,9 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
   private final SupertypeVisitor supertypeVisitor;
 
   private final SubstituteVisitor substituteVisitor;
+
+  // See comments in visitExecutable().
+  // private final HasSameParameterTypesVisitor hasSameParameterTypesVisitor; // inner class
   
   IsSameTypeVisitor(final ContainsTypeVisitor containsVisitor,
                     final SupertypeVisitor supertypeVisitor,
@@ -53,6 +57,8 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     containsVisitor.isSameTypeVisitor = this;
     this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
     this.substituteVisitor = Objects.requireNonNull(substituteVisitor, "substituteVisitor");
+    // See comments in visitExecutable().
+    // this.hasSameParameterTypesVisitor = new HasSameParameterTypesVisitor();
   }
 
   @Override
@@ -82,9 +88,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     }
     final TypeMirror tct = t.getComponentType();
     final TypeMirror sct = s.getComponentType();
-    return
-      this.visit(tct, sct) ||
-      this.containsVisitor.visit(tct, sct) && this.containsVisitor.visit(sct, tct);
+    return this.containsTypeEquivalent(tct, sct);
   }
 
   @Override
@@ -280,24 +284,118 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     if (!hasSameBounds(t, s)) {
       return false;
     }
-    // subst s -> t
-    final ExecutableType substitutedS = new SubstituteVisitor(this.supertypeVisitor, s.getTypeVariables(), t.getTypeVariables()).visitExecutable(s, null);
+    final ExecutableType substitutedS =
+      new SubstituteVisitor(this.supertypeVisitor, s.getTypeVariables(), t.getTypeVariables()).visitExecutable(s, null);
     if (s != substitutedS) {
       return this.visitExecutable(t, substitutedS); // RECURSIVE
     }
-    return hasSameArgs(t, s) && this.visit(t.getReturnType(), s.getReturnType());
+    // javac has, effectively
+    // (https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1445):
+    //
+    //   return hasSameArgs(t, s) && this.visit(t.getReturnType(), s.getReturnType())
+    //
+    // hasSameArgs() in javac ends up calling a visitor that does
+    // exactly what this current visitExecutable() method does, so
+    // effectively the compiler checks an executable twice.  That
+    // seems silly.  The only "extra" thing hasSameArgs does is call containsTypeEquivalent(t, s).
+    //
+    // So instead of this:
+    //
+    //   return hasSameArgs(t, s) && this.visit(t.getReturnType(), s.getReturnType());
+    //
+    // …we'll just do this:
+    return containsTypeEquivalent(t, s) && this.visit(t.getReturnType(), s.getReturnType());
   }
 
+  // NOTE: Not currently used.  See comments in visitExecutable() above.
+  //
+  // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3245-L3256
+  //
+  // Duplication in javac all over the place.
+  /*
   private final boolean hasSameArgs(final ExecutableType t, final ExecutableType s) {
-    throw new UnsupportedOperationException();
+    return this.hasSameParameterTypesVisitor.visit(t, s);
+  }
+  */
+
+  // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3468-L3480
+  private final boolean hasSameBounds(final ExecutableType t, final ExecutableType s) {
+    final List<? extends TypeVariable> tVariables = t.getTypeVariables();
+    final List<? extends TypeVariable> sVariables = s.getTypeVariables();
+    if (tVariables.isEmpty()) {
+      return sVariables.isEmpty();
+    } else if (sVariables.isEmpty()) {
+      return false;
+    }
+    final Iterator<? extends TypeVariable> ti = tVariables.iterator();
+    final Iterator<? extends TypeVariable> si = sVariables.iterator();
+    while (ti.hasNext() &&
+           si.hasNext() &&
+           this.visit(ti.next().getUpperBound(),
+                      new SubstituteVisitor(this.supertypeVisitor, sVariables, tVariables).visit(si.next().getUpperBound()))) {
+      continue;
+    }
+    return !ti.hasNext() && !si.hasNext();
+  }
+
+  // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4562-L4565
+  private final boolean containsTypeEquivalent(final TypeMirror t, final TypeMirror s) {
+    return
+      this.visit(t, s) ||
+      this.containsVisitor.visit(t, s) && this.containsVisitor.visit(s, t);
   }
   
-  private final boolean hasSameBounds(final ExecutableType t, final ExecutableType s) {
-    throw new UnsupportedOperationException();
+  private final boolean containsTypeEquivalent(final List<? extends TypeMirror> ts, final List<? extends TypeMirror> ss) {
+    if (ts.isEmpty()) {
+      return ss.isEmpty();
+    } else if (ss.isEmpty()) {
+      return false;
+    }
+    final Iterator<? extends TypeMirror> ti = ts.iterator();
+    final Iterator<? extends TypeMirror> si = ss.iterator();
+    while (ti.hasNext() &&
+           si.hasNext() &&
+           this.containsTypeEquivalent(ti.next(), si.next())) {
+      continue;
+    }
+    return !ti.hasNext() && !si.hasNext();
   }
 
-  private final boolean containsTypeEquivalent(final List<? extends TypeMirror> ts, final List<? extends TypeMirror> ss) {
-    throw new UnsupportedOperationException();
+  // NOTE: Not currently used.
+  //
+  // See https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3266-L3298.
+  //
+  // Note that visitExecutable, above, a port of javac logic, calls
+  // this (indirectly), and duplicates most of its logic.  This is
+  // very weird.  I don't know why the compiler checks things multiple
+  // times.
+  /*
+  private final class HasSameParameterTypesVisitor extends SimpleTypeVisitor14<Boolean, ExecutableType> {
+
+    HasSameParameterTypesVisitor() {
+      super(Boolean.FALSE);
+    }
+
+    @Override
+    public final Boolean visitExecutable(final ExecutableType t, final ExecutableType s) {
+      assert t.getKind() == TypeKind.EXECUTABLE;
+      if (s.getKind() == TypeKind.EXECUTABLE) {
+        if (hasSameBounds(t, s)) {
+          // TODO: already done in visitExecutable() above
+          return false;
+        }
+        // TODO: already done in visitExecutable() above
+        final ExecutableType substitutedS =
+          new SubstituteVisitor(supertypeVisitor, s.getTypeVariables(), t.getTypeVariables()).visitExecutable(s, null);
+        if (s != substitutedS) {
+          return this.visit(t, substitutedS);
+        }
+        return containsTypeEquivalent(t.getParameterTypes(), s.getParameterTypes());
+      }
+      return false;
+    }
+    
   }
+  */
   
 }

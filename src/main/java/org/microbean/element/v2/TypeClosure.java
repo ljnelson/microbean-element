@@ -34,7 +34,8 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 
-final class Closure {
+// A type closure list builder.
+public final class TypeClosure {
 
   private final List<TypeMirror> list;
 
@@ -42,11 +43,15 @@ final class Closure {
 
   private final BiPredicate<? super Element, ? super Element> equalsPredicate;
 
-  Closure(final BiPredicate<? super Element, ? super Element> precedesPredicate) {
+  TypeClosure(final SupertypeVisitor supertypeVisitor, final SubtypeVisitor subtypeVisitor) {
+    this(new PrecedesPredicate(supertypeVisitor, subtypeVisitor), null);
+  }
+
+  TypeClosure(final BiPredicate<? super Element, ? super Element> precedesPredicate) {
     this(precedesPredicate, null);
   }
-  
-  Closure(final BiPredicate<? super Element, ? super Element> precedesPredicate,
+
+  TypeClosure(final BiPredicate<? super Element, ? super Element> precedesPredicate,
           final BiPredicate<? super Element, ? super Element> equalsPredicate) {
     super();
     this.list = new ArrayList<>(10);
@@ -87,19 +92,25 @@ final class Closure {
       throw new IllegalStateException();
     }
     if (this.equalsPredicate.test(e, headE)) {
+      // Already have it.
       return false;
     } else if (this.precedesPredicate.test(e, headE)) {
       list.add(0, t);
       return true;
+    } else {
+      return this.insert(list.subList(1, list.size()), t); // RECURSIVE
     }
-    return this.insert(list.subList(1, list.size()), t); // RECURSIVE
   }
 
-  final void union(final List<TypeMirror> c2) {
+  final void union(final TypeClosure c2) {
+    this.union(this.list, c2.list);
+  }
+
+  final void union(final List<? extends TypeMirror> c2) {
     this.union(this.list, c2);
   }
 
-  private final void union(final List<TypeMirror> c1, final List<TypeMirror> c2) {
+  private final void union(final List<TypeMirror> c1, final List<? extends TypeMirror> c2) {
     if (c1.isEmpty()) {
       c1.addAll(c2);
       return;
@@ -142,30 +153,38 @@ final class Closure {
     }
   }
 
+  // Weird case. See
+  // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3717-L3718.
+  final void prepend(final TypeVariable t) {
+    assert t.getKind() == TypeKind.TYPEVAR;
+    this.list.add(0, t);
+  }
+
+  // Port of javac's Types#closureMin(List<Type>)
+  // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3915-L3945
   final List<TypeMirror> toMinimumTypes(final SubtypeVisitor subtypeVisitor) {
     final List<TypeMirror> classes = new ArrayList<>();
     final List<TypeMirror> interfaces = new ArrayList<>();
-    final Set<TypeMirror> toSkip = new HashSet<>();
+    final Set<DefaultTypeMirror> toSkip = new HashSet<>();
 
     final int size = this.list.size();
 
-    for (int i = 0; i < size; i++) {
-      final TypeMirror type = this.list.get(i);
-      final DefaultTypeMirror current = DefaultTypeMirror.of(type);
-      boolean keep = !toSkip.contains(current);
-      final int next = i + 1;
+    for (int i = 0, next = 1; i < size; i++, next++) {
+      final TypeMirror current = this.list.get(i);
+      boolean keep = !toSkip.contains(DefaultTypeMirror.of(current));
       if (keep && current.getKind() == TypeKind.TYPEVAR && next < size) {
         for (int j = next; j < size; j++) {
           if (subtypeVisitor.withCapture(false).visit(this.list.get(j), current)) {
+            // If there's a subtype of current "later" in the list, then
+            // there's no need to "keep" current; it will be implied by
+            // the subtype's supertype hierarchy.
             keep = false;
             break;
           }
         }
       }
       if (keep) {
-        if (current.getKind() == TypeKind.DECLARED &&
-            ((DeclaredType)current).asElement() instanceof TypeElement te &&
-            te.getKind().isInterface()) {
+        if (current.getKind() == TypeKind.DECLARED && ((DeclaredType)current).asElement().getKind().isInterface()) {
           interfaces.add(current);
         } else {
           classes.add(current);
@@ -174,18 +193,21 @@ final class Closure {
           for (int j = next; j < size; j++) {
             final TypeMirror t = this.list.get(j);
             if (subtypeVisitor.withCapture(false).visit(current, t)) {
+              // As we're processing this.list, we can skip supertypes
+              // of current (t, here) because we know current is
+              // already more specialized than they are.
               toSkip.add(DefaultTypeMirror.of(t));
             }
           }
         }
-      }      
+      }
     }
     classes.addAll(interfaces);
     return Collections.unmodifiableList(classes);
   }
 
-  final List<TypeMirror> toList() {
+  public final List<? extends TypeMirror> toList() {
     return List.copyOf(this.list);
   }
-  
+
 }

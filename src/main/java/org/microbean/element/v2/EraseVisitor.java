@@ -52,12 +52,16 @@ final class EraseVisitor extends StructuralTypeMapping<Boolean> {
     // javax.lang.model.type.DeclaredType#asElement() and
     // Element#asType() but there are no nonsensical Elements.
     //
-    // A Type's Symbol holds what amounts to the *declared* Type.  As
-    // javac goes about its business, it can take a Type (with its
-    // Symbol, which references, in most cases, that very Type in a
-    // circular fashion), and decorate it with another Type.  When
-    // this happens, the decorating Type's Symbol's Type will be the
-    // decorated declared Type.
+    // A Type's Symbol holds what I'll call the element type, or
+    // element Type when I'm being exceptionally precise.  As javac
+    // goes about its business, it can take a Type (with its Symbol,
+    // which references, in many cases, that very Type in a circular
+    // fashion), and decorate it with another Type.  When this
+    // happens, the decorating Type's Symbol's Type will be the
+    // decorated "element Type".  (Often, but not always, this usage
+    // will indicate that the decorating Type is a parameterized type,
+    // whose (declared) element type is the Type being
+    // parameterized/used.)
     //
     // A Symbol has various methods on it that can cache various bits
     // of ancillary data related to its Type.  Symbol#erasure(Types)
@@ -88,7 +92,8 @@ final class EraseVisitor extends StructuralTypeMapping<Boolean> {
     // this.visit(t.getEnclosingType(), false) is first called,
     // erasing the enclosing type.  Then a new ClassType is created,
     // wrapping the original Symbol, which references the original
-    // (unerased) ClassType, with no type arguments.
+    // (unerased) ClassType, which is now the element type, with no
+    // type arguments.
     //
     // In this toolkit, we don't want to get into the same "cache
     // stuff in the symbol" business if we can at all help it.
@@ -101,7 +106,7 @@ final class EraseVisitor extends StructuralTypeMapping<Boolean> {
       assert this.types2.raw(erasedType);
     }
     // Commenting this out because it does not appear to be necessary
-    // in the compiler.
+    // in javac.
     /*
     if (Boolean.TRUE.equals(recurse)) {
       // This is extremely weird.  In the compiler, if recurse is

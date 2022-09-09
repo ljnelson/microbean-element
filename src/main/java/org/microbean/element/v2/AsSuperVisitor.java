@@ -59,6 +59,29 @@ final class AsSuperVisitor extends SimpleTypeVisitor14<TypeMirror, Element> {
     this.subtypeVisitor = Objects.requireNonNull(subtypeVisitor, "subtypeVisitor");
   }
 
+  final TypeMirror asOuterSuper(TypeMirror t, final Element sym) {
+    switch (t.getKind()) {
+    case ARRAY:
+      final TypeMirror elementType = sym.asType();
+      return this.subtypeVisitor.withCapture(true).visit(t, elementType) ? elementType : null;
+    case DECLARED:
+    case INTERSECTION:
+      do {
+        final TypeMirror s = this.visit(t, sym);
+        if (s != null) {
+          return s;
+        }
+        t = t.getKind() == TypeKind.DECLARED ? ((DeclaredType)t).getEnclosingType() : DefaultNoType.NONE;
+      } while (t.getKind() == TypeKind.DECLARED || t.getKind() == TypeKind.INTERSECTION);
+      return null;
+    case ERROR:
+      return t;
+    case TYPEVAR:
+    default:
+      return null;
+    }
+  }
+  
   @Override
   public final TypeMirror visitArray(final ArrayType t, final Element sym) {
     assert t.getKind() == TypeKind.ARRAY;

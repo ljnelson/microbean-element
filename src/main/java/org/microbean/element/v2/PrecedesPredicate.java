@@ -31,15 +31,12 @@ final class PrecedesPredicate implements BiPredicate<Element, Element> {
 
   private final SupertypeVisitor supertypeVisitor;
 
-  private final InterfacesVisitor interfacesVisitor;
-
   private final SubtypeVisitor subtypeVisitor;
-  
+
   PrecedesPredicate(final SupertypeVisitor supertypeVisitor,
                     final SubtypeVisitor subtypeVisitor) {
     super();
     this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
-    this.interfacesVisitor = supertypeVisitor.interfacesVisitor();
     this.subtypeVisitor = Objects.requireNonNull(subtypeVisitor, "subtypeVisitor");
   }
 
@@ -47,6 +44,7 @@ final class PrecedesPredicate implements BiPredicate<Element, Element> {
   @Override
   public final boolean test(final Element e, final Element f) {
     if (e == f) {
+      // Optimization
       return false;
     }
     final TypeMirror t = e.asType();
@@ -56,6 +54,7 @@ final class PrecedesPredicate implements BiPredicate<Element, Element> {
       switch (s.getKind()) {
       case DECLARED:
         if (Equality.equals(e, f, true)) {
+          // Both are DeclaredTypes; can't say which comes first.
           return false;
         }
         final int rt = this.rank(t);
@@ -65,8 +64,6 @@ final class PrecedesPredicate implements BiPredicate<Element, Element> {
           rs == rt &&
           CharSequence.compare(((TypeElement)f).getQualifiedName(),
                                ((TypeElement)e).getQualifiedName()) < 0;
-      case TYPEVAR:
-        return true;
       default:
         return false;
       }
@@ -74,6 +71,7 @@ final class PrecedesPredicate implements BiPredicate<Element, Element> {
       switch (s.getKind()) {
       case TYPEVAR:
         if (Equality.equals(e, f, true)) {
+          // Both are TypeVariables; can't say which comes first.
           return false;
         }
         return this.subtypeVisitor.withCapture(true).visit(t, s);
@@ -102,7 +100,7 @@ final class PrecedesPredicate implements BiPredicate<Element, Element> {
     case INTERSECTION:
     case TYPEVAR:
       int r = this.rank(this.supertypeVisitor.visit(t)); // RECURSIVE
-      for (final TypeMirror iface : this.interfacesVisitor.visit(t)) {
+      for (final TypeMirror iface : this.supertypeVisitor.interfacesVisitor().visit(t)) {
         r = Math.max(r, this.rank(iface)); // RECURSIVE
       }
       return r + 1;

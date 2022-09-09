@@ -136,7 +136,7 @@ public class Types2 {
         synchronized (syntheticElements) {
           // The compiler uses exactly one synthetic element for all
           // array types.
-          return syntheticElements.computeIfAbsent(t, s -> SyntheticArrayElement.INSTANCE);
+          return syntheticElements.computeIfAbsent(t, arrayType -> SyntheticArrayElement.INSTANCE);
         }
       }
       return null;
@@ -162,7 +162,7 @@ public class Types2 {
         synchronized (syntheticElements) {
           // The compiler users exactly one synthetic element for all
           // wildcard types.
-          return syntheticElements.computeIfAbsent(t, s -> SyntheticWildcardElement.INSTANCE);
+          return syntheticElements.computeIfAbsent(t, wildcardType -> SyntheticWildcardElement.INSTANCE);
         }
       }
       return null;
@@ -172,7 +172,7 @@ public class Types2 {
         synchronized (syntheticElements) {
           // The compiler users exactly one synthetic element for a
           // given kind of primitive type.
-          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.BOOLEAN);
+          return syntheticElements.computeIfAbsent(t, booleanType -> SyntheticPrimitiveElement.BOOLEAN);
         }
       }
       return null;
@@ -182,7 +182,7 @@ public class Types2 {
         synchronized (syntheticElements) {
           // The compiler users exactly one synthetic element for a
           // given kind of primitive type.
-          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.BYTE);
+          return syntheticElements.computeIfAbsent(t, byteType -> SyntheticPrimitiveElement.BYTE);
         }
       }
       return null;
@@ -192,7 +192,7 @@ public class Types2 {
         synchronized (syntheticElements) {
           // The compiler users exactly one synthetic element for a
           // given kind of primitive type.
-          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.CHAR);
+          return syntheticElements.computeIfAbsent(t, charType -> SyntheticPrimitiveElement.CHAR);
         }
       }
       return null;
@@ -202,7 +202,7 @@ public class Types2 {
         synchronized (syntheticElements) {
           // The compiler users exactly one synthetic element for a
           // given kind of primitive type.
-          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.DOUBLE);
+          return syntheticElements.computeIfAbsent(t, doubleType -> SyntheticPrimitiveElement.DOUBLE);
         }
       }
       return null;
@@ -212,7 +212,7 @@ public class Types2 {
         synchronized (syntheticElements) {
           // The compiler users exactly one synthetic element for a
           // given kind of primitive type.
-          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.FLOAT);
+          return syntheticElements.computeIfAbsent(t, floatType -> SyntheticPrimitiveElement.FLOAT);
         }
       }
       return null;
@@ -222,7 +222,7 @@ public class Types2 {
         synchronized (syntheticElements) {
           // The compiler users exactly one synthetic element for a
           // given kind of primitive type.
-          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.INT);
+          return syntheticElements.computeIfAbsent(t, intType -> SyntheticPrimitiveElement.INT);
         }
       }
       return null;
@@ -232,7 +232,7 @@ public class Types2 {
         synchronized (syntheticElements) {
           // The compiler users exactly one synthetic element for a
           // given kind of primitive type.
-          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.LONG);
+          return syntheticElements.computeIfAbsent(t, longType -> SyntheticPrimitiveElement.LONG);
         }
       }
       return null;
@@ -242,7 +242,7 @@ public class Types2 {
         synchronized (syntheticElements) {
           // The compiler users exactly one synthetic element for a
           // given kind of primitive type.
-          return syntheticElements.computeIfAbsent(t, s -> SyntheticPrimitiveElement.SHORT);
+          return syntheticElements.computeIfAbsent(t, shortType -> SyntheticPrimitiveElement.SHORT);
         }
       }
       return null;

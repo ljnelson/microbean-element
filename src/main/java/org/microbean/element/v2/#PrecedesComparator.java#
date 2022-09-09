@@ -1,0 +1,116 @@
+/* -*- mode: Java; c-basic-offset: 2; indent-tabs-mode: nil; coding: utf-8-unix -*-
+ *
+ * Copyright © 2022 microBean™.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ */
+package org.microbean.element.v2;
+
+import javax.lang.model.element.Element;
+import javax.lang.model.element.TypeElement;
+
+import javax.lang.model.type.TypeMirror;
+
+final class PrecedesComparator implements Comparator<Element> {
+
+  private final SupertypeVisitor supertypeVisitor;
+
+  private final InterfacesVisitor interfacesVisitor;
+  
+  PrecedesComparator(final SupertypeVisitor supertypeVisitor,
+                     final InterfacesVisitor interfacesVisitor) {
+    super();
+    this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
+    this.interfacesVisitor = Objects.requireNonNull(interfacesVisitor, "interfacesVisitor");
+  }
+
+  @Override
+  public final int compare(final Element e, final Element f) {
+    final TypeMirror t = e.asType();
+    final TypeMirror s = f.asType();
+    switch (t.getKind()) {
+    case DECLARED:
+      switch (s.getKind()) {
+      case DECLARED:
+        if (Equality.equals(e, f, true)) {
+          return 0; // indeterminate order
+        }
+        final int rt = rank(t);
+        final int rs = rank(s);
+        if (rt > rs) {
+          // t/e 
+
+
+        
+        return
+          rs < rt ||
+          rs == rt &&
+          ((TypeElement)f).getQualifiedName().toString().compareTo(((TypeElement)e).getQualifiedName().toString()) < 0;
+      case TYPEVAR:
+        // Yes, e precedes f
+        return -1;
+      case ERROR:
+      case UNION:
+      default:
+        throw new IllegalArgumentException("f: " + f);
+      }
+    case TYPEVAR:
+      switch (s.getKind()) {
+      case TYPEVAR:
+        if (Equality.equals(e, f, true)) {
+          return false;
+        }
+        return subtype(t, s, true);
+      default:
+        return true;
+      case ERROR:
+      case UNION:
+        throw new IllegalArgumentException("f: " + f);
+      }
+    case ERROR:
+    case UNION:
+    default:
+      throw new IllegalArgumentException("e: " + e);
+    }
+  }
+
+  // Should only accept reference types, or so says javac, but then it
+  // has a case to deal with the NONE type, and if you were to pass an
+  // intersection type to it you'd get an NPE.  Additionally, the null
+  // type is (maybe? the spec is unclear?) a reference type, but it
+  // isn't accepted by javac.  Who knows what it accepts.
+  @SuppressWarnings("fallthrough")
+  private static final int rank(final TypeMirror t) {
+    switch (t.getKind()) {
+    case DECLARED:
+      if (((TypeElement)((DeclaredType)t).asElement()).getQualifiedName().contentEquals("java.lang.Object")) {
+        return 0;
+      }
+      // fall through
+    case INTERSECTION:
+    case TYPEVAR:
+      int r = rank(supertype(t));
+      for (final TypeMirror iface : interfaces(t)) {
+        r = Math.max(r, rank(iface));
+      }
+      return r + 1;
+    case NONE:
+      return 0;
+    case ERROR:
+    case UNION:
+    default:
+      throw new IllegalArgumentException("t: " + t);
+    }
+  }
+  
+}

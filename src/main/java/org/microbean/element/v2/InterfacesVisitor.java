@@ -72,7 +72,8 @@ final class InterfacesVisitor extends SimpleTypeVisitor14<List<? extends TypeMir
       if (formals.isEmpty()) {
         return interfaces;
       }
-      return new SubstituteVisitor(this.supertypeVisitor, this, formals, this.types2.allTypeArguments(t)).visit(interfaces, x);
+      assert this.supertypeVisitor.interfacesVisitor() == this;
+      return new SubstituteVisitor(this.supertypeVisitor, formals, this.types2.allTypeArguments(t)).visit(interfaces, x);
     default:
       return List.of();
     }

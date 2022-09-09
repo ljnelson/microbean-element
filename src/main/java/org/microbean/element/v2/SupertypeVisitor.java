@@ -62,7 +62,7 @@ final class SupertypeVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
 
   private final EraseVisitor eraseVisitor;
 
-  private final BoundingClassVisitor boundingClassVisitor;
+  private final BoundingClassVisitor boundingClassVisitor; // (inner class)
 
 
   /*
@@ -84,6 +84,10 @@ final class SupertypeVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
    * Instance methods.
    */
 
+  
+  final InterfacesVisitor interfacesVisitor() {
+    return this.interfacesVisitor;
+  }
 
   @Override // SimpleTypeVisitor14
   public final TypeMirror visitArray(final ArrayType t, final Void x) {
@@ -131,7 +135,6 @@ final class SupertypeVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
     }
     return
       new SubstituteVisitor(this,
-                            this.interfacesVisitor,
                             formals,
                             (List<? extends TypeVariable>)Types2.allTypeArguments(this.boundingClassVisitor.visitDeclared(t, x)))
       .visit(supertype);

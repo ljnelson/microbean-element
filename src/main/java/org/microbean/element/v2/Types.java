@@ -952,6 +952,7 @@ final class Types {
     return closure;
   }
 
+  // TODO: BUG: not sure this actually adds anything to either list!!
   // Returns a MODIFIABLE list
   private static final List<TypeMirror> closureUnion(final List<TypeMirror> c1, final List<TypeMirror> c2) {
     if (c1.isEmpty()) {

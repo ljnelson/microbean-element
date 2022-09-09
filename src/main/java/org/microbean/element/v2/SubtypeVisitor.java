@@ -138,7 +138,7 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     final DeclaredType sDt = (DeclaredType)s;
     return
       supDt.asElement() == sDt.asElement() &&
-      (!Types2.parameterized(sDt) || this.containsTypeRecursive(sDt, supDt)) &&
+      (!this.types2.parameterized(sDt) || this.containsTypeRecursive(sDt, supDt)) &&
       this.withCapture(false).visit(supDt.getEnclosingType(), sDt.getEnclosingType());
   }
 
@@ -311,11 +311,12 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
           TypeMirror s = this.rewriteSupers(orig); // RECURSIVE
           switch (s.getKind()) {
           case WILDCARD:
-            // TODO: I'm not sure this case is actually possible.  Ported from the compiler.
+            // TODO: I'm not sure this case is actually possible.
+            // Ported from the javac nevertheless.
             if (((WildcardType)s).getSuperBound() != null) {
               // TODO: maybe need to somehow ensure this shows up as
               // non-canonical/synthetic
-              s = Types2.unboundedWildcardType(s.getAnnotationMirrors());
+              s = this.types2.unboundedWildcardType(s.getAnnotationMirrors());
               changed = true;
             }
             break;
@@ -323,7 +324,7 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
             if (s != orig) { // Don't need Equality.equals() here
               // TODO: maybe need to somehow ensure this shows up as
               // non-canonical/synthetic
-              s = Types2.upperBoundedWildcardType(Types2.extendsBound(s), s.getAnnotationMirrors());
+              s = this.types2.upperBoundedWildcardType(this.types2.extendsBound(s), s.getAnnotationMirrors());
               changed = true;
             }
             break;

@@ -47,8 +47,6 @@ final class SubstituteVisitor extends StructuralTypeMapping<Void> {
 
   private final SupertypeVisitor supertypeVisitor;
 
-  private final InterfacesVisitor interfacesVisitor;
-
   private final List<TypeVariable> from;
 
   private final List<TypeMirror> to;
@@ -60,12 +58,10 @@ final class SubstituteVisitor extends StructuralTypeMapping<Void> {
 
 
   SubstituteVisitor(final SupertypeVisitor supertypeVisitor,
-                    final InterfacesVisitor interfacesVisitor,
                     List<? extends TypeVariable> from,
                     List<? extends TypeMirror> to) {
     super();
     this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
-    this.interfacesVisitor = Objects.requireNonNull(interfacesVisitor, "interfacesVisitor");
     // https://github.com/openjdk/jdk/blob/jdk-20+12/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3321-L3322
     // "If lists have different length, discard leading elements of
     // the longer list."
@@ -93,8 +89,8 @@ final class SubstituteVisitor extends StructuralTypeMapping<Void> {
 
 
   final SubstituteVisitor with(final List<? extends TypeVariable> from,
-                                       final List<? extends TypeMirror> to) {
-    return new SubstituteVisitor(this.supertypeVisitor, this.interfacesVisitor, from, to);
+                               final List<? extends TypeMirror> to) {
+    return new SubstituteVisitor(this.supertypeVisitor, from, to);
   }
 
   // https://github.com/openjdk/jdk/blob/jdk-20+12/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3382-L3411
@@ -140,7 +136,7 @@ final class SubstituteVisitor extends StructuralTypeMapping<Void> {
     assert t.getKind() == TypeKind.INTERSECTION;
     final TypeMirror supertype = this.supertypeVisitor.visit(t, x);
     final TypeMirror visitedSupertype = this.visit(supertype, x);
-    final List<? extends TypeMirror> interfaces = this.interfacesVisitor.visit(t, x);
+    final List<? extends TypeMirror> interfaces = this.supertypeVisitor.interfacesVisitor().visit(t, x);
     final List<? extends TypeMirror> visitedInterfaces = this.visit(interfaces, x);
     if (supertype == visitedSupertype && interfaces == visitedInterfaces) {
       return t;

@@ -93,7 +93,7 @@ final class EraseVisitor extends StructuralTypeMapping<Boolean> {
     // In this toolkit, we don't want to get into the same "cache
     // stuff in the symbol" business if we can at all help it.
     DeclaredType erasedType;
-    if (Types2.erased(t)) {
+    if (this.types2.erased(t)) {
       erasedType = t;
     } else {
       erasedType = new DefaultDeclaredType(this.visit(t.getEnclosingType(), false), List.of(), true, List.of());
@@ -131,7 +131,7 @@ final class EraseVisitor extends StructuralTypeMapping<Boolean> {
   @Override // StructuralTypeMapping
   public final TypeMirror visitWildcard(final WildcardType t, final Boolean recurse) {
     assert t.getKind() == TypeKind.WILDCARD;
-    return this.visit(Types2.extendsBound(t), recurse);
+    return this.visit(this.types2.extendsBound(t), recurse);
   }
   
 }

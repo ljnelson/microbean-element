@@ -860,7 +860,7 @@ final class Types {
       } else if (lowerBound.getKind() == TypeKind.NULL) {
         return lowerBound;
       } else {
-        return capturedTypeVariableLowerBound(lowerBound);
+        return capturedTypeVariableLowerBound(lowerBound); // RECURSIVE
       }
     }
     return t;
@@ -870,7 +870,7 @@ final class Types {
     if (capturedTypeVariable(t)) {
       final TypeMirror upperBound = ((TypeVariable)t).getUpperBound();
       assert upperBound != null;
-      return capturedTypeVariableUpperBound(upperBound);
+      return capturedTypeVariableUpperBound(upperBound); // RECURSIVE
     }
     return t;
   }

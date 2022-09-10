@@ -117,6 +117,4 @@ final class MemberTypeVisitor extends SimpleTypeVisitor14<TypeMirror, Element> {
     return this.visit(this.types2.extendsBound(t), e);
   }
 
-
-
 }

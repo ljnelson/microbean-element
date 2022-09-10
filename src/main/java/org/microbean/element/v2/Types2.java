@@ -404,41 +404,20 @@ public class Types2 {
     }
   }
 
-  private static final boolean isInterface(final Element e) {
-    switch (e.getKind()) {
-    case ANNOTATION_TYPE:
-    case INTERFACE:
-      return true;
-    default:
-      return false;
-    }
+  static final boolean isInterface(final Element e) {
+    return e.getKind().isInterface();
   }
 
   static final boolean isInterface(final TypeMirror t) {
-    switch (t.getKind()) {
-    case DECLARED:
-      return isInterface(((DeclaredType)t).asElement());
-    default:
-      return false;
-    case ERROR:
-    case UNION:
-      throw new IllegalArgumentException("t: " + t);
-    }
+    return t.getKind() == TypeKind.DECLARED && ((DeclaredType)t).asElement().getKind().isInterface();
   }
 
   private static final boolean isPrimitive(final Element e) {
-    return isPrimitive(e.asType());
+    return e.asType().getKind().isPrimitive();
   }
 
   private static final boolean isPrimitive(final TypeMirror t) {
-    final TypeKind kind = t.getKind();
-    switch (kind) {
-    default:
-      return kind.isPrimitive();
-    case ERROR:
-    case UNION:
-      throw new IllegalArgumentException("t: " + t);
-    }
+    return t.getKind().isPrimitive();
   }
 
   static final boolean isStatic(final Element e) {
@@ -459,9 +438,6 @@ public class Types2 {
         !hasTypeArguments(t); // t does not supply type arguments
     default:
       return false;
-    case ERROR:
-    case UNION:
-      throw new IllegalArgumentException("t: " + t);
     }
   }
 

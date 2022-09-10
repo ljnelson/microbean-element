@@ -17,6 +17,7 @@
 package org.microbean.element.v2;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -34,6 +35,7 @@ import javax.lang.model.type.WildcardType;
 
 import javax.lang.model.util.SimpleTypeVisitor14;
 
+// Basically done
 // javac's capture implementation is not visitor-based.
 // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4388-L4456
 final class CaptureVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
@@ -41,16 +43,24 @@ final class CaptureVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
   private final Types2 types2;
 
   private final SupertypeVisitor supertypeVisitor;
-  
+
+  private final SubtypeVisitor subtypeVisitor;
+
   private final MemberTypeVisitor memberTypeVisitor;
-  
+
+  private final TypeClosureVisitor typeClosureVisitor;
+
   CaptureVisitor(final Types2 types2,
                  final SupertypeVisitor supertypeVisitor,
-                 final MemberTypeVisitor memberTypeVisitor) {
+                 final SubtypeVisitor subtypeVisitor,
+                 final MemberTypeVisitor memberTypeVisitor,
+                 final TypeClosureVisitor typeClosureVisitor) {
     super();
     this.types2 = Objects.requireNonNull(types2, "types2");
     this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
+    this.subtypeVisitor = Objects.requireNonNull(subtypeVisitor, "subtypeVisitor");
     this.memberTypeVisitor = Objects.requireNonNull(memberTypeVisitor, "memberTypeVisitor");
+    this.typeClosureVisitor = Objects.requireNonNull(typeClosureVisitor, "typeClosureVisitor");
   }
 
   @Override
@@ -63,10 +73,11 @@ final class CaptureVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
   public final TypeMirror visitDeclared(DeclaredType t, final Void x) {
     assert t.getKind() == TypeKind.DECLARED;
 
+    // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4392-L4398
     TypeMirror enclosingType = t.getEnclosingType();
     if (enclosingType.getKind() != TypeKind.NONE) {
       assert enclosingType.getKind() == TypeKind.DECLARED;
-      final TypeMirror capturedEnclosingType = this.visitDeclared((DeclaredType)enclosingType, x); // RECURSIVE
+      final TypeMirror capturedEnclosingType = this.visitDeclared((DeclaredType)enclosingType, null); // RECURSIVE
       if (capturedEnclosingType != enclosingType) {
         final Element element = t.asElement();
         final TypeMirror memberType = this.memberTypeVisitor.visit(capturedEnclosingType, element);
@@ -74,22 +85,30 @@ final class CaptureVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
           (DeclaredType)new SubstituteVisitor(this.supertypeVisitor,
                                               ((DeclaredType)element.asType()).getTypeArguments(),
                                               t.getTypeArguments())
-          .visit(memberType, x);
+          .visit(memberType, null);
         assert t.getKind() == TypeKind.DECLARED;
         enclosingType = t.getEnclosingType();
       }
     }
 
+    // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4399-L4401
     if (this.types2.raw(t) || !this.types2.parameterized(t)) {
+      // (Suppose somehow t were an intersection type (which gets
+      // modeled as a ClassType as well in javac.  t would then be
+      // considered to be raw following the rules of javac (not sure
+      // about the language specification; the two frequently
+      // diverge).  So it is accurate for this visitor not to
+      // implement visitIntersection().
       return t;
     }
 
+    // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4403-L4406
     final DeclaredType G = this.types2.declaredTypeMirror(t);
-    @SuppressWarnings("unchecked")
     final List<? extends TypeVariable> A = (List<? extends TypeVariable>)G.getTypeArguments();
-    final List<? extends TypeMirror> T = t.getTypeArguments();
+    final List<? extends TypeMirror> T = t.getKind() == TypeKind.DECLARED ? ((DeclaredType)t).getTypeArguments() : List.of();
     final List<? extends TypeMirror> S = withFreshCapturedTypeVariables(T);
 
+    // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4408-L4449
     assert A.size() == T.size();
     assert A.size() == S.size();
     boolean captured = false;
@@ -117,11 +136,27 @@ final class CaptureVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
         }
       }
     }
+
+    // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4451-L4455
     if (captured) {
-      return syntheticDeclaredType(t, S);
+      assert t.getKind() == TypeKind.DECLARED;
+      return syntheticDeclaredType((DeclaredType)t, S);
     }
-    
-    throw new UnsupportedOperationException();
+    return t;
+  }
+
+  private static final TypeMirror capturedTypeVariableLowerBound(final TypeMirror t) {
+    if (t.getKind() == TypeKind.TYPEVAR && t instanceof SyntheticCapturedType sct) {
+      final TypeMirror lowerBound = sct.getLowerBound();
+      if (lowerBound == null) {
+        return DefaultNullType.INSTANCE;
+      } else if (lowerBound.getKind() == TypeKind.NULL) {
+        return lowerBound;
+      } else {
+        return capturedTypeVariableLowerBound(lowerBound); // RECURSIVE
+      }
+    }
+    return t;
   }
 
   private static final List<? extends TypeMirror> withFreshCapturedTypeVariables(final List<? extends TypeMirror> typeArguments) {
@@ -137,9 +172,6 @@ final class CaptureVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
       default:
         list.add(typeArgument);
         break;
-      case ERROR:
-      case UNION:
-        throw new IllegalArgumentException("typeArguments: " + typeArguments);
       }
     }
     return Collections.unmodifiableList(list);
@@ -153,8 +185,73 @@ final class CaptureVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
     return t;
   }
 
-  private static final TypeMirror glb(final TypeMirror t, final TypeMirror s) {
-    throw new UnsupportedOperationException();
+  // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4092-L4100
+  private final TypeMirror glb(final List<? extends TypeMirror> ts) {
+    if (ts.isEmpty()) {
+      return null;
+    }
+    TypeMirror t1 = ts.get(0);
+    for (int i = 1; i < ts.size(); i++) {
+      t1 = glb(t1, ts.get(i));
+    }
+    return t1;
   }
-  
+
+  // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4102-L4156
+  private final TypeMirror glb(final TypeMirror t, final TypeMirror s) {
+    if (s == null) {
+      return t;
+    } else if (t.getKind().isPrimitive()) {
+      throw new IllegalArgumentException("t: " + t);
+    } else if (s.getKind().isPrimitive()) {
+      throw new IllegalArgumentException("s: " + s);
+    } else if (this.subtypeVisitor.withCapture(false).visit(t, s)) {
+      return t;
+    } else if (this.subtypeVisitor.withCapture(false).visit(s, t)) {
+      return s;
+    }
+
+    final TypeClosure tc = this.typeClosureVisitor.visit(t);
+    tc.union(this.typeClosureVisitor.visit(s));
+
+    List<TypeMirror> bounds = tc.toMinimumTypes(this.subtypeVisitor);
+    final int size = bounds.size();
+
+    switch (size) {
+    case 0:
+      return ObjectConstruct.JAVA_LANG_OBJECT_TYPE;
+    case 1:
+      return bounds.get(0);
+    default:
+      boolean classes = false;
+      final Collection<TypeMirror> capturedTypeVariables = new ArrayList<>();
+      final Collection<TypeMirror> lowers = new ArrayList<>();
+      for (int i = 0; i < size; i++) {
+        final TypeMirror bound = bounds.get(i);
+        if (!this.types2.isInterface(bound)) {
+          if (!classes) {
+            classes = true;
+          }
+          final TypeMirror lower = capturedTypeVariableLowerBound(bound);
+          if (bound != lower && lower.getKind() != TypeKind.NULL) {
+            capturedTypeVariables.add(bound);
+            lowers.add(lower);
+          }
+        }
+      }
+      if (classes) {
+        if (lowers.isEmpty()) {
+          throw new IllegalArgumentException("t: " + t);
+        }
+        bounds = new ArrayList<>(bounds);
+        bounds.removeIf(capturedTypeVariables::contains);
+        bounds.addAll(lowers);
+        return this.glb(bounds); // RECURSIVE, in a way
+      }
+      break;
+    }
+
+    return DefaultIntersectionType.of(bounds);
+  }
+
 }

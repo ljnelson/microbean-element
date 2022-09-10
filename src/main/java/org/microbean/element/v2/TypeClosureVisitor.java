@@ -18,7 +18,9 @@ package org.microbean.element.v2;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.WeakHashMap;
 
 import javax.lang.model.element.Element;
 
@@ -36,6 +38,9 @@ import javax.lang.model.util.SimpleTypeVisitor14;
 
 final class TypeClosureVisitor extends SimpleTypeVisitor14<TypeClosure, Void> {
 
+  // @GuardedBy("itself")
+  private final Map<TypeMirror, TypeClosure> closureCache;
+  
   private final SupertypeVisitor supertypeVisitor;
 
   private final PrecedesPredicate precedesPredicate;
@@ -44,6 +49,7 @@ final class TypeClosureVisitor extends SimpleTypeVisitor14<TypeClosure, Void> {
     super();
     this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
     this.precedesPredicate = Objects.requireNonNull(precedesPredicate, "precedesPredicate");
+    this.closureCache = new WeakHashMap<>();
   }
 
   @Override
@@ -70,50 +76,59 @@ final class TypeClosureVisitor extends SimpleTypeVisitor14<TypeClosure, Void> {
   }
 
   private final TypeClosure visitDeclaredOrIntersectionOrTypeVariable(final TypeMirror t, final Void x) {
-    final TypeClosure closure;
-    switch (t.getKind()) {
-    case INTERSECTION:
-      closure = this.visit(this.supertypeVisitor.visit(t));
-      break;
-    case DECLARED:
-    case TYPEVAR:
-      final TypeMirror st = this.supertypeVisitor.visit(t);
-      switch (st.getKind()) {
-      case DECLARED:
-        // (Yes, it is OK that INTERSECTION is not present as a case.)
-        closure = this.visit(st);
-        closure.insert(t);
+    TypeClosure closure;
+    synchronized (this.closureCache) {
+      closure = this.closureCache.get(t);
+    }
+    if (closure == null) {
+      switch (t.getKind()) {
+      case INTERSECTION:
+        // The closure does not include the intersection type itself.
+        closure = this.visit(this.supertypeVisitor.visit(t));
         break;
+      case DECLARED:
       case TYPEVAR:
-        closure = this.visit(st);
-        // javac does this
-        // (https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3717-L3718):
-        //
-        //   cl = closure(st).prepend(t);
-        //
-        // Note that there's no equality or "precedes" check in this
-        // one case.  Is this a bug, a feature, or just an
-        // optimization?  I don't know.  I reproduce the behavior
-        // here, for better or for worse.  This permits two equal type
-        // variables in the closure, which otherwise would be filtered
-        // out.
-        //
-        // (The only time a supertype can be a type variable is if the
-        // subtype is also a type variable.)
-        assert t.getKind() == TypeKind.TYPEVAR : "Expected " + TypeKind.TYPEVAR + "; got " + t.getKind() + "; t: " + t + "; st: " + st;
-        closure.prepend((TypeVariable)t);
+        final TypeMirror st = this.supertypeVisitor.visit(t);
+        switch (st.getKind()) {
+        case DECLARED:
+          // (Yes, it is OK that INTERSECTION is not present as a case.)
+          closure = this.visit(st);
+          closure.insert(t); // reflexive
+          break;
+        case TYPEVAR:
+          closure = this.visit(st);
+          // javac does this
+          // (https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3717-L3718):
+          //
+          //   cl = closure(st).prepend(t);
+          //
+          // Note that there's no equality or "precedes" check in this
+          // one case.  Is this a bug, a feature, or just an
+          // optimization?  I don't know.  I reproduce the behavior
+          // here, for better or for worse.  This permits two equal type
+          // variables in the closure, which otherwise would be filtered
+          // out.
+          //
+          // (The only time a supertype can be a type variable is if the
+          // subtype is also a type variable.)
+          assert t.getKind() == TypeKind.TYPEVAR : "Expected " + TypeKind.TYPEVAR + "; got " + t.getKind() + "; t: " + t + "; st: " + st;
+          closure.prepend((TypeVariable)t); // reflexive
+          break;
+        default:
+          closure = new TypeClosure(this.precedesPredicate);
+          closure.insert(t); // reflexive
+          break;
+        }
         break;
       default:
-        closure = new TypeClosure(this.precedesPredicate);
-        closure.insert(t);
-        break;
+        throw new IllegalArgumentException("t: " + t);
       }
-      break;
-    default:
-      throw new IllegalArgumentException("t: " + t); // Pretty sure
-    }
-    for (final TypeMirror iface : this.supertypeVisitor.interfacesVisitor().visit(t)) {
-      closure.union(this.visit(iface));
+      for (final TypeMirror iface : this.supertypeVisitor.interfacesVisitor().visit(t)) {
+        closure.union(this.visit(iface));
+      }
+      synchronized (this.closureCache) {
+        closureCache.put(t, closure);
+      }
     }
     return closure;
   }

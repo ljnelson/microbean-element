@@ -43,19 +43,15 @@ final class AsSuperVisitor extends SimpleTypeVisitor14<TypeMirror, Element> {
 
   private final SupertypeVisitor supertypeVisitor;
 
-  private final InterfacesVisitor interfacesVisitor;
-
   private final SubtypeVisitor subtypeVisitor;
 
   AsSuperVisitor(final Types2 types2,
                  final SupertypeVisitor supertypeVisitor,
-                 final InterfacesVisitor interfacesVisitor,
                  final SubtypeVisitor subtypeVisitor) {
     super();
     this.seenTypes = new HashSet<>();
     this.types2 = Objects.requireNonNull(types2, "types2");
     this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
-    this.interfacesVisitor = Objects.requireNonNull(interfacesVisitor, "interfacesVisitor");
     this.subtypeVisitor = Objects.requireNonNull(subtypeVisitor, "subtypeVisitor");
   }
 
@@ -119,7 +115,7 @@ final class AsSuperVisitor extends SimpleTypeVisitor14<TypeMirror, Element> {
             break;
           }
           if (sym.getKind().isInterface()) {
-            for (final TypeMirror iface : this.interfacesVisitor.visit(t)) {
+            for (final TypeMirror iface : this.supertypeVisitor.interfacesVisitor().visit(t)) {
               final TypeMirror x = this.visit(iface, sym);
               if (x != null) {
                 return x;

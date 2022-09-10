@@ -441,7 +441,7 @@ public class Types2 {
     }
   }
 
-  private static final boolean isStatic(final Element e) {
+  static final boolean isStatic(final Element e) {
     return e.getModifiers().contains(Modifier.STATIC);
   }
 

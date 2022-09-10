@@ -32,26 +32,63 @@ import javax.lang.model.type.WildcardType;
 
 import javax.lang.model.util.SimpleTypeVisitor14;
 
+// Basically done
 // https://github.com/openjdk/jdk/blob/jdk-20+13/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L2294-L2340
 final class MemberTypeVisitor extends SimpleTypeVisitor14<TypeMirror, Element> {
 
   private final Types2 types2;
-  
-  MemberTypeVisitor(final Types2 types2) {
+
+  private final AsSuperVisitor asSuperVisitor;
+
+  private final EraseVisitor eraseVisitor;
+
+  private final SupertypeVisitor supertypeVisitor;
+
+  MemberTypeVisitor(final Types2 types2,
+                    final AsSuperVisitor asSuperVisitor,
+                    final EraseVisitor eraseVisitor,
+                    final SupertypeVisitor supertypeVisitor) {
     super();
     this.types2 = Objects.requireNonNull(types2, "types2");
+    this.asSuperVisitor = Objects.requireNonNull(asSuperVisitor, "asSuperVisitor");
+    this.eraseVisitor = Objects.requireNonNull(eraseVisitor, "eraseVisitor");
+    this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
   }
 
   @Override
-  public final TypeMirror visitArray(final ArrayType t, final Element e) {
-    assert t.getKind() == TypeKind.ARRAY;
-    throw new UnsupportedOperationException();
+  protected final TypeMirror defaultAction(final TypeMirror t, final Element e) {
+    return e.asType();
   }
 
   @Override
   public final TypeMirror visitDeclared(final DeclaredType t, final Element e) {
     assert t.getKind() == TypeKind.DECLARED;
-    throw new UnsupportedOperationException();
+    return this.visitDeclaredOrIntersection(t, e);
+  }
+
+  private final TypeMirror visitDeclaredOrIntersection(final TypeMirror t, final Element e) {
+    assert t.getKind() == TypeKind.DECLARED || t.getKind() == TypeKind.INTERSECTION;
+    if (!this.types2.isStatic(e)) {
+      final Element enclosingElement = e.getEnclosingElement();
+      final TypeMirror enclosingType = enclosingElement.asType();
+      if (this.types2.parameterized(enclosingType)) {
+        final TypeMirror baseType = this.asSuperVisitor.asOuterSuper(t, enclosingElement);
+        if (baseType != null) {
+          final List<? extends TypeMirror> enclosingTypeTypeArguments = this.types2.allTypeArguments(enclosingType);
+          if (!enclosingTypeTypeArguments.isEmpty()) {
+            final List<? extends TypeMirror> baseTypeTypeArguments = this.types2.allTypeArguments(baseType);
+            if (baseTypeTypeArguments.isEmpty()) {
+              // baseType is raw
+              return this.eraseVisitor.visit(e.asType());
+            } else {
+              return
+                new SubstituteVisitor(this.supertypeVisitor, enclosingTypeTypeArguments, baseTypeTypeArguments).visit(e.asType());
+            }
+          }
+        }
+      }
+    }
+    return e.asType();
   }
 
   @Override
@@ -63,21 +100,21 @@ final class MemberTypeVisitor extends SimpleTypeVisitor14<TypeMirror, Element> {
   @Override
   public final TypeMirror visitIntersection(final IntersectionType t, final Element e) {
     assert t.getKind() == TypeKind.INTERSECTION;
-    throw new UnsupportedOperationException();
+    return this.visitDeclaredOrIntersection(t, e);
   }
 
   @Override
   public final TypeMirror visitTypeVariable(final TypeVariable t, final Element e) {
     assert t.getKind() == TypeKind.TYPEVAR;
-    throw new UnsupportedOperationException();
+    return this.visit(t.getUpperBound(), e);
   }
 
   @Override
   public final TypeMirror visitWildcard(final WildcardType t, final Element e) {
     assert t.getKind() == TypeKind.WILDCARD;
-    throw new UnsupportedOperationException();
+    return this.visit(this.types2.extendsBound(t), e);
   }
 
 
-  
+
 }

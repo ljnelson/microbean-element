@@ -41,23 +41,19 @@ import javax.lang.model.util.SimpleTypeVisitor14;
 // isSameType() in javac's Types.java
 final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
-  private final ContainsTypeVisitor containsVisitor;
+  private final ContainsTypeVisitor containsTypeVisitor;
 
   private final SupertypeVisitor supertypeVisitor;
-
-  private final SubstituteVisitor substituteVisitor;
 
   // See comments in visitExecutable().
   // private final HasSameParameterTypesVisitor hasSameParameterTypesVisitor; // inner class
 
-  IsSameTypeVisitor(final ContainsTypeVisitor containsVisitor,
-                    final SupertypeVisitor supertypeVisitor,
-                    final SubstituteVisitor substituteVisitor) {
+  IsSameTypeVisitor(final ContainsTypeVisitor containsTypeVisitor,
+                    final SupertypeVisitor supertypeVisitor) {
     super(Boolean.FALSE);
-    this.containsVisitor = containsVisitor;
-    containsVisitor.isSameTypeVisitor = this;
+    this.containsTypeVisitor = Objects.requireNonNull(containsTypeVisitor, "containsTypeVisitor");
+    containsTypeVisitor.isSameTypeVisitor = this;
     this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
-    this.substituteVisitor = Objects.requireNonNull(substituteVisitor, "substituteVisitor");
     // See comments in visitExecutable().
     // this.hasSameParameterTypesVisitor = new HasSameParameterTypesVisitor();
   }
@@ -426,7 +422,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
   private final boolean containsTypeEquivalent(final TypeMirror t, final TypeMirror s) {
     return
       this.visit(t, s) ||
-      this.containsVisitor.visit(t, s) && this.containsVisitor.visit(s, t);
+      this.containsTypeVisitor.visit(t, s) && this.containsTypeVisitor.visit(s, t);
   }
 
   private final boolean containsTypeEquivalent(final List<? extends TypeMirror> ts, final List<? extends TypeMirror> ss) {

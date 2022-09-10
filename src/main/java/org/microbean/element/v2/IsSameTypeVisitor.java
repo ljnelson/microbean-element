@@ -37,6 +37,7 @@ import javax.lang.model.type.WildcardType;
 
 import javax.lang.model.util.SimpleTypeVisitor14;
 
+// Basically done
 // isSameType() in javac's Types.java
 final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
@@ -48,7 +49,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
   // See comments in visitExecutable().
   // private final HasSameParameterTypesVisitor hasSameParameterTypesVisitor; // inner class
-  
+
   IsSameTypeVisitor(final ContainsTypeVisitor containsVisitor,
                     final SupertypeVisitor supertypeVisitor,
                     final SubstituteVisitor substituteVisitor) {
@@ -145,7 +146,56 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     assert t.getKind() == TypeKind.DECLARED && s.getKind() == TypeKind.WILDCARD;
     throw new UnsupportedOperationException();
   }
-  
+
+  @Override
+  public final Boolean visitError(final ErrorType t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.ERROR;
+    return true;
+  }
+
+  @Override
+  public final Boolean visitExecutable(final ExecutableType t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.EXECUTABLE;
+    if (t == s) {
+      return true;
+    }
+    switch (s.getKind()) {
+    case EXECUTABLE:
+      return this.visitExecutable(t, (ExecutableType)s);
+    default:
+      return false;
+    }
+  }
+
+  private final boolean visitExecutable(final ExecutableType t, final ExecutableType s) {
+    assert t.getKind() == TypeKind.EXECUTABLE && s.getKind() == TypeKind.EXECUTABLE;
+    assert t != s;
+    if (!hasSameBounds(t, s)) {
+      return false;
+    }
+    final ExecutableType substitutedS =
+      new SubstituteVisitor(this.supertypeVisitor, s.getTypeVariables(), t.getTypeVariables()).visitExecutable(s, null);
+    if (s != substitutedS) {
+      return this.visitExecutable(t, substitutedS); // RECURSIVE
+    }
+    // javac has, effectively
+    // (https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1445):
+    //
+    //   return hasSameArgs(t, s) && this.visit(t.getReturnType(), s.getReturnType())
+    //
+    // hasSameArgs() in javac ends up calling a visitor that does
+    // exactly what this current visitExecutable() method does, so
+    // effectively the compiler checks an executable twice.  That
+    // seems silly.  The only "extra" thing hasSameArgs does is call containsTypeEquivalent(t, s).
+    //
+    // So instead of this:
+    //
+    //   return hasSameArgs(t, s) && this.visit(t.getReturnType(), s.getReturnType());
+    //
+    // …we'll just do this:
+    return containsTypeEquivalent(t, s) && this.visit(t.getReturnType(), s.getReturnType());
+  }
+
   @Override
   public final Boolean visitIntersection(final IntersectionType t, final TypeMirror s) {
     assert t.getKind() == TypeKind.INTERSECTION;
@@ -202,14 +252,8 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
   }
 
   @Override
-  public final Boolean visitError(final ErrorType t, final TypeMirror s) {
-    assert t.getKind() == TypeKind.ERROR;
-    return true;
-  }
-
-  @Override
   public final Boolean visitNoType(final NoType t, final TypeMirror s) {
-    final TypeKind tKind = t.getKind();    
+    final TypeKind tKind = t.getKind();
     assert
       tKind == TypeKind.MODULE ||
       tKind == TypeKind.NONE ||
@@ -218,14 +262,18 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     if (t == s) {
       return true;
     }
-    switch (s.getKind()) {
+    switch (tKind) {
     case NONE:
-      return tKind == s.getKind();
+      // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1361-L1362
+      return s.getKind() == TypeKind.NONE;
+    case PACKAGE:
+      // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1448-L1451
+      return t == s;
     default:
       return Equality.equalsNotIncludingAnnotations(t, s);
     }
   }
-  
+
   @Override
   public final Boolean visitNull(final NullType t, final TypeMirror s) {
     assert t.getKind() == TypeKind.NULL;
@@ -234,6 +282,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     }
     switch (s.getKind()) {
     case NULL:
+      // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1361-L1362
       return true;
     default:
       return Equality.equalsNotIncludingAnnotations(t, s);
@@ -265,48 +314,83 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
   }
 
   @Override
-  public final Boolean visitExecutable(final ExecutableType t, final TypeMirror s) {
-    assert t.getKind() == TypeKind.EXECUTABLE;
-    if (t == s) {
-      return true;
-    }
+  public final Boolean visitTypeVariable(final TypeVariable t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.TYPEVAR;
     switch (s.getKind()) {
-    case EXECUTABLE:
-      return this.visitExecutable(t, (ExecutableType)s);
+    case TYPEVAR:
+      // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1363-L1368
+      return t == s;
+    case WILDCARD:
+      return this.visitTypeVariable(t, (WildcardType)s);
     default:
-      return false;
+      return false; // really?
     }
   }
 
-  private final boolean visitExecutable(final ExecutableType t, final ExecutableType s) {
-    assert t.getKind() == TypeKind.EXECUTABLE && s.getKind() == TypeKind.EXECUTABLE;
-    assert t != s;
-    if (!hasSameBounds(t, s)) {
-      return false;
-    }
-    final ExecutableType substitutedS =
-      new SubstituteVisitor(this.supertypeVisitor, s.getTypeVariables(), t.getTypeVariables()).visitExecutable(s, null);
-    if (s != substitutedS) {
-      return this.visitExecutable(t, substitutedS); // RECURSIVE
-    }
-    // javac has, effectively
-    // (https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1445):
-    //
-    //   return hasSameArgs(t, s) && this.visit(t.getReturnType(), s.getReturnType())
-    //
-    // hasSameArgs() in javac ends up calling a visitor that does
-    // exactly what this current visitExecutable() method does, so
-    // effectively the compiler checks an executable twice.  That
-    // seems silly.  The only "extra" thing hasSameArgs does is call containsTypeEquivalent(t, s).
-    //
-    // So instead of this:
-    //
-    //   return hasSameArgs(t, s) && this.visit(t.getReturnType(), s.getReturnType());
-    //
-    // …we'll just do this:
-    return containsTypeEquivalent(t, s) && this.visit(t.getReturnType(), s.getReturnType());
+  private final boolean visitTypeVariable(final TypeVariable t, final WildcardType s) {
+    assert t.getKind() == TypeKind.TYPEVAR && s.getKind() == TypeKind.WILDCARD;
+    // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1370-L1374
+    return
+      s.getExtendsBound() == null &&
+      s.getSuperBound() != null &&
+      this.visit(t, ObjectConstruct.JAVA_LANG_OBJECT_TYPE);
   }
 
+  @Override
+  public final Boolean visitWildcard(final WildcardType t, final TypeMirror s) {
+    assert t.getKind() == TypeKind.WILDCARD;
+    return s.getKind() == TypeKind.WILDCARD && this.visitWildcard(t, (WildcardType)s);
+  }
+
+  private final boolean visitWildcard(final WildcardType t, final WildcardType s) {
+    assert t.getKind() == TypeKind.WILDCARD && s.getKind() == TypeKind.WILDCARD;
+    final TypeMirror tExtendsBound = t.getExtendsBound();
+    final TypeMirror sExtendsBound = s.getExtendsBound();
+    final TypeMirror tSuperBound = t.getSuperBound();
+    final TypeMirror sSuperBound = s.getSuperBound();
+    // return (t.kind == t2.kind || (t.isExtendsBound() && s.isExtendsBound())) &&
+    //         isSameType(t.type, t2.type);
+    if (tExtendsBound == null) {
+      if (sExtendsBound == null) {
+        if (tSuperBound == null) {
+          return sSuperBound == null;
+        } else if (sSuperBound == null) {
+          // t is super-bounded
+          // s is super-bounded and extends-bounded
+          return false;
+        } else {
+          // t is super-bounded
+          // s is super-bounded
+          return this.visit(tSuperBound, sSuperBound);
+        }
+      } else if (tSuperBound == null) {
+        if (sSuperBound == null) {
+          // t is super-bounded and extends-bounded
+          // s is extends-bounded
+          return this.visit(tExtendsBound, sExtendsBound);
+        } else {
+          throw new IllegalArgumentException("s: " + s);
+        }
+      } else if (sSuperBound == null) {
+        return false;
+      } else {
+        throw new IllegalArgumentException("s: " + s);
+      }
+    } else if (tSuperBound == null) {
+      if (sExtendsBound == null) {
+        return sSuperBound == null && this.visit(tExtendsBound, sExtendsBound);
+      } else if (sSuperBound == null) {
+        // t is extends-bounded
+        // s is extends-bounded
+        return this.visit(tExtendsBound, sExtendsBound);
+      } else {
+        throw new IllegalArgumentException("s: " + s);
+      }
+    } else {
+      throw new IllegalArgumentException("t: " + t);
+    }
+  }
+  
   // NOTE: Not currently used.  See comments in visitExecutable() above.
   //
   // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3245-L3256
@@ -344,7 +428,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
       this.visit(t, s) ||
       this.containsVisitor.visit(t, s) && this.containsVisitor.visit(s, t);
   }
-  
+
   private final boolean containsTypeEquivalent(final List<? extends TypeMirror> ts, final List<? extends TypeMirror> ss) {
     if (ts.isEmpty()) {
       return ss.isEmpty();
@@ -394,8 +478,8 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
       }
       return false;
     }
-    
+
   }
   */
-  
+
 }

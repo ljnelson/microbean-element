@@ -29,6 +29,7 @@ import javax.annotation.processing.Filer;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
+import javax.annotation.processing.SupportedSourceVersion;
 
 import javax.lang.model.SourceVersion;
 
@@ -48,8 +49,6 @@ import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
-
-import static javax.lang.model.SourceVersion.RELEASE_19;
 
 import static javax.tools.ToolProvider.getSystemJavaCompiler;
 
@@ -77,8 +76,8 @@ public final class AnnotationProcessingInterceptor implements InvocationIntercep
   public final ProcessingEnvironment resolveParameter(final ParameterContext parameterContext,
                                                       final ExtensionContext extensionContext)
     throws ParameterResolutionException {
-    return extensionContext.getStore(Namespace.GLOBAL)
-      .getOrComputeIfAbsent(Long.valueOf(Thread.currentThread().getId()),
+    return extensionContext.getStore(Namespace.create(Thread.currentThread().getId()))
+      .getOrComputeIfAbsent(ForwardingProcessingEnvironment.class,
                             k -> new ForwardingProcessingEnvironment(),
                             ForwardingProcessingEnvironment.class);
   }
@@ -89,15 +88,54 @@ public final class AnnotationProcessingInterceptor implements InvocationIntercep
                                         final ReflectiveInvocationContext<Method> invocationContext,
                                         final ExtensionContext extensionContext)
     throws Throwable {
-    final CompilationTask task = getSystemJavaCompiler()
-      .getTask(null,
-               null,
-               null,
-               List.of("-proc:only"),
-               List.of("java.lang.Object"),
-               null);
-    task.setProcessors(List.of(new Processor(invocation, invocationContext, extensionContext)));
-    task.call();
+    final Store store = extensionContext.getStore(Namespace.create(Thread.currentThread().getId()));
+    final ForwardingProcessingEnvironment fpe = store.get(ForwardingProcessingEnvironment.class, ForwardingProcessingEnvironment.class);
+    if (fpe == null) {
+      invocation.proceed();
+      return;
+    }
+    try {
+      final CompilationTask task = getSystemJavaCompiler()
+        .getTask(null,
+                 null,
+                 null,
+                 List.of("-proc:only"),
+                 List.of("java.lang.Object"),
+                 null);
+      task.setProcessors(List.of(new AbstractProcessor() {
+
+          @Override // AbstractProcessor
+          public final void init(final ProcessingEnvironment processingEnvironment) {
+            try {
+              fpe.delegate = processingEnvironment;
+              invocation.proceed();
+            } catch (final RuntimeException | Error e) {
+              throw e;
+            } catch (final Exception e) {
+              throw new RuntimeException(e.getMessage(), e);
+            } catch (final Throwable t) {
+              throw new AssertionError(t.getMessage(), t);
+            } finally {
+              fpe.delegate = null;
+            }
+          }
+
+          @Override // AbstractProcessor
+          public final SourceVersion getSupportedSourceVersion() {
+            final SupportedSourceVersion ssv = invocationContext.getTargetClass().getAnnotation(SupportedSourceVersion.class);
+            return ssv == null ? SourceVersion.latest() : ssv.value();
+          }
+
+          @Override // AbstractProcessor
+          public final boolean process(final Set<? extends TypeElement> annotations, final RoundEnvironment roundEnvironment) {
+            return false;
+          }
+
+        }));
+      task.call();
+    } finally {
+      store.remove(ForwardingProcessingEnvironment.class);
+    }
   }
 
 
@@ -105,55 +143,6 @@ public final class AnnotationProcessingInterceptor implements InvocationIntercep
    * Inner and nested classes.
    */
 
-
-  private final class Processor extends AbstractProcessor {
-
-    private final Invocation<Void> invocation;
-
-    private final ReflectiveInvocationContext<Method> invocationContext;
-
-    private final ExtensionContext extensionContext;
-
-    private Processor(final Invocation<Void> invocation,
-                      final ReflectiveInvocationContext<Method> invocationContext,
-                      final ExtensionContext extensionContext) {
-      super();
-      this.invocation = Objects.requireNonNull(invocation, "invocation");
-      this.invocationContext = Objects.requireNonNull(invocationContext, "invocationContext");
-      this.extensionContext = Objects.requireNonNull(extensionContext, "extensionContext");
-    }
-
-    @Override // AbstractProcessor
-    public final SourceVersion getSupportedSourceVersion() {
-      return RELEASE_19;
-    }
-
-    @Override // AbstractProcessor
-    public final void init(final ProcessingEnvironment processingEnvironment) {
-      final Store store = this.extensionContext.getStore(Namespace.GLOBAL);
-      final Long key = Thread.currentThread().getId();
-      final ForwardingProcessingEnvironment fpe = store.get(key, ForwardingProcessingEnvironment.class);
-      try {
-        fpe.delegate = processingEnvironment;
-        this.invocation.proceed();
-      } catch (final RuntimeException | Error e) {
-        throw e;
-      } catch (final Exception e) {
-        throw new IllegalStateException(e.getMessage(), e);
-      } catch (final Throwable t) {
-        throw new AssertionError(t.getMessage(), t);
-      } finally {
-        fpe.delegate = null;
-        store.remove(key);
-      }
-    }
-
-    @Override // AbstractProcessor
-    public final boolean process(final Set<? extends TypeElement> annotations, final RoundEnvironment roundEnvironment) {
-      return false;
-    }
-
-  }
 
   private static final class ForwardingProcessingEnvironment implements ProcessingEnvironment {
 
@@ -201,6 +190,27 @@ public final class AnnotationProcessingInterceptor implements InvocationIntercep
     @Override
     public final boolean isPreviewEnabled() {
       return this.delegate.isPreviewEnabled();
+    }
+
+    @Override
+    public final int hashCode() {
+      return this.delegate == null ? 0 : this.delegate.hashCode();
+    }
+
+    @Override
+    public final boolean equals(final Object other) {
+      if (other == this) {
+        return true;
+      } else if (other != null && this.getClass() == other.getClass()) {
+        return Objects.equals(this.delegate, ((ForwardingProcessingEnvironment)other).delegate);
+      } else {
+        return false;
+      }
+    }
+
+    @Override
+    public final String toString() {
+      return this.delegate == null ? super.toString() : this.delegate.toString();
     }
 
   }

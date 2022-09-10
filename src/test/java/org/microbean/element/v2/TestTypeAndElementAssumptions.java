@@ -16,20 +16,11 @@
  */
 package org.microbean.element.v2;
 
-import java.io.IOException;
-
 import java.lang.reflect.Field;
 
-import java.net.URI;
-
 import java.util.List;
-import java.util.Set;
 
-import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.annotation.processing.RoundEnvironment;
-
-import javax.lang.model.SourceVersion;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -41,24 +32,17 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 
-import javax.tools.SimpleJavaFileObject;
-
-import javax.tools.JavaCompiler.CompilationTask;
-
 import com.sun.tools.javac.code.Type.ClassType;
 
 import com.sun.tools.javac.model.JavacTypes;
 
 import org.junit.jupiter.api.Test;
 
-import static javax.lang.model.SourceVersion.RELEASE_17;
-
-import static javax.tools.ToolProvider.getSystemJavaCompiler;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -69,13 +53,9 @@ final class TestTypeAndElementAssumptions {
     super();
   }
 
-
-  /*
-   * Instance methods.
-   */
-
-
-  private final void testAssumptions(final ProcessingEnvironment env) {
+  @Test
+  @ExtendWith(AnnotationProcessingInterceptor.class)
+  final void testAssumptions(final ProcessingEnvironment env) {
     final javax.lang.model.util.Elements elements = env.getElementUtils();
     final javax.lang.model.util.Types javacModelTypes = env.getTypeUtils();
     assertTrue(javacModelTypes instanceof JavacTypes);
@@ -89,7 +69,7 @@ final class TestTypeAndElementAssumptions {
       fail(reflectiveOperationException);
     }
     assertNotNull(javacTypes);
-    
+
     // Here we have an element representing a declaration,
     // i.e. "public interface Comparable<T>".
     final TypeElement comparableElement = elements.getTypeElement("java.lang.Comparable");
@@ -103,7 +83,7 @@ final class TestTypeAndElementAssumptions {
     // More exploring.
     assertSame(comparableElement, ((ClassType)elementType).tsym);
     assertSame(comparableElement, elementType.asElement());
-    
+
     // The declared type has one type argument.  The sole type
     // argument is definitionally a TypeVariable.
     final List<? extends TypeMirror> typeArguments = elementType.getTypeArguments();
@@ -161,73 +141,6 @@ final class TestTypeAndElementAssumptions {
     //
     // * For any given TypeParameterElement, its asType() method will
     //   return a TypeVariable, namely a TypeVariable mentioned above.
-    
-  }
-
-
-
-  /*
-   * Boilerplate.
-   */
-
-
-  @Test
-  final void bootstrap() throws IOException {
-    final CompilationTask task = getSystemJavaCompiler()
-      .getTask(null,
-               null,
-               null,
-               List.of("-d", System.getProperty("project.build.testOutputDirectory")),
-               null,
-               List.of(new FrobFile()));
-    task.setProcessors(List.of(new Processor()));
-    assertTrue(task.call());
-  }
-
-  private static class StringFile extends SimpleJavaFileObject {
-
-    private final String sourceCode;
-
-    protected StringFile(final String className, final String sourceCode) {
-      super(URI.create("string:///" + className.replace('.', '/') + ".java"), SimpleJavaFileObject.Kind.SOURCE);
-      this.sourceCode = sourceCode;
-    }
-
-    @Override
-    public final CharSequence getCharContent(final boolean ignoreEncodingErrors) {
-      return this.sourceCode;
-    }
-
-  }
-
-  private static final class FrobFile extends StringFile {
-
-    private FrobFile() {
-      super("Frob", "class Frob{}");
-    }
-  }
-
-  private final class Processor extends AbstractProcessor {
-
-    private Processor() {
-      super();
-    }
-
-    @Override // AbstractProcessor
-    public final SourceVersion getSupportedSourceVersion() {
-      return RELEASE_17;
-    }
-
-    @Override // AbstractProcessor
-    @SuppressWarnings("deprecation")
-    public final void init(final ProcessingEnvironment processingEnvironment) {
-      TestTypeAndElementAssumptions.this.testAssumptions(processingEnvironment);
-    }
-
-    @Override // AbstractProcessor
-    public final boolean process(final Set<? extends TypeElement> annotations, final RoundEnvironment roundEnvironment) {
-      return false;
-    }
 
   }
 

@@ -94,6 +94,9 @@ public final class AnnotationProcessingInterceptor implements InvocationIntercep
       invocation.proceed();
       return;
     }
+    // SupportedSourceVersion targets types only.
+    final SupportedSourceVersion ssv = invocationContext.getTargetClass().getAnnotation(SupportedSourceVersion.class);
+    final SourceVersion sourceVersion = ssv == null ? SourceVersion.latest() : ssv.value();
     try {
       final CompilationTask task = getSystemJavaCompiler()
         .getTask(null,
@@ -122,8 +125,7 @@ public final class AnnotationProcessingInterceptor implements InvocationIntercep
 
           @Override // AbstractProcessor
           public final SourceVersion getSupportedSourceVersion() {
-            final SupportedSourceVersion ssv = invocationContext.getTargetClass().getAnnotation(SupportedSourceVersion.class);
-            return ssv == null ? SourceVersion.latest() : ssv.value();
+            return sourceVersion;
           }
 
           @Override // AbstractProcessor

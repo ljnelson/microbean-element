@@ -40,15 +40,17 @@ final class CaptureVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
 
   private final Types2 types2;
 
-  private final SubstituteVisitor substituteVisitorPrototype;
+  private final SupertypeVisitor supertypeVisitor;
   
-  MemberTypeVisitor memberTypeVisitor;
+  private final MemberTypeVisitor memberTypeVisitor;
   
-  CaptureVisitor(final Types2 types2, final SupertypeVisitor supertypeVisitor) {
+  CaptureVisitor(final Types2 types2,
+                 final SupertypeVisitor supertypeVisitor,
+                 final MemberTypeVisitor memberTypeVisitor) {
     super();
     this.types2 = Objects.requireNonNull(types2, "types2");
-    this.substituteVisitorPrototype =
-      new SubstituteVisitor(supertypeVisitor, List.of(), List.of());
+    this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
+    this.memberTypeVisitor = Objects.requireNonNull(memberTypeVisitor, "memberTypeVisitor");
   }
 
   @Override
@@ -69,8 +71,9 @@ final class CaptureVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
         final Element element = t.asElement();
         final TypeMirror memberType = this.memberTypeVisitor.visit(capturedEnclosingType, element);
         t =
-          (DeclaredType)this.substituteVisitorPrototype.with((List<? extends TypeVariable>)((DeclaredType)element.asType()).getTypeArguments(),
-                                                             t.getTypeArguments())
+          (DeclaredType)new SubstituteVisitor(this.supertypeVisitor,
+                                              ((DeclaredType)element.asType()).getTypeArguments(),
+                                              t.getTypeArguments())
           .visit(memberType, x);
         assert t.getKind() == TypeKind.DECLARED;
         enclosingType = t.getEnclosingType();
@@ -107,10 +110,10 @@ final class CaptureVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
         final TypeMirror TiExtendsBound = Ti.getExtendsBound();
         if (TiExtendsBound == null) {
           // subst(Ui, A, S)
-          Si.setUpperBound(this.substituteVisitorPrototype.with(A, S).visit(Ui));
+          Si.setUpperBound(new SubstituteVisitor(this.supertypeVisitor, A, S).visit(Ui));
         } else {
           // subst(Ui, A, S)
-          Si.setUpperBound(glb(TiExtendsBound, this.substituteVisitorPrototype.with(A, S).visit(Ui)));
+          Si.setUpperBound(glb(TiExtendsBound, new SubstituteVisitor(this.supertypeVisitor, A, S).visit(Ui)));
         }
       }
     }

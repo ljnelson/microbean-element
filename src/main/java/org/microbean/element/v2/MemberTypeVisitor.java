@@ -72,6 +72,8 @@ final class MemberTypeVisitor extends SimpleTypeVisitor14<TypeMirror, Element> {
       final Element enclosingElement = e.getEnclosingElement();
       final TypeMirror enclosingType = enclosingElement.asType();
       if (this.types2.parameterized(enclosingType)) {
+        assert enclosingType.getKind() == TypeKind.DECLARED;
+        assert enclosingType instanceof DeclaredType;
         final TypeMirror baseType = this.asSuperVisitor.asOuterSuper(t, enclosingElement);
         if (baseType != null) {
           final List<? extends TypeMirror> enclosingTypeTypeArguments = this.types2.allTypeArguments(enclosingType);

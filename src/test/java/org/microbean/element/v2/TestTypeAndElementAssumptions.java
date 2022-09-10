@@ -47,6 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+@ExtendWith(AnnotationProcessingInterceptor.class)
 final class TestTypeAndElementAssumptions {
 
   private TestTypeAndElementAssumptions() {
@@ -54,7 +55,6 @@ final class TestTypeAndElementAssumptions {
   }
 
   @Test
-  @ExtendWith(AnnotationProcessingInterceptor.class)
   final void testAssumptions(final ProcessingEnvironment env) {
     final javax.lang.model.util.Elements elements = env.getElementUtils();
     final javax.lang.model.util.Types javacModelTypes = env.getTypeUtils();

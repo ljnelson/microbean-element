@@ -39,7 +39,7 @@ public final class TypeClosure {
 
   // DefaultTypeMirror so things like list.contains(t) will work with
   // arbitrary TypeMirror implementations
-  private Deque<DefaultTypeMirror> deque;
+  private final Deque<DefaultTypeMirror> deque;
 
   private final BiPredicate<? super Element, ? super Element> precedesPredicate;
 
@@ -65,9 +65,8 @@ public final class TypeClosure {
     return this.insert(this.deque, DefaultTypeMirror.of(t));
   }
 
-  private final boolean insert(final Deque<DefaultTypeMirror> list, final TypeMirror t) {
+  private final boolean insert(final Deque<DefaultTypeMirror> deque, final TypeMirror t) {
     if (deque.isEmpty()) {
-      // list.add(0, DefaultTypeMirror.of(t));
       deque.addFirst(DefaultTypeMirror.of(t));
       return true;
     }
@@ -82,8 +81,7 @@ public final class TypeClosure {
     default:
       throw new IllegalArgumentException("t: " + t);
     }
-    // final TypeMirror head = list.get(0);
-    DefaultTypeMirror head = deque.peekFirst();
+    final DefaultTypeMirror head = deque.peekFirst();
     final Element headE;
     switch (head.getKind()) {
     case DECLARED:
@@ -99,39 +97,30 @@ public final class TypeClosure {
       // Already have it.
       return false;
     } else if (this.precedesPredicate.test(e, headE)) {
-      // list.add(0, DefaultTypeMirror.of(t));
       deque.addFirst(DefaultTypeMirror.of(t));
       return true;
     } else {
-      head = deque.removeFirst();
+      deque.removeFirst(); // returns head
       final boolean returnValue = this.insert(deque, t); // RECURSIVE
       deque.addFirst(head);
       return returnValue;
-      // return this.insert(list.subList(1, list.size()), t); // RECURSIVE
     }
   }
 
   final void union(final TypeClosure c2) {
-    this.union(this.deque, c2.toList());
+    this.union(c2.toList());
   }
 
-  final void union(final List<? extends TypeMirror> c2) {
-    final Deque<DefaultTypeMirror> unionList = this.union(this.deque, c2);
-    if (unionList != this.deque) {
-      this.deque = unionList;
-    }
-  }
-
-  private final Deque<DefaultTypeMirror> union(Deque<DefaultTypeMirror> c1, final List<? extends TypeMirror> c2) {
-    if (c1.isEmpty()) {
+  private final void union(final List<? extends TypeMirror> c2) {
+    if (this.deque.isEmpty()) {
       for (final TypeMirror t : c2) {
-        c1.addLast(DefaultTypeMirror.of(t));
+        this.deque.addLast(DefaultTypeMirror.of(t));
       }
-      return c1;
+      return;
     } else if (c2.isEmpty()) {
-      return c1;
+      return;
     }
-    final TypeMirror head1 = c1.peekFirst();
+    final DefaultTypeMirror head1 = this.deque.peekFirst();
     final Element head1E;
     switch (head1.getKind()) {
     case DECLARED:
@@ -141,7 +130,7 @@ public final class TypeClosure {
       head1E = ((TypeVariable)head1).asElement();
       break;
     default:
-      throw new IllegalArgumentException("c1: " + c1);
+      throw new IllegalStateException();
     }
     final TypeMirror head2 = c2.get(0);
     final Element head2E;
@@ -156,20 +145,22 @@ public final class TypeClosure {
       throw new IllegalArgumentException("c2: " + c2);
     }
     if (this.equalsPredicate.test(head1E, head2E)) {
-      c1.removeFirst();
-      c1 = this.union(c1, c2.subList(1, c2.size())); // RECURSIVE
-      // c1 = this.union(new ArrayList<>(c1.subList(1, c1.size())), c2.subList(1, c2.size())); // RECURSIVE
-      c1.addFirst(DefaultTypeMirror.of(head1));
+      // Don't include head2.
+      if (c2.size() > 1) {
+        this.deque.removeFirst(); // returns head1
+        this.union(c2.subList(1, c2.size())); // RECURSIVE
+        this.deque.addFirst(head1);
+      }
     } else if (this.precedesPredicate.test(head2E, head1E)) {
-      this.union(c1, c2.subList(1, c2.size())); // RECURSIVE
-      c1.addFirst(DefaultTypeMirror.of(head2));
+      if (c2.size() > 1) {
+        this.union(c2.subList(1, c2.size())); // RECURSIVE
+      }
+      this.deque.addFirst(DefaultTypeMirror.of(head2));
     } else {
-      c1.removeFirst();
-      c1 = this.union(c1, c2); // RECURSIVE
-      // c1 = this.union(new ArrayList<>(c1.subList(1, c1.size())), c2); // RECURSIVE
-      c1.addFirst(DefaultTypeMirror.of(head1));
+      this.deque.removeFirst(); // returns head1
+      this.union(c2); // RECURSIVE
+      this.deque.addFirst(head1);
     }
-    return c1;
   }
 
   // Weird case. See
@@ -177,25 +168,24 @@ public final class TypeClosure {
   final void prepend(final TypeVariable t) {
     assert t.getKind() == TypeKind.TYPEVAR;
     this.deque.addFirst(DefaultTypeMirror.of(t));
-    // this.list.add(0, DefaultTypeMirror.of(t));
   }
 
   // Port of javac's Types#closureMin(List<Type>)
   // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3915-L3945
   final List<TypeMirror> toMinimumTypes(final SubtypeVisitor subtypeVisitor) {
-    final List<TypeMirror> classes = new ArrayList<>();
+    final ArrayList<TypeMirror> classes = new ArrayList<>();
     final List<TypeMirror> interfaces = new ArrayList<>();
     final Set<DefaultTypeMirror> toSkip = new HashSet<>();
 
-    final List<? extends TypeMirror> list = this.toList();
-    final int size = list.size();
+    final TypeMirror[] array = this.deque.toArray(new TypeMirror[0]);
+    final int size = array.length;
 
     for (int i = 0, next = 1; i < size; i++, next++) {
-      final TypeMirror current = list.get(i);
+      final TypeMirror current = array[i];
       boolean keep = !toSkip.contains(DefaultTypeMirror.of(current));
       if (keep && current.getKind() == TypeKind.TYPEVAR && next < size) {
         for (int j = next; j < size; j++) {
-          if (subtypeVisitor.withCapture(false).visit(list.get(j), current)) {
+          if (subtypeVisitor.withCapture(false).visit(array[j], current)) {
             // If there's a subtype of current "later" in the list, then
             // there's no need to "keep" current; it will be implied by
             // the subtype's supertype hierarchy.
@@ -212,7 +202,7 @@ public final class TypeClosure {
         }
         if (next < size) {
           for (int j = next; j < size; j++) {
-            final TypeMirror t = list.get(j);
+            final TypeMirror t = array[j];
             if (subtypeVisitor.withCapture(false).visit(current, t)) {
               // As we're processing this.list, we can skip supertypes
               // of current (t, here) because we know current is
@@ -224,6 +214,7 @@ public final class TypeClosure {
       }
     }
     classes.addAll(interfaces);
+    classes.trimToSize();
     return Collections.unmodifiableList(classes);
   }
 

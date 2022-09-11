@@ -147,13 +147,17 @@ public final class TypeClosure {
       throw new IllegalArgumentException("c2: " + c2);
     }
     if (this.equalsPredicate.test(head1E, head2E)) {
-      c1 = this.union(new ArrayList<>(c1.subList(1, c1.size())), c2.subList(1, c2.size())); // RECURSIVE
+      c1.remove(0);
+      c1 = this.union(c1, c2.subList(1, c2.size())); // RECURSIVE
+      // c1 = this.union(new ArrayList<>(c1.subList(1, c1.size())), c2.subList(1, c2.size())); // RECURSIVE
       c1.add(0, DefaultTypeMirror.of(head1));
     } else if (this.precedesPredicate.test(head2E, head1E)) {
       this.union(c1, c2.subList(1, c2.size())); // RECURSIVE
       c1.add(0, DefaultTypeMirror.of(head2));
     } else {
-      c1 = this.union(new ArrayList<>(c1.subList(1, c1.size())), c2); // RECURSIVE
+      c1.remove(0);
+      c1 = this.union(c1, c2); // RECURSIVE
+      // c1 = this.union(new ArrayList<>(c1.subList(1, c1.size())), c2); // RECURSIVE
       c1.add(0, DefaultTypeMirror.of(head1));
     }
     return c1;

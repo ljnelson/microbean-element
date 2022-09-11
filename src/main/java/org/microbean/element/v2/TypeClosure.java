@@ -35,6 +35,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 
 // A type closure list builder.
+// NOT THREADSAFE
 public final class TypeClosure {
 
   // DefaultTypeMirror so things like list.contains(t) will work with
@@ -62,12 +63,8 @@ public final class TypeClosure {
   }
 
   final boolean insert(final TypeMirror t) {
-    return this.insert(this.deque, DefaultTypeMirror.of(t));
-  }
-
-  private final boolean insert(final Deque<DefaultTypeMirror> deque, final TypeMirror t) {
-    if (deque.isEmpty()) {
-      deque.addFirst(DefaultTypeMirror.of(t));
+    if (this.deque.isEmpty()) {
+      this.deque.addFirst(DefaultTypeMirror.of(t));
       return true;
     }
     final Element e;
@@ -81,7 +78,7 @@ public final class TypeClosure {
     default:
       throw new IllegalArgumentException("t: " + t);
     }
-    final DefaultTypeMirror head = deque.peekFirst();
+    final DefaultTypeMirror head = this.deque.peekFirst();
     final Element headE;
     switch (head.getKind()) {
     case DECLARED:
@@ -97,16 +94,16 @@ public final class TypeClosure {
       // Already have it.
       return false;
     } else if (this.precedesPredicate.test(e, headE)) {
-      deque.addFirst(DefaultTypeMirror.of(t));
+      this.deque.addFirst(DefaultTypeMirror.of(t));
       return true;
-    } else if (deque.size() == 1) {
+    } else if (this.deque.size() == 1) {
       // No need to recurse and get fancy; just add last
-      deque.addLast(DefaultTypeMirror.of(t));
+      this.deque.addLast(DefaultTypeMirror.of(t));
       return true;
     } else {
-      deque.removeFirst(); // returns head
-      final boolean returnValue = this.insert(deque, t); // RECURSIVE
-      deque.addFirst(head);
+      this.deque.removeFirst(); // returns head
+      final boolean returnValue = this.insert(t); // RECURSIVE
+      this.deque.addFirst(head);
       return returnValue;
     }
   }

@@ -55,11 +55,6 @@ final class TestTypeAndElementAssumptions {
   }
 
   @Test
-  final void testNoParams() {
-    
-  }
-  
-  @Test
   final void testAssumptions(final ProcessingEnvironment env) {
     final javax.lang.model.util.Elements elements = env.getElementUtils();
     final javax.lang.model.util.Types javacModelTypes = env.getTypeUtils();

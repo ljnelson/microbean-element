@@ -55,7 +55,7 @@ import static javax.tools.ToolProvider.getSystemJavaCompiler;
 public final class AnnotationProcessingInterceptor implements InvocationInterceptor, ParameterResolver {
 
   @Deprecated // for use by JUnit Jupiter internals only
-  AnnotationProcessingInterceptor() {
+  private AnnotationProcessingInterceptor() {
     super();
   }
 
@@ -66,16 +66,14 @@ public final class AnnotationProcessingInterceptor implements InvocationIntercep
   @Deprecated // for use by JUnit Jupiter internals only
   @Override // ParameterResolver
   public final boolean supportsParameter(final ParameterContext parameterContext,
-                                         final ExtensionContext extensionContext)
-    throws ParameterResolutionException {
+                                         final ExtensionContext extensionContext) {
     return ProcessingEnvironment.class.isAssignableFrom(parameterContext.getParameter().getType());
   }
 
   @Deprecated // for use by JUnit Jupiter internals only
   @Override // ParameterResolver
   public final ProcessingEnvironment resolveParameter(final ParameterContext parameterContext,
-                                                      final ExtensionContext extensionContext)
-    throws ParameterResolutionException {
+                                                      final ExtensionContext extensionContext) {
     return extensionContext.getStore(Namespace.create(Thread.currentThread().getId()))
       .getOrComputeIfAbsent(ForwardingProcessingEnvironment.class,
                             k -> new ForwardingProcessingEnvironment(),
@@ -94,10 +92,10 @@ public final class AnnotationProcessingInterceptor implements InvocationIntercep
       invocation.proceed();
       return;
     }
-    // SupportedSourceVersion targets types only.
-    final SupportedSourceVersion ssv = invocationContext.getTargetClass().getAnnotation(SupportedSourceVersion.class);
-    final SourceVersion sourceVersion = ssv == null ? SourceVersion.latest() : ssv.value();
     try {
+      // SupportedSourceVersion targets types only.
+      final SupportedSourceVersion ssv = invocationContext.getTargetClass().getAnnotation(SupportedSourceVersion.class);
+      final SourceVersion sourceVersion = ssv == null ? SourceVersion.latest() : ssv.value();
       final CompilationTask task = getSystemJavaCompiler()
         .getTask(null,
                  null,

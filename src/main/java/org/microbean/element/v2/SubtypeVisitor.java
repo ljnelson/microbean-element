@@ -19,6 +19,7 @@ package org.microbean.element.v2;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.lang.model.element.Name;
@@ -49,21 +50,23 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
   private final Set<TypeMirrorPair> cache;
 
+  private final SupertypeVisitor supertypeVisitor;
+  
+  private final IsSameTypeVisitor isSameTypeVisitor;
+  
   ContainsTypeVisitor containsTypeVisitor;
-
-  IsSameTypeVisitor isSameTypeVisitor;
-
-  SubstituteVisitor substituteVisitor;
 
   AsSuperVisitor asSuperVisitor;
 
-  SubtypeVisitor(final Types2 types2) {
-    this(types2, true);
+  SubtypeVisitor(final Types2 types2, final SupertypeVisitor supertypeVisitor, final IsSameTypeVisitor isSameTypeVisitor) {
+    this(types2, supertypeVisitor, isSameTypeVisitor, true);
   }
   
-  SubtypeVisitor(final Types2 types2, final boolean capture) {
+  SubtypeVisitor(final Types2 types2, final SupertypeVisitor supertypeVisitor, final IsSameTypeVisitor isSameTypeVisitor, final boolean capture) {
     super(Boolean.FALSE);
-    this.types2 = types2;
+    this.types2 = Objects.requireNonNull(types2, "types2");
+    this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
+    this.isSameTypeVisitor = Objects.requireNonNull(isSameTypeVisitor, "isSameTypeVisitor");
     this.capture = capture;
     this.cache = new HashSet<>();
   }
@@ -72,10 +75,9 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     if (capture == this.capture) {
       return this;
     }
-    final SubtypeVisitor subtypeVisitor = new SubtypeVisitor(this.types2, capture);
+    final SubtypeVisitor subtypeVisitor = new SubtypeVisitor(this.types2, this.supertypeVisitor, isSameTypeVisitor, capture);
     subtypeVisitor.containsTypeVisitor = this.containsTypeVisitor;
-    subtypeVisitor.isSameTypeVisitor = this.isSameTypeVisitor;
-    subtypeVisitor.substituteVisitor = this.substituteVisitor;
+    subtypeVisitor.asSuperVisitor = this.asSuperVisitor;
     return subtypeVisitor;
   }
 
@@ -95,9 +97,9 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
       final TypeMirror tct = t.getComponentType();
       final TypeMirror sct = ((ArrayType)s).getComponentType();
       if (tct.getKind().isPrimitive()) {
-        return isSameTypeVisitor.visit(tct, sct);
+        return this.isSameTypeVisitor.visit(tct, sct);
       } else if (this.capture) {
-        return new SubtypeVisitor(this.types2, false).visit(tct, sct);
+        return new SubtypeVisitor(this.types2, this.supertypeVisitor, this.isSameTypeVisitor, false).visit(tct, sct);
       } else {
         return this.visit(tct, sct);
       }
@@ -335,7 +337,7 @@ final class SubtypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
         if (changed) {
           // (If t is a DeclaredType or a TypeVariable, call
           // asElement().asType() and visit that.)
-          return this.substituteVisitor.with(from, rewrite).visit(this.types2.declaredTypeMirror(t));
+          return new SubstituteVisitor(this.supertypeVisitor, from, rewrite).visit(this.types2.declaredTypeMirror(t));
         }
       }
     }

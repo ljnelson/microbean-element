@@ -58,9 +58,9 @@ final class SupertypeVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
 
   private final Types2 types2;
 
-  private final InterfacesVisitor interfacesVisitor;
-
   private final EraseVisitor eraseVisitor;
+
+  private final InterfacesVisitor interfacesVisitor; // (created by this class)
 
   private final BoundingClassVisitor boundingClassVisitor; // (inner class)
 
@@ -76,7 +76,7 @@ final class SupertypeVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
     this.types2 = Objects.requireNonNull(types2, "types2");
     this.eraseVisitor = Objects.requireNonNull(eraseVisitor, "eraseVisitor");
     this.boundingClassVisitor = new BoundingClassVisitor(); // (inner class)
-    this.interfacesVisitor = new InterfacesVisitor(types2, eraseVisitor, this);                                                       
+    this.interfacesVisitor = new InterfacesVisitor(types2, eraseVisitor, this);
   }
 
 
@@ -84,7 +84,7 @@ final class SupertypeVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
    * Instance methods.
    */
 
-  
+
   final InterfacesVisitor interfacesVisitor() {
     return this.interfacesVisitor;
   }

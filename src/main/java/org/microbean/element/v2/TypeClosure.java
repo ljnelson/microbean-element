@@ -99,6 +99,10 @@ public final class TypeClosure {
     } else if (this.precedesPredicate.test(e, headE)) {
       deque.addFirst(DefaultTypeMirror.of(t));
       return true;
+    } else if (deque.size() == 1) {
+      // No need to recurse and get fancy; just add last
+      deque.addLast(DefaultTypeMirror.of(t));
+      return true;
     } else {
       deque.removeFirst(); // returns head
       final boolean returnValue = this.insert(deque, t); // RECURSIVE
@@ -107,17 +111,17 @@ public final class TypeClosure {
     }
   }
 
-  final void union(final TypeClosure c2) {
-    this.union(c2.toList());
+  final void union(final TypeClosure tc) {
+    this.union(tc.toList());
   }
 
-  private final void union(final List<? extends TypeMirror> c2) {
+  private final void union(final List<? extends TypeMirror> list) {
     if (this.deque.isEmpty()) {
-      for (final TypeMirror t : c2) {
+      for (final TypeMirror t : list) {
         this.deque.addLast(DefaultTypeMirror.of(t));
       }
       return;
-    } else if (c2.isEmpty()) {
+    } else if (list.isEmpty()) {
       return;
     }
     final DefaultTypeMirror head1 = this.deque.peekFirst();
@@ -132,7 +136,7 @@ public final class TypeClosure {
     default:
       throw new IllegalStateException();
     }
-    final TypeMirror head2 = c2.get(0);
+    final TypeMirror head2 = list.get(0);
     final Element head2E;
     switch (head2.getKind()) {
     case DECLARED:
@@ -142,23 +146,23 @@ public final class TypeClosure {
       head2E = ((TypeVariable)head2).asElement();
       break;
     default:
-      throw new IllegalArgumentException("c2: " + c2);
+      throw new IllegalArgumentException("list: " + list);
     }
     if (this.equalsPredicate.test(head1E, head2E)) {
       // Don't include head2.
-      if (c2.size() > 1) {
+      if (list.size() > 1) {
         this.deque.removeFirst(); // returns head1
-        this.union(c2.subList(1, c2.size())); // RECURSIVE
+        this.union(list.subList(1, list.size())); // RECURSIVE
         this.deque.addFirst(head1);
       }
     } else if (this.precedesPredicate.test(head2E, head1E)) {
-      if (c2.size() > 1) {
-        this.union(c2.subList(1, c2.size())); // RECURSIVE
+      if (list.size() > 1) {
+        this.union(list.subList(1, list.size())); // RECURSIVE
       }
       this.deque.addFirst(DefaultTypeMirror.of(head2));
     } else {
       this.deque.removeFirst(); // returns head1
-      this.union(c2); // RECURSIVE
+      this.union(list); // RECURSIVE
       this.deque.addFirst(head1);
     }
   }

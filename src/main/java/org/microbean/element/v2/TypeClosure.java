@@ -145,17 +145,23 @@ public final class TypeClosure {
     default:
       throw new IllegalArgumentException("list: " + list);
     }
-    if (this.equalsPredicate.test(head1E, head2E)) {
+
+    // There are a bunch of optimizations we can do if the list is size 1.
+    if (list.size() == 1) {
+      if (!this.equalsPredicate.test(head1E, head2E)) {
+        if (this.precedesPredicate.test(head2E, head1E)) {
+          this.deque.addFirst(DefaultTypeMirror.of(head2));
+        } else {
+          this.deque.addLast(DefaultTypeMirror.of(head2));
+        }
+      }
+    } else if (this.equalsPredicate.test(head1E, head2E)) {
       // Don't include head2.
-      if (list.size() > 1) {
-        this.deque.removeFirst(); // returns head1
-        this.union(list.subList(1, list.size())); // RECURSIVE
-        this.deque.addFirst(head1);
-      }
+      this.deque.removeFirst(); // returns head1
+      this.union(list.subList(1, list.size())); // RECURSIVE
+      this.deque.addFirst(head1);
     } else if (this.precedesPredicate.test(head2E, head1E)) {
-      if (list.size() > 1) {
-        this.union(list.subList(1, list.size())); // RECURSIVE
-      }
+      this.union(list.subList(1, list.size())); // RECURSIVE
       this.deque.addFirst(DefaultTypeMirror.of(head2));
     } else {
       this.deque.removeFirst(); // returns head1

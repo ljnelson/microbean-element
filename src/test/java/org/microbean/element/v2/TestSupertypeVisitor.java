@@ -22,13 +22,18 @@ import java.util.List;
 
 import javax.annotation.processing.ProcessingEnvironment;
 
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.TypeParameterElement;
 
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.type.TypeVariable;
 
 import com.sun.tools.javac.code.Type;
+import com.sun.tools.javac.code.Type.ClassType;
 
 import com.sun.tools.javac.model.JavacTypes;
 
@@ -38,19 +43,20 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @ExtendWith(AnnotationProcessingInterceptor.class)
-final class TestTypeClosure {
+final class TestSupertypeVisitor {
 
-  private TestTypeClosure() {
+  private TestSupertypeVisitor() {
     super();
   }
 
   @Test
-  final void testTypeClosure(final ProcessingEnvironment env) {
+  final void testInteger(final ProcessingEnvironment env) {
     final javax.lang.model.util.Elements elements = env.getElementUtils();
     final javax.lang.model.util.Types javacModelTypes = env.getTypeUtils();
     assertTrue(javacModelTypes instanceof JavacTypes);
@@ -68,19 +74,7 @@ final class TestTypeClosure {
     final DeclaredType integerElementType = (DeclaredType)integerElement.asType();
     assertSame(TypeKind.DECLARED, integerElementType.getKind());
 
-    // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3702-L3703
-    //
-    // "…(that is, subclasses come first, arbitrary but fixed otherwise)."
-    
-    final List<Type> closure = javacTypes.closure((Type)integerElementType);
-    // 0: java.lang.Integer
-    // 1: java.lang.Number (superclass of java.lang.Integer)
-    // 2: java.io.Serializable (declared interface)
-    // 3: java.lang.Comparable<java.lang.Integer> (declared interface)
-    // 4: java.lang.constant.Constable (declared interface)
-    // 5: java.lang.constant.ConstantDesc (declared interface)
-    // 6: java.lang.Object (superclass of java.lang.Number)
-    assertEquals(7, closure.size());
+    final Type javacSupertype = javacTypes.supertype((Type)integerElementType);
 
     // Let's try it with our visitor.
 
@@ -89,19 +83,15 @@ final class TestTypeClosure {
     final EraseVisitor eraseVisitor = new EraseVisitor(types2);
     final SupertypeVisitor supertypeVisitor = new SupertypeVisitor(types2, eraseVisitor);
 
-    // These have cycles.
-    final ContainsTypeVisitor containsTypeVisitor = new ContainsTypeVisitor(types2);
-    final IsSameTypeVisitor isSameTypeVisitor = new IsSameTypeVisitor(containsTypeVisitor, supertypeVisitor);    
-    final SubtypeVisitor subtypeVisitor = new SubtypeVisitor(types2, supertypeVisitor, isSameTypeVisitor);
-    containsTypeVisitor.subtypeVisitor = subtypeVisitor;
-    subtypeVisitor.containsTypeVisitor = containsTypeVisitor;
+    final TypeMirror supertype = supertypeVisitor.visit(integerElementType);
 
-    final PrecedesPredicate precedesPredicate = new PrecedesPredicate(supertypeVisitor, subtypeVisitor);
-    final TypeClosureVisitor typeClosureVisitor = new TypeClosureVisitor(supertypeVisitor, precedesPredicate);
+    assertSame(javacSupertype, supertype);
 
-    final TypeClosure c = typeClosureVisitor.visit(integerElementType);
-    final List<? extends TypeMirror> list = c.toList();
-    assertEquals(7, list.size(), "Unexpected type closure list: " + list);
+    // How about superinterfaces?
+
+    final List<Type> javacInterfaces = javacTypes.interfaces((Type)integerElementType);
+    final List<? extends TypeMirror> interfaces = supertypeVisitor.interfacesVisitor().visit(integerElementType);
+    assertSame(javacInterfaces, interfaces);
     
   }
 

@@ -19,7 +19,6 @@ package org.microbean.element.v2;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -27,7 +26,6 @@ import java.util.Set;
 import java.util.function.BiPredicate;
 
 import javax.lang.model.element.Element;
-import javax.lang.model.element.TypeElement;
 
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
@@ -39,7 +37,7 @@ public final class TypeClosure {
 
   // DefaultTypeMirror so things like list.contains(t) will work with
   // arbitrary TypeMirror implementations
-  private final List<DefaultTypeMirror> list;
+  private List<DefaultTypeMirror> list;
 
   private final BiPredicate<? super Element, ? super Element> precedesPredicate;
 
@@ -105,21 +103,24 @@ public final class TypeClosure {
   }
 
   final void union(final TypeClosure c2) {
-    this.union(this.list, c2.list);
+    this.union(c2.list);
   }
 
   final void union(final List<? extends TypeMirror> c2) {
-    this.union(this.list, c2);
+    final List<DefaultTypeMirror> unionList = this.union(this.list, c2);
+    if (unionList != this.list) {
+      this.list = unionList;
+    }
   }
 
-  private final void union(final List<DefaultTypeMirror> c1, final List<? extends TypeMirror> c2) {
+  private final List<DefaultTypeMirror> union(List<DefaultTypeMirror> c1, final List<? extends TypeMirror> c2) {
     if (c1.isEmpty()) {
       for (final TypeMirror t : c2) {
         c1.add(DefaultTypeMirror.of(t));
       }
-      return;
+      return c1;
     } else if (c2.isEmpty()) {
-      return;
+      return c1;
     }
     final TypeMirror head1 = c1.get(0);
     final Element head1E;
@@ -146,15 +147,16 @@ public final class TypeClosure {
       throw new IllegalArgumentException("c2: " + c2);
     }
     if (this.equalsPredicate.test(head1E, head2E)) {
-      this.union(c1.subList(1, c1.size()), c2.subList(1, c2.size())); // RECURSIVE
+      c1 = this.union(new ArrayList<>(c1.subList(1, c1.size())), c2.subList(1, c2.size())); // RECURSIVE
       c1.add(0, DefaultTypeMirror.of(head1));
     } else if (this.precedesPredicate.test(head2E, head1E)) {
       this.union(c1, c2.subList(1, c2.size())); // RECURSIVE
       c1.add(0, DefaultTypeMirror.of(head2));
     } else {
-      this.union(c1.subList(1, c1.size()), c2); // RECURSIVE
+      c1 = this.union(new ArrayList<>(c1.subList(1, c1.size())), c2); // RECURSIVE
       c1.add(0, DefaultTypeMirror.of(head1));
     }
+    return c1;
   }
 
   // Weird case. See

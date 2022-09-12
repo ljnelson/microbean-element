@@ -53,7 +53,7 @@ import javax.lang.model.type.TypeMirror;
 
 import javax.lang.model.util.ElementFilter;
 
-public class DefaultTypeElement extends AbstractParameterizableElement implements TypeElement {
+public final class DefaultTypeElement extends AbstractParameterizableElement implements TypeElement {
 
 
   /*

@@ -68,7 +68,8 @@ final class TestTypeClosure {
     final ArrayType integerArrayType = javacModelTypes.getArrayType(elements.getTypeElement("java.lang.Integer").asType());
     final List<Type> integerArrayClosure = javacTypes.closure((Type)integerArrayType);
 
-    // This is weird and we don't support it:
+    // This is weird and we don't support it.  See
+    // https://stackoverflow.com/questions/73683649/in-the-javac-source-code-why-does-closuretype-return-a-non-empty-list-for-non.
     assertEquals(1, integerArrayClosure.size());
     assertSame(integerArrayType, integerArrayClosure.get(0));
 

@@ -32,7 +32,7 @@ import javax.lang.model.element.TypeElement;
 
 import javax.lang.model.type.DeclaredType;
 
-public class DefaultRecordComponentElement extends AbstractElement implements RecordComponentElement {
+public final class DefaultRecordComponentElement extends AbstractElement implements RecordComponentElement {
 
   private final ExecutableElement accessor;
 

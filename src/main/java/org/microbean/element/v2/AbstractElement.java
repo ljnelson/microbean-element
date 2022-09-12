@@ -38,7 +38,7 @@ import javax.lang.model.element.VariableElement;
 
 import javax.lang.model.type.TypeMirror;
 
-public abstract class AbstractElement extends AbstractAnnotatedConstruct implements Element, Encloseable {
+abstract sealed class AbstractElement extends AbstractAnnotatedConstruct implements Element, Encloseable permits AbstractParameterizableElement, DefaultModuleElement, DefaultPackageElement, DefaultRecordComponentElement, DefaultTypeParameterElement, DefaultVariableElement, SyntheticArrayElement, SyntheticElement, SyntheticPrimitiveElement, SyntheticWildcardElement {
 
 
   /*
@@ -352,6 +352,5 @@ public abstract class AbstractElement extends AbstractAnnotatedConstruct impleme
     }
     return Collections.unmodifiableList(newList);
   }
-
   
 }

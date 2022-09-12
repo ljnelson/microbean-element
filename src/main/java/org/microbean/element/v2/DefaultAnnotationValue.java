@@ -26,7 +26,7 @@ import javax.lang.model.element.VariableElement;
 
 import javax.lang.model.type.TypeMirror;
 
-public class DefaultAnnotationValue implements AnnotationValue {
+public final class DefaultAnnotationValue implements AnnotationValue {
 
   private final Object value;
 
@@ -93,7 +93,7 @@ public class DefaultAnnotationValue implements AnnotationValue {
     }
   }
 
-  public static DefaultAnnotationValue of(final Object value) {
+  public static final DefaultAnnotationValue of(final Object value) {
     return new DefaultAnnotationValue(value);
   }
 

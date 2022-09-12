@@ -32,7 +32,7 @@ import javax.lang.model.element.TypeElement;
 
 import javax.lang.model.type.NoType;
 
-public class DefaultModuleElement extends AbstractElement implements ModuleElement {
+public final class DefaultModuleElement extends AbstractElement implements ModuleElement {
 
 
   /*

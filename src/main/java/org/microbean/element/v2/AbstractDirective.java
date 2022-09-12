@@ -27,7 +27,7 @@ import javax.lang.model.element.ModuleElement.ProvidesDirective;
 import javax.lang.model.element.ModuleElement.RequiresDirective;
 import javax.lang.model.element.ModuleElement.UsesDirective;
 
-public class AbstractDirective implements Directive {
+public sealed class AbstractDirective implements Directive permits DefaultExportsDirective, DefaultOpensDirective, DefaultProvidesDirective, DefaultRequiresDirective, DefaultUsesDirective {
 
   private final DirectiveKind kind;
   

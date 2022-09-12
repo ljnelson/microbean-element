@@ -64,7 +64,7 @@ public sealed class DefaultDeclaredType extends AbstractTypeMirror implements De
     this(TypeKind.DECLARED, enclosingType, typeArguments, false, annotationMirrors);
   }
   
-  protected DefaultDeclaredType(final TypeKind kind) {
+  DefaultDeclaredType(final TypeKind kind) {
     this(kind, null, List.of(), false, List.of());
   }
   
@@ -75,11 +75,11 @@ public sealed class DefaultDeclaredType extends AbstractTypeMirror implements De
     this(TypeKind.DECLARED, enclosingType, typeArguments, erased, annotationMirrors);
   }
   
-  DefaultDeclaredType(final TypeKind kind,
-                      final TypeMirror enclosingType,
-                      final List<? extends TypeMirror> typeArguments,
-                      final boolean erased,
-                      final List<? extends AnnotationMirror> annotationMirrors) {
+  private DefaultDeclaredType(final TypeKind kind,
+                              final TypeMirror enclosingType,
+                              final List<? extends TypeMirror> typeArguments,
+                              final boolean erased,
+                              final List<? extends AnnotationMirror> annotationMirrors) {
     super(kind, erased ? List.of() : annotationMirrors);
     switch (kind) {
     case DECLARED:

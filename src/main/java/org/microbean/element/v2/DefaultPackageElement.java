@@ -41,7 +41,7 @@ import javax.lang.model.element.TypeElement;
 
 import javax.lang.model.type.NoType;
 
-public class DefaultPackageElement extends AbstractElement implements PackageElement {
+public final class DefaultPackageElement extends AbstractElement implements PackageElement {
 
 
   /*

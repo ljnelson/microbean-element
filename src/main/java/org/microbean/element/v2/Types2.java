@@ -486,39 +486,4 @@ public class Types2 {
    */
 
 
-  private static final class SyntheticElement extends AbstractElement {
-
-    private final Reference<TypeMirror> type;
-
-    private SyntheticElement(final TypeMirror type) {
-      this(generateName(type), type);
-    }
-
-    private SyntheticElement(final AnnotatedName name, final TypeMirror type) {
-      super(name, ElementKind.OTHER, null, Set.of(), null, null);
-      this.type = new WeakReference<>(type);
-    }
-
-    @Override
-    public final TypeMirror asType() {
-      final TypeMirror t = this.type.get();
-      return t == null ? DefaultNoType.NONE : t;
-    }
-
-    @Override
-    public final int hashCode() {
-      return System.identityHashCode(this);
-    }
-
-    @Override
-    public final boolean equals(final Object other) {
-      return this == other;
-    }
-
-    private static final AnnotatedName generateName(final TypeMirror t) {
-      return AnnotatedName.of(DefaultName.of()); // TODO if it turns out to be important
-    }
-
-  }
-
 }

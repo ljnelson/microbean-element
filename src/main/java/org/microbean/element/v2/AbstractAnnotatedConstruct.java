@@ -24,7 +24,7 @@ import javax.lang.model.AnnotatedConstruct;
 
 import javax.lang.model.element.AnnotationMirror;
 
-public abstract class AbstractAnnotatedConstruct implements AnnotatedConstruct {
+public abstract sealed class AbstractAnnotatedConstruct implements AnnotatedConstruct permits AbstractElement, AnnotatedName, AbstractTypeMirror {
 
   private final List<? extends AnnotationMirror> annotationMirrors;
   

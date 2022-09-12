@@ -34,7 +34,7 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeMirror;
 
-public class DefaultExecutableElement extends AbstractParameterizableElement implements ExecutableElement {
+public final class DefaultExecutableElement extends AbstractParameterizableElement implements ExecutableElement {
 
   private final List<? extends VariableElement> parameters;
 

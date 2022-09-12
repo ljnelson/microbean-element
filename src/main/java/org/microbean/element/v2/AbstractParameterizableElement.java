@@ -29,7 +29,7 @@ import javax.lang.model.element.TypeParameterElement;
 
 import javax.lang.model.type.TypeMirror;
 
-public abstract class AbstractParameterizableElement extends AbstractElement implements Parameterizable {
+public abstract sealed class AbstractParameterizableElement extends AbstractElement implements Parameterizable permits DefaultExecutableElement, DefaultTypeElement {
 
   private final List<? extends TypeParameterElement> typeParameters;
   

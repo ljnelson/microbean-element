@@ -54,6 +54,11 @@ final class TypeClosureVisitor extends SimpleTypeVisitor14<TypeClosure, Void> {
 
   @Override
   protected final TypeClosure defaultAction(final TypeMirror t, final Void x) {
+    // Interestingly, javac's Types#closure(Type) method returns a
+    // single-element list containing t if t is not a class or
+    // interface type.  Nevertheless the intention seems to be that
+    // only class or interface types should be supplied, so we enforce
+    // that here.
     throw new IllegalArgumentException("t: " + t);
   }
 
@@ -84,6 +89,9 @@ final class TypeClosureVisitor extends SimpleTypeVisitor14<TypeClosure, Void> {
       switch (t.getKind()) {
       case INTERSECTION:
         // The closure does not include the intersection type itself.
+        // Note that this little nugget effectively removes
+        // intersection types from the possible types that will ever
+        // be passed to TypeClosure#union(TypeMirror).
         closure = this.visit(this.supertypeVisitor.visit(t));
         break;
       case DECLARED:
@@ -91,9 +99,11 @@ final class TypeClosureVisitor extends SimpleTypeVisitor14<TypeClosure, Void> {
         final TypeMirror st = this.supertypeVisitor.visit(t);
         switch (st.getKind()) {
         case DECLARED:
-          // (Yes, it is OK that INTERSECTION is not present as a case.)
+          // (Yes, it is OK that INTERSECTION is not present as a
+          // case; a TypeVariable cannot have an IntersectionType as a
+          // supertype.)
           closure = this.visit(st);
-          closure.insert(t); // reflexive
+          closure.union(t); // reflexive
           break;
         case TYPEVAR:
           closure = this.visit(st);
@@ -111,13 +121,16 @@ final class TypeClosureVisitor extends SimpleTypeVisitor14<TypeClosure, Void> {
           //
           // (The only time a supertype can be a type variable is if the
           // subtype is also a type variable.)
-          assert t.getKind() == TypeKind.TYPEVAR : "Expected " + TypeKind.TYPEVAR + "; got " + t.getKind() + "; t: " + t + "; st: " + st;
+          assert t.getKind() == TypeKind.TYPEVAR : "Expected " + TypeKind.TYPEVAR + "; got DECLARED; t: " + t + "; st: " + st;
           closure.prepend((TypeVariable)t); // reflexive
           break;
-        default:
+        case NONE:
           closure = new TypeClosure(this.precedesPredicate);
-          closure.insert(t); // reflexive
+          assert t.getKind() == TypeKind.DECLARED; // ...i.e. not TYPEVAR
+          closure.union(t); // reflexive
           break;
+        default:
+          throw new IllegalArgumentException("t: " + t);
         }
         break;
       default:

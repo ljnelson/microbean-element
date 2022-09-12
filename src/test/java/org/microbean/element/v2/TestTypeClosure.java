@@ -24,6 +24,7 @@ import javax.annotation.processing.ProcessingEnvironment;
 
 import javax.lang.model.element.TypeElement;
 
+import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
@@ -49,6 +50,55 @@ final class TestTypeClosure {
     super();
   }
 
+  @Test
+  final void testArray(final ProcessingEnvironment env) {
+    final javax.lang.model.util.Elements elements = env.getElementUtils();
+    final javax.lang.model.util.Types javacModelTypes = env.getTypeUtils();
+    assertTrue(javacModelTypes instanceof JavacTypes);
+    com.sun.tools.javac.code.Types javacTypes = null;
+    try {
+      final Field f = JavacTypes.class.getDeclaredField("types");
+      assertTrue(f.trySetAccessible());
+      javacTypes = (com.sun.tools.javac.code.Types)f.get(javacModelTypes);
+    } catch (final ReflectiveOperationException reflectiveOperationException) {
+      fail(reflectiveOperationException);
+    }
+    assertNotNull(javacTypes);
+
+    final ArrayType integerArrayType = javacModelTypes.getArrayType(elements.getTypeElement("java.lang.Integer").asType());
+    final List<Type> integerArrayClosure = javacTypes.closure((Type)integerArrayType);
+
+    // This is weird and we don't support it:
+    assertEquals(1, integerArrayClosure.size());
+    assertSame(integerArrayType, integerArrayClosure.get(0));
+
+    // Let's prove we don't support it.
+
+    // Set up the fundamentals.
+    final Types2 types2 = new Types2();
+    final EraseVisitor eraseVisitor = new EraseVisitor(types2);
+    final SupertypeVisitor supertypeVisitor = new SupertypeVisitor(types2, eraseVisitor);
+
+    // These have cycles.
+    final ContainsTypeVisitor containsTypeVisitor = new ContainsTypeVisitor(types2);
+    final IsSameTypeVisitor isSameTypeVisitor = new IsSameTypeVisitor(containsTypeVisitor, supertypeVisitor);    
+    final SubtypeVisitor subtypeVisitor = new SubtypeVisitor(types2, supertypeVisitor, isSameTypeVisitor);
+    containsTypeVisitor.subtypeVisitor = subtypeVisitor;
+    subtypeVisitor.containsTypeVisitor = containsTypeVisitor;
+
+    final PrecedesPredicate precedesPredicate = new PrecedesPredicate(supertypeVisitor, subtypeVisitor);
+    final TypeClosureVisitor typeClosureVisitor = new TypeClosureVisitor(supertypeVisitor, precedesPredicate);
+
+    try {
+      typeClosureVisitor.visit(integerArrayType);
+      fail();
+    } catch (final IllegalArgumentException expected) {
+      // OK
+    }
+    
+    
+  }
+  
   @Test
   final void testTypeClosure(final ProcessingEnvironment env) {
     final javax.lang.model.util.Elements elements = env.getElementUtils();

@@ -128,10 +128,9 @@ final class CaptureVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
         Si.setLowerBound(Ti.getSuperBound());
         final TypeMirror TiExtendsBound = Ti.getExtendsBound();
         if (TiExtendsBound == null) {
-          // subst(Ui, A, S)
           Si.setUpperBound(new SubstituteVisitor(this.supertypeVisitor, A, S).visit(Ui));
         } else {
-          // subst(Ui, A, S)
+          // TiExtendsBound can be DECLARED, INTERSECTION or TYPEVAR
           Si.setUpperBound(glb(TiExtendsBound, new SubstituteVisitor(this.supertypeVisitor, A, S).visit(Ui)));
         }
       }
@@ -199,6 +198,10 @@ final class CaptureVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
 
   // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4102-L4156
   private final TypeMirror glb(final TypeMirror t, final TypeMirror s) {
+    // TODO: technically I think t and s can only be either DECLARED,
+    // INTERSECTION or TYPEVAR, since that's all closures will
+    // accept. See also
+    // https://stackoverflow.com/questions/73683649/in-the-javac-source-code-why-does-closuretype-return-a-non-empty-list-for-non.
     if (s == null) {
       return t;
     } else if (t.getKind().isPrimitive()) {
@@ -214,44 +217,41 @@ final class CaptureVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
     final TypeClosure tc = this.typeClosureVisitor.visit(t);
     tc.union(this.typeClosureVisitor.visit(s));
 
-    List<TypeMirror> bounds = tc.toMinimumTypes(this.subtypeVisitor);
-    final int size = bounds.size();
-
+    List<? extends TypeMirror> minimumTypes = tc.toMinimumTypes(this.subtypeVisitor);
+    final int size = minimumTypes.size();
     switch (size) {
     case 0:
       return ObjectConstruct.JAVA_LANG_OBJECT_TYPE;
     case 1:
-      return bounds.get(0);
-    default:
-      boolean classes = false;
-      final Collection<TypeMirror> capturedTypeVariables = new ArrayList<>();
-      final Collection<TypeMirror> lowers = new ArrayList<>();
-      for (int i = 0; i < size; i++) {
-        final TypeMirror bound = bounds.get(i);
-        if (!this.types2.isInterface(bound)) {
-          if (!classes) {
-            classes = true;
-          }
-          final TypeMirror lower = capturedTypeVariableLowerBound(bound);
-          if (bound != lower && lower.getKind() != TypeKind.NULL) {
-            capturedTypeVariables.add(bound);
-            lowers.add(lower);
-          }
-        }
-      }
-      if (classes) {
-        if (lowers.isEmpty()) {
-          throw new IllegalArgumentException("t: " + t);
-        }
-        bounds = new ArrayList<>(bounds);
-        bounds.removeIf(capturedTypeVariables::contains);
-        bounds.addAll(lowers);
-        return this.glb(bounds); // RECURSIVE, in a way
-      }
-      break;
+      return minimumTypes.get(0);
     }
 
-    return DefaultIntersectionType.of(bounds);
+    boolean classes = false;
+    final Collection<TypeMirror> capturedTypeVariables = new ArrayList<>(size);
+    final Collection<TypeMirror> lowers = new ArrayList<>(size);
+    for (int i = 0; i < size; i++) {
+      final TypeMirror minimumType = minimumTypes.get(i);
+      if (!this.types2.isInterface(minimumType)) {
+        if (!classes) {
+          classes = true;
+        }
+        final TypeMirror lower = capturedTypeVariableLowerBound(minimumType);
+        if (minimumType != lower && lower.getKind() != TypeKind.NULL) {
+          capturedTypeVariables.add(minimumType);
+          lowers.add(lower);
+        }
+      }
+    }
+    if (classes) {
+      if (lowers.isEmpty()) {
+        throw new IllegalArgumentException("t: " + t);
+      }
+      final List<TypeMirror> bounds = new ArrayList<>(minimumTypes);
+      bounds.removeIf(capturedTypeVariables::contains);
+      bounds.addAll(lowers);
+      return this.glb(bounds); // RECURSIVE, in a way
+    }
+    return DefaultIntersectionType.of(minimumTypes);
   }
 
 }

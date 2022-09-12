@@ -26,7 +26,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVisitor;
 import javax.lang.model.type.TypeVariable;
 
-public class DefaultExecutableType extends AbstractTypeMirror implements ExecutableType {
+public final class DefaultExecutableType extends AbstractTypeMirror implements ExecutableType {
 
   private final List<? extends TypeMirror> parameterTypes;
 
@@ -57,22 +57,22 @@ public class DefaultExecutableType extends AbstractTypeMirror implements Executa
   }
 
   @Override // TypeMirror
-  public <R, P> R accept(final TypeVisitor<R, P> v, P p) {
+  public final <R, P> R accept(final TypeVisitor<R, P> v, P p) {
     return v.visitExecutable(this, p);
   }
 
   @Override // ExecutableType
-  public List<? extends TypeMirror> getParameterTypes() {
+  public final List<? extends TypeMirror> getParameterTypes() {
     return this.parameterTypes;
   }
 
   @Override // ExecutableType
-  public List<? extends TypeMirror> getThrownTypes() {
+  public final List<? extends TypeMirror> getThrownTypes() {
     return this.thrownTypes;
   }
 
   @Override // ExecutableType
-  public List<? extends TypeVariable> getTypeVariables() {
+  public final List<? extends TypeVariable> getTypeVariables() {
     return this.typeVariables;
   }
 
@@ -92,7 +92,7 @@ public class DefaultExecutableType extends AbstractTypeMirror implements Executa
    */
 
 
-  public static DefaultExecutableType of(final ExecutableType e) {
+  public static final DefaultExecutableType of(final ExecutableType e) {
     if (e instanceof DefaultExecutableType de) {
       return de;
     }
@@ -105,8 +105,8 @@ public class DefaultExecutableType extends AbstractTypeMirror implements Executa
                                 e.getAnnotationMirrors());
   }
 
-  public static DefaultExecutableType withTypeVariables(final ExecutableType e,
-                                                        final List<? extends TypeVariable> tvs) {
+  public static final DefaultExecutableType withTypeVariables(final ExecutableType e,
+                                                              final List<? extends TypeVariable> tvs) {
     return
       new DefaultExecutableType(e.getParameterTypes(),
                                 e.getReceiverType(),

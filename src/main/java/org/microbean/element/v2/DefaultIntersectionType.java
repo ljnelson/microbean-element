@@ -29,7 +29,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVisitor;
 
-public class DefaultIntersectionType extends AbstractTypeMirror implements IntersectionType {
+public final class DefaultIntersectionType extends AbstractTypeMirror implements IntersectionType {
 
   private final List<? extends TypeMirror> bounds;
   

@@ -30,13 +30,14 @@ import java.util.function.BiPredicate;
 import javax.lang.model.element.Element;
 
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.IntersectionType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 
 // A type closure list builder.
 // NOT THREADSAFE
-public final class TypeClosure {
+final class TypeClosure {
 
   // DefaultTypeMirror so things like list.contains(t) will work with
   // arbitrary TypeMirror implementations
@@ -59,14 +60,13 @@ public final class TypeClosure {
     super();
     this.deque = new ArrayDeque<>(10);
     this.precedesPredicate = Objects.requireNonNull(precedesPredicate, "precedesPredicate");
-    this.equalsPredicate = equalsPredicate == null ? (e, f) -> Equality.equals(e, f, true) : equalsPredicate;
+    this.equalsPredicate = equalsPredicate == null ? Equality::equalsIncludingAnnotations : equalsPredicate;
   }
 
-  final boolean insert(final TypeMirror t) {
-    if (this.deque.isEmpty()) {
-      this.deque.addFirst(DefaultTypeMirror.of(t));
-      return true;
-    }
+  final void union(final TypeMirror t) {
+    // t must be DECLARED or TYPEVAR.  TypeClosureVisitor deals with
+    // INTERSECTION before it gets here.
+
     final Element e;
     switch (t.getKind()) {
     case DECLARED:
@@ -78,7 +78,13 @@ public final class TypeClosure {
     default:
       throw new IllegalArgumentException("t: " + t);
     }
+
     final DefaultTypeMirror head = this.deque.peekFirst();
+    if (head == null) {
+      this.deque.addFirst(DefaultTypeMirror.of(t));
+      return;
+    }
+    
     final Element headE;
     switch (head.getKind()) {
     case DECLARED:
@@ -90,22 +96,20 @@ public final class TypeClosure {
     default:
       throw new IllegalStateException();
     }
-    if (this.equalsPredicate.test(e, headE)) {
-      // Already have it.
-      return false;
-    } else if (this.precedesPredicate.test(e, headE)) {
-      this.deque.addFirst(DefaultTypeMirror.of(t));
-      return true;
-    } else if (this.deque.size() == 1) {
-      // No need to recurse and get fancy; just add last
-      this.deque.addLast(DefaultTypeMirror.of(t));
-      return true;
-    } else {
-      this.deque.removeFirst(); // returns head
-      final boolean returnValue = this.insert(t); // RECURSIVE
-      this.deque.addFirst(head);
-      return returnValue;
+
+    if (!this.equalsPredicate.test(e, headE)) {
+      if (this.precedesPredicate.test(e, headE)) {
+        this.deque.addFirst(DefaultTypeMirror.of(t));
+      } else if (this.deque.size() == 1) {
+        // No need to recurse and get fancy; just add last
+        this.deque.addLast(DefaultTypeMirror.of(t));
+      } else {
+        this.deque.removeFirst(); // returns head
+        this.union(t); // RECURSIVE
+        this.deque.addFirst(head);
+      }
     }
+
   }
 
   final void union(final TypeClosure tc) {
@@ -113,14 +117,29 @@ public final class TypeClosure {
   }
 
   private final void union(final List<? extends TypeMirror> list) {
-    if (this.deque.isEmpty()) {
-      for (final TypeMirror t : list) {
-        this.deque.addLast(DefaultTypeMirror.of(t));
-      }
+    final int size = list.size();
+    switch (size) {
+    case 0:
       return;
-    } else if (list.isEmpty()) {
+    case 1:
+      this.union(list.get(0));
       return;
     }
+    
+    if (this.deque.isEmpty()) {
+      for (final TypeMirror t : list) {
+        switch (t.getKind()) {
+        case DECLARED:
+        case TYPEVAR:
+          this.deque.addLast(DefaultTypeMirror.of(t));
+          break;
+        default:
+          throw new IllegalArgumentException("t: " + t);
+        }
+      }
+      return;
+    }
+
     final DefaultTypeMirror head1 = this.deque.peekFirst();
     final Element head1E;
     switch (head1.getKind()) {
@@ -133,6 +152,7 @@ public final class TypeClosure {
     default:
       throw new IllegalStateException();
     }
+
     final TypeMirror head2 = list.get(0);
     final Element head2E;
     switch (head2.getKind()) {
@@ -146,22 +166,13 @@ public final class TypeClosure {
       throw new IllegalArgumentException("list: " + list);
     }
 
-    // There are a bunch of optimizations we can do if the list is size 1.
-    if (list.size() == 1) {
-      if (!this.equalsPredicate.test(head1E, head2E)) {
-        if (this.precedesPredicate.test(head2E, head1E)) {
-          this.deque.addFirst(DefaultTypeMirror.of(head2));
-        } else {
-          this.deque.addLast(DefaultTypeMirror.of(head2));
-        }
-      }
-    } else if (this.equalsPredicate.test(head1E, head2E)) {
+    if (this.equalsPredicate.test(head1E, head2E)) {
       // Don't include head2.
       this.deque.removeFirst(); // returns head1
-      this.union(list.subList(1, list.size())); // RECURSIVE
+      this.union(list.subList(1, size)); // RECURSIVE
       this.deque.addFirst(head1);
     } else if (this.precedesPredicate.test(head2E, head1E)) {
-      this.union(list.subList(1, list.size())); // RECURSIVE
+      this.union(list.subList(1, size)); // RECURSIVE
       this.deque.addFirst(DefaultTypeMirror.of(head2));
     } else {
       this.deque.removeFirst(); // returns head1
@@ -173,13 +184,15 @@ public final class TypeClosure {
   // Weird case. See
   // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3717-L3718.
   final void prepend(final TypeVariable t) {
-    assert t.getKind() == TypeKind.TYPEVAR;
+    if (t.getKind() != TypeKind.TYPEVAR) {
+      throw new IllegalArgumentException("t: " + t);
+    }
     this.deque.addFirst(DefaultTypeMirror.of(t));
   }
 
   // Port of javac's Types#closureMin(List<Type>)
   // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3915-L3945
-  final List<TypeMirror> toMinimumTypes(final SubtypeVisitor subtypeVisitor) {
+  final List<? extends TypeMirror> toMinimumTypes(final SubtypeVisitor subtypeVisitor) {
     final ArrayList<TypeMirror> classes = new ArrayList<>();
     final List<TypeMirror> interfaces = new ArrayList<>();
     final Set<DefaultTypeMirror> toSkip = new HashSet<>();
@@ -225,7 +238,9 @@ public final class TypeClosure {
     return Collections.unmodifiableList(classes);
   }
 
-  public final List<? extends TypeMirror> toList() {
+  // Every element of the returned list will have a TypeKind that is
+  // either DECLARED or TYPEVAR.
+  final List<? extends DefaultTypeMirror> toList() {
     return List.copyOf(this.deque);
   }
 

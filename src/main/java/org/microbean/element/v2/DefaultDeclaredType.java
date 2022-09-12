@@ -42,7 +42,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.TypeVisitor;
 
-public class DefaultDeclaredType extends AbstractTypeMirror implements DefineableType {
+public sealed class DefaultDeclaredType extends AbstractTypeMirror implements DefineableType permits DefaultErrorType {
 
   private TypeMirror enclosingType;
 
@@ -55,20 +55,39 @@ public class DefaultDeclaredType extends AbstractTypeMirror implements Defineabl
   private final boolean erased;
 
   public DefaultDeclaredType() {
-    this(null, List.of(), false, List.of());
+    this(TypeKind.DECLARED, null, List.of(), false, List.of());
   }
-  
+
   public DefaultDeclaredType(final TypeMirror enclosingType,
                              final List<? extends TypeMirror> typeArguments,
                              final List<? extends AnnotationMirror> annotationMirrors) {
-    this(enclosingType, typeArguments, false, annotationMirrors);
+    this(TypeKind.DECLARED, enclosingType, typeArguments, false, annotationMirrors);
   }
-
+  
+  protected DefaultDeclaredType(final TypeKind kind) {
+    this(kind, null, List.of(), false, List.of());
+  }
+  
   DefaultDeclaredType(final TypeMirror enclosingType,
                       final List<? extends TypeMirror> typeArguments,
                       final boolean erased,
                       final List<? extends AnnotationMirror> annotationMirrors) {
-    super(TypeKind.DECLARED, erased ? List.of() : annotationMirrors);
+    this(TypeKind.DECLARED, enclosingType, typeArguments, erased, annotationMirrors);
+  }
+  
+  DefaultDeclaredType(final TypeKind kind,
+                      final TypeMirror enclosingType,
+                      final List<? extends TypeMirror> typeArguments,
+                      final boolean erased,
+                      final List<? extends AnnotationMirror> annotationMirrors) {
+    super(kind, erased ? List.of() : annotationMirrors);
+    switch (kind) {
+    case DECLARED:
+    case ERROR:
+      break;
+    default:
+      throw new IllegalArgumentException("kind: " + kind);
+    }
     this.erased = erased;
     this.enclosingType = validateEnclosingType(enclosingType);
     this.typeArguments = validateTypeArguments(erased || typeArguments == null || typeArguments.isEmpty() ? List.of() : List.copyOf(typeArguments));
@@ -103,7 +122,7 @@ public class DefaultDeclaredType extends AbstractTypeMirror implements Defineabl
   }
 
   @Override // TypeMirror
-  public <R, P> R accept(final TypeVisitor<R, P> v, P p) {
+  public final <R, P> R accept(final TypeVisitor<R, P> v, P p) {
     return v.visitDeclared(this, p);
   }
 

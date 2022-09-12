@@ -25,7 +25,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVisitor;
 import javax.lang.model.type.WildcardType;
 
-public class DefaultWildcardType extends AbstractTypeMirror implements WildcardType {
+public final class DefaultWildcardType extends AbstractTypeMirror implements WildcardType {
 
   public static final DefaultWildcardType UNBOUNDED = new DefaultWildcardType(null, null, List.of());
 

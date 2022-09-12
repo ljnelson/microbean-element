@@ -25,7 +25,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVisitor;
 
-public class DefaultArrayType extends AbstractTypeMirror implements ArrayType {
+public final class DefaultArrayType extends AbstractTypeMirror implements ArrayType {
 
   private final TypeMirror componentType;
   
@@ -36,7 +36,7 @@ public class DefaultArrayType extends AbstractTypeMirror implements ArrayType {
   }
 
   @Override // TypeMirror
-  public <R, P> R accept(final TypeVisitor<R, P> v, P p) {
+  public final <R, P> R accept(final TypeVisitor<R, P> v, P p) {
     return v.visitArray(this, p);
   }
   
@@ -49,7 +49,7 @@ public class DefaultArrayType extends AbstractTypeMirror implements ArrayType {
     switch (componentType.getKind()) {
     case ARRAY:
     case DECLARED:
-    case INTERSECTION:
+    // case INTERSECTION:
     case BOOLEAN:
     case BYTE:
     case CHAR:

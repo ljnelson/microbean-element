@@ -27,7 +27,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.TypeVisitor;
 
-public class DefaultTypeVariable extends AbstractTypeMirror implements TypeVariable {
+public final class DefaultTypeVariable extends AbstractTypeMirror implements TypeVariable {
 
   private TypeParameterElement definingElement;
 

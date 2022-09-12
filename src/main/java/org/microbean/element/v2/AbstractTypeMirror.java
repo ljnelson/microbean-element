@@ -45,7 +45,7 @@ import javax.lang.model.type.TypeVisitor;
 import javax.lang.model.type.UnionType;
 import javax.lang.model.type.WildcardType;
 
-public class AbstractTypeMirror extends AbstractAnnotatedConstruct implements TypeMirror {
+public sealed class AbstractTypeMirror extends AbstractAnnotatedConstruct implements TypeMirror permits DefaultArrayType, DefaultDeclaredType, DefaultExecutableType, DefaultIntersectionType, DefaultNoType, DefaultNullType, DefaultPrimitiveType, DefaultTypeVariable, DefaultUnionType, DefaultWildcardType, SyntheticCapturedType {
 
   private final TypeKind kind;
 

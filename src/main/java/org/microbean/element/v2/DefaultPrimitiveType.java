@@ -25,7 +25,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVisitor;
 
-public class DefaultPrimitiveType extends AbstractTypeMirror implements PrimitiveType {
+public final class DefaultPrimitiveType extends AbstractTypeMirror implements PrimitiveType {
 
 
   /*
@@ -71,7 +71,7 @@ public class DefaultPrimitiveType extends AbstractTypeMirror implements Primitiv
 
 
   @Override // TypeMirror
-  public <R, P> R accept(final TypeVisitor<R, P> v, P p) {
+  public final <R, P> R accept(final TypeVisitor<R, P> v, P p) {
     return v.visitPrimitive(this, p);
   }
 

@@ -347,7 +347,7 @@ public final class Equality {
     if (t == null) {
       return 0;
     }
-    switch(t.getKind()) {
+    switch (t.getKind()) {
 
     case ARRAY:
       return hashCode((ArrayType)t, ia);

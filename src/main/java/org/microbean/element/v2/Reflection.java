@@ -67,6 +67,7 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.ExecutableType;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.WildcardType;
@@ -126,8 +127,7 @@ public final class Reflection {
   }
 
   public final List<? extends DefaultAnnotationMirror> annotationMirrorsFrom(final Enum<?> e) throws IllegalAccessException, InvocationTargetException {
-    final Class<? extends Enum<?>> enumClass = e.getDeclaringClass();
-    final Field[] fields = enumClass.getDeclaredFields();
+    final Field[] fields = e.getDeclaringClass().getDeclaredFields();
     final int ordinal = e.ordinal();
     int i = 0;
     for (final Field field : fields) {
@@ -209,7 +209,6 @@ public final class Reflection {
       lock.unlock();
     }
     if (e == null) {
-      final AnnotatedName qualifiedName = AnnotatedName.of(annotationMirrorsFrom(c), DefaultName.of(c.getName()));
       final ElementKind kind;
       if (c.isAnnotation()) {
         kind = ElementKind.ANNOTATION_TYPE;
@@ -222,7 +221,6 @@ public final class Reflection {
       } else {
         kind = ElementKind.CLASS;
       }
-      final TypeMirror type = typeStubFrom(c);
       final Collection<Modifier> modifierSet = new HashSet<>();
       final int modifiers = c.getModifiers();
 
@@ -247,11 +245,11 @@ public final class Reflection {
         modifierSet.add(Modifier.STATIC);
       }
       final EnumSet<Modifier> finalModifiers = EnumSet.copyOf(modifierSet);
-      Object enclosingObject;
+      final Element enclosingElement;
       final NestingKind nestingKind;
       if (c.isAnonymousClass()) {
         nestingKind = NestingKind.ANONYMOUS;
-        enclosingObject = c.getEnclosingMethod();
+        Executable enclosingObject = c.getEnclosingMethod();
         if (enclosingObject == null) {
           enclosingObject = c.getEnclosingConstructor();
         }
@@ -259,24 +257,22 @@ public final class Reflection {
         // that will jump the hierarchy. An anonymous class is lexically
         // enclosed only by an non-static executable.  (I think. :-))
         assert enclosingObject != null;
+        enclosingElement = elementStubFrom(enclosingObject);
       } else if (c.isLocalClass()) {
         nestingKind = NestingKind.LOCAL;
-        enclosingObject = c.getEnclosingMethod();
+        Executable enclosingObject = c.getEnclosingMethod();
         if (enclosingObject == null) {
           enclosingObject = c.getEnclosingConstructor();
         }
         assert enclosingObject != null;
+        enclosingElement = elementStubFrom(enclosingObject);
       } else if (c.isMemberClass()) {
         nestingKind = NestingKind.MEMBER;
-        enclosingObject = c.getDeclaringClass();
-        assert enclosingObject != null;
+        enclosingElement = elementStubFrom(c.getDeclaringClass());
       } else {
         nestingKind = NestingKind.TOP_LEVEL;
-        enclosingObject = null;
+        enclosingElement = null;
       }
-      final Element enclosingElement = enclosingObject instanceof Executable ex ? elementStubFrom(ex) : null;
-      final AnnotatedType annotatedSuperclass = c.getAnnotatedSuperclass();
-      final TypeMirror superclass = typeStubFrom(annotatedSuperclass);
       final List<TypeMirror> permittedSubclassTypeMirrors;
       if (c.isSealed()) {
         final Class<?>[] permittedSubclasses = c.getPermittedSubclasses();
@@ -302,22 +298,26 @@ public final class Reflection {
         }
       }
       final List<DefaultTypeParameterElement> typeParameterElements;
-      final java.lang.reflect.TypeVariable<?>[] typeParameters = c.getTypeParameters();
-      if (typeParameters.length <= 0) {
+      // A Class can be seen as representing both a type and an
+      // element.  Viewed as an element, it has type parameters.
+      // Viewed as a type, it has type arguments.
+      // java.lang.reflect.TypeVariable represents both.
+      final java.lang.reflect.TypeVariable<?>[] tvs = c.getTypeParameters();
+      if (tvs.length <= 0) {
         typeParameterElements = List.of();
       } else {
-        typeParameterElements = new ArrayList<>(typeParameters.length);
-        for (final java.lang.reflect.TypeVariable<?> typeParameter : typeParameters) {
+        typeParameterElements = new ArrayList<>(tvs.length);
+        for (final java.lang.reflect.TypeVariable<?> typeParameter : tvs) {
           typeParameterElements.add(elementStubFrom(typeParameter));
         }
       }
       e =
-        new DefaultTypeElement(qualifiedName,
+        new DefaultTypeElement(AnnotatedName.of(annotationMirrorsFrom(c), DefaultName.of(c.getName())),
                                kind,
-                               type,
+                               typeStubFrom(c),
                                finalModifiers,
                                nestingKind,
-                               superclass,
+                               typeStubFrom(c.getAnnotatedSuperclass()),
                                permittedSubclassTypeMirrors,
                                interfaceTypeMirrors,
                                enclosingElement,
@@ -386,12 +386,16 @@ public final class Reflection {
     }
 
     final List<DefaultTypeParameterElement> typeParameterElements;
-    final java.lang.reflect.TypeVariable<?>[] typeParameters = e.getTypeParameters();
-    if (typeParameters.length <= 0) {
+    // An Executable can be seen as representing both a type and an
+    // element.  Viewed as an element, it has type parameters.
+    // Viewed as a type, it has type arguments.
+    // java.lang.reflect.TypeVariable represents both.
+    final java.lang.reflect.TypeVariable<?>[] tvs = e.getTypeParameters();
+    if (tvs.length <= 0) {
       typeParameterElements = List.of();
     } else {
-      typeParameterElements = new ArrayList<>(typeParameters.length);
-      for (final java.lang.reflect.TypeVariable<?> typeParameter : typeParameters) {
+      typeParameterElements = new ArrayList<>(tvs.length);
+      for (final java.lang.reflect.TypeVariable<?> typeParameter : tvs) {
         typeParameterElements.add(elementStubFrom(typeParameter));
       }
     }
@@ -514,18 +518,37 @@ public final class Reflection {
     case AnnotatedTypeVariable atv -> typeStubFrom(atv);
     case AnnotatedWildcardType awt -> typeStubFrom(awt);
     case AnnotatedType t2 when t2.getType() instanceof Class<?> c -> {
+      List<? extends AnnotationMirror> annotations = annotationMirrorsFrom(t);      
       final TypeMirror enclosingType = typeStubFrom(t2.getAnnotatedOwnerType());
-      final java.lang.reflect.TypeVariable<?>[] typeParameters = c.getTypeParameters();
+      // A Class can be seen as representing both a type and an
+      // element.  Viewed as an element, it has type parameters.
+      // Viewed as a type, it has type arguments.
+      // java.lang.reflect.TypeVariable represents both.
+      final java.lang.reflect.TypeVariable<?>[] tvs = c.getTypeParameters();
+      boolean shortcut = annotations.isEmpty() && (enclosingType == null || enclosingType.getKind() == TypeKind.NONE || enclosingType.getAnnotationMirrors().isEmpty());
       final List<TypeVariable> typeArguments;
-      if (typeParameters.length <= 0) {
+      if (tvs.length <= 0) {
         typeArguments = List.of();
+        if (shortcut) {
+          // Uses caching
+          yield typeStubFrom(c);
+        }
       } else {
-        typeArguments = new ArrayList<>(typeParameters.length);
-        for (final java.lang.reflect.TypeVariable<?> typeParameter : typeParameters) {
-          typeArguments.add(typeStubFrom(typeParameter));
+        boolean annotated = false;
+        typeArguments = new ArrayList<>(tvs.length);        
+        for (final java.lang.reflect.TypeVariable<?> tv : tvs) {
+          final TypeVariable stub = typeStubFrom(tv);
+          typeArguments.add(stub);
+          if (!annotated && !stub.getAnnotationMirrors().isEmpty()) {
+            annotated = true;
+          }
+        }
+        if (shortcut && !annotated) {
+          // Uses caching
+          yield typeStubFrom(c);
         }
       }
-      yield new DefaultDeclaredType(enclosingType, typeArguments, annotationMirrorsFrom(t));
+      yield new DefaultDeclaredType(enclosingType, typeArguments, annotations);
     }
     default -> throw new IllegalArgumentException("t: " + t);
     };
@@ -700,14 +723,18 @@ public final class Reflection {
         }
       } else {
         final TypeMirror enclosingType = typeStubFrom(c.getEnclosingClass()); // RECURSIVE
-        final java.lang.reflect.TypeVariable<?>[] typeParameters = c.getTypeParameters();
+        // A Class can be seen as representing both a type and an
+        // element.  Viewed as an element, it has type parameters.
+        // Viewed as a type, it has type arguments.
+        // java.lang.reflect.TypeVariable represents both.
+        final java.lang.reflect.TypeVariable<?>[] tvs = c.getTypeParameters();
         final List<TypeVariable> typeArguments;
-        if (typeParameters.length <= 0) {
+        if (tvs.length <= 0) {
           typeArguments = List.of();
         } else {
-          typeArguments = new ArrayList<>(typeParameters.length);
-          for (final java.lang.reflect.TypeVariable<?> tp : typeParameters) {
-            typeArguments.add(typeStubFrom(tp));
+          typeArguments = new ArrayList<>(tvs.length);
+          for (final java.lang.reflect.TypeVariable<?> tv : tvs) {
+            typeArguments.add(typeStubFrom(tv));
           }
         }
         t = new DefaultDeclaredType(enclosingType, typeArguments, annotationMirrorsFrom(c));
@@ -756,13 +783,17 @@ public final class Reflection {
       }
     }
     final List<TypeVariable> typeVariables;
-    final java.lang.reflect.TypeVariable<?>[] typeParameters = e.getTypeParameters();
-    if (typeParameters.length <= 0) {
+    // An Executable can be seen as representing both a type and an
+    // element.  Viewed as an element, it has type parameters.
+    // Viewed as a type, it has type arguments.
+    // java.lang.reflect.TypeVariable represents both.
+    final java.lang.reflect.TypeVariable<?>[] tvs = e.getTypeParameters();
+    if (tvs.length <= 0) {
       typeVariables = List.of();
     } else {
-      typeVariables = new ArrayList<>(typeParameters.length);
-      for (final java.lang.reflect.TypeVariable<?> t : typeParameters) {
-        typeVariables.add(typeStubFrom(t));
+      typeVariables = new ArrayList<>(tvs.length);
+      for (final java.lang.reflect.TypeVariable<?> tv : tvs) {
+        typeVariables.add(typeStubFrom(tv));
       }
     }
     return

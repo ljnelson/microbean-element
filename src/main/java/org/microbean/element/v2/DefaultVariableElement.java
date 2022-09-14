@@ -53,7 +53,7 @@ public final class DefaultVariableElement extends AbstractElement implements Var
   }
 
   @Override // AbstractElement
-  public <R, P> R accept(final ElementVisitor<R, P> v, final P p) {
+  public final <R, P> R accept(final ElementVisitor<R, P> v, final P p) {
     return v.visitVariable(this, p);
   }
 

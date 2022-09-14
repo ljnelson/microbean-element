@@ -38,6 +38,26 @@ public final class DefaultAnnotationValue implements AnnotationValue {
   @Override // AnnotationValue
   @SuppressWarnings("unchecked")
   public <R, P> R accept(final AnnotationValueVisitor<R, P> v, final P p) {
+
+    return switch (this.getValue()) {
+    case String s -> v.visitString(s, p);
+    case Boolean b -> v.visitBoolean(b, p);
+    case Integer i -> v.visitInt(i, p);
+    case VariableElement e -> v.visitEnumConstant(e, p);
+    case AnnotationValue a -> v.visit(a, p);
+    case AnnotationMirror a -> v.visitAnnotation(a, p);
+    case List<?> list -> v.visitArray((List<? extends AnnotationValue>)list, p);
+    case TypeMirror t -> v.visitType(t, p);
+    case Byte b -> v.visitByte(b, p);
+    case Character c -> v.visitChar(c, p);
+    case Double d -> v.visitDouble(d, p);
+    case Float f -> v.visitFloat(f, p);
+    case Long l -> v.visitLong(l, p);
+    case Short s -> v.visitShort(s, p);
+    default -> v.visitUnknown(this, p);
+    };
+
+    /*
     final Object value = this.getValue();
     if (value instanceof String s) {
       return v.visitString(s, p);
@@ -70,6 +90,7 @@ public final class DefaultAnnotationValue implements AnnotationValue {
     } else {
       return v.visitUnknown(this, p);
     }
+    */
   }
 
   @Override // AnnotationValue

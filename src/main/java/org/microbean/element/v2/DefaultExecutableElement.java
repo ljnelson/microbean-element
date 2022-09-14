@@ -17,6 +17,7 @@
 package org.microbean.element.v2;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -50,6 +51,7 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
                              final ElementKind kind,
                              final ExecutableType type,
                              final Set<? extends Modifier> modifiers,
+                             final TypeElement enclosingElement,
                              final List<? extends TP> typeParameters,
                              final List<? extends P> parameters,
                              final boolean varArgs,
@@ -61,7 +63,7 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
           validateKind(kind),
           validateType(type),
           modifiers,
-          null,
+          Objects.requireNonNull(enclosingElement),
           List.of(),
           typeParameters);
     if (parameters == null || parameters.isEmpty()) {
@@ -162,6 +164,7 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
                                    e.getKind(),
                                    (ExecutableType)e.asType(),
                                    e.getModifiers(),
+                                   (TypeElement)e.getEnclosingElement(),
                                    DefaultTypeParameterElement.encloseableTypeParametersOf(e.getTypeParameters()),
                                    DefaultVariableElement.encloseableParametersOf(e.getParameters()),
                                    e.isVarArgs(),

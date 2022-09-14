@@ -345,7 +345,7 @@ public final class Reflection {
       }
       yield new DefaultDeclaredType(enclosingType, typeArguments, null);
     }
-    default -> throw new IllegalArgumentException();
+    default -> throw new IllegalArgumentException("t: " + t);
     };
   }
 
@@ -357,7 +357,7 @@ public final class Reflection {
     case GenericArrayType g -> typeStubFrom(g);
     case java.lang.reflect.TypeVariable<?> tv -> typeStubFrom(tv);
     case java.lang.reflect.WildcardType w -> typeStubFrom(w);
-    default -> throw new IllegalArgumentException();
+    default -> throw new IllegalArgumentException("t: " + t);
     };
   }
 
@@ -403,7 +403,7 @@ public final class Reflection {
       return new DefaultTypeVariable(DefaultIntersectionType.of(intersectionTypeBounds), null, null);
     }
   }
-  
+
   public WildcardType typeStubFrom(final java.lang.reflect.WildcardType w) {
     final Type[] lowerBounds = w.getLowerBounds();
     if (lowerBounds.length > 0) {
@@ -419,7 +419,7 @@ public final class Reflection {
       }
     }
   }
-  
+
   public ArrayType typeStubFrom(final AnnotatedArrayType t) {
     return new DefaultArrayType(typeStubFrom(t.getAnnotatedGenericComponentType()), null);
   }
@@ -510,7 +510,7 @@ public final class Reflection {
         } else if (c == int.class) {
           t = DefaultPrimitiveType.INT;
         } else if (c == long.class) {
-          t = DefaultPrimitiveType.LONG;          
+          t = DefaultPrimitiveType.LONG;
         } else if (c == short.class) {
           t = DefaultPrimitiveType.SHORT;
         } else {

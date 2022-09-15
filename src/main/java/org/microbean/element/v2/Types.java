@@ -3050,7 +3050,7 @@ final class Types {
   private static final DeclaredType syntheticDeclaredType(final DeclaredType canonicalType,
                                                           final List<? extends TypeMirror> typeArguments) {
     final DefaultDeclaredType t = new DefaultDeclaredType(canonicalType.getEnclosingType(), typeArguments, List.of());
-    t.setDefiningElement(canonicalType.asElement());
+    t.setDefiningElement((TypeElement)canonicalType.asElement());
     return t;
   }
 
@@ -3070,7 +3070,7 @@ final class Types {
   private static final TypeVariable typeVariable(final TypeVariable tv, final TypeMirror upperBound) {
     assert tv.getKind() == TypeKind.TYPEVAR;
     final DefaultTypeVariable returnValue = new DefaultTypeVariable(upperBound, tv.getLowerBound(), tv.getAnnotationMirrors());
-    returnValue.definingElement((TypeParameterElement)tv.asElement());
+    returnValue.setDefiningElement((TypeParameterElement)tv.asElement());
     assert returnValue.asElement().asType() == tv;
     return returnValue;
   }

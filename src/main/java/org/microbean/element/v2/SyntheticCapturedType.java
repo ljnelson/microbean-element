@@ -22,6 +22,7 @@ import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeParameterElement;
 
@@ -31,13 +32,13 @@ import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.TypeVisitor;
 import javax.lang.model.type.WildcardType;
 
-final class SyntheticCapturedType extends AbstractTypeMirror implements TypeVariable {
+final class SyntheticCapturedType extends AbstractTypeMirror implements DefineableType<TypeParameterElement>, TypeVariable {
 
   private TypeMirror upperBound;
 
   private TypeMirror lowerBound;
   
-  private final TypeParameterElement definingElement;
+  private TypeParameterElement definingElement;
   
   private final WildcardType wildcardType;
 
@@ -62,12 +63,24 @@ final class SyntheticCapturedType extends AbstractTypeMirror implements TypeVari
   SyntheticCapturedType(final AnnotatedName name, final WildcardType wildcardType) {
     super(TypeKind.TYPEVAR, List.of());    
     this.wildcardType = wildcardType;
-    this.definingElement = new DefaultTypeParameterElement(name, this, Set.of());
+    this.setDefiningElement(new DefaultTypeParameterElement(name, this, Set.of()));
   }
   
   @Override // TypeVariable
   public final TypeParameterElement asElement() {
     return this.definingElement;
+  }
+
+  @Override
+  public final void setDefiningElement(final TypeParameterElement e) {
+    if (this.definingElement != null) {
+      throw new IllegalStateException();
+    } else if (e != null &&
+               (e.asType() != this ||
+                e.getKind() != ElementKind.TYPE_PARAMETER)) {
+      throw new IllegalArgumentException("e: " + e);
+    }
+    this.definingElement = e;
   }
   
   @Override // AbstractTypeVariable

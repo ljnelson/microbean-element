@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 
 import javax.lang.model.element.Element;
+import javax.lang.model.element.TypeElement;
 
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
@@ -179,7 +180,7 @@ final class CaptureVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {
   private static final DeclaredType syntheticDeclaredType(final DeclaredType canonicalType,
                                                           final List<? extends TypeMirror> typeArguments) {
     final DefaultDeclaredType t = new DefaultDeclaredType(canonicalType.getEnclosingType(), typeArguments, List.of());
-    t.setDefiningElement(canonicalType.asElement());
+    t.setDefiningElement((TypeElement)canonicalType.asElement());
     assert t.asElement().asType() == canonicalType;
     return t;
   }

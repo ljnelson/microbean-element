@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.lang.model.element.TypeElement;
+
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.ExecutableType;
@@ -92,7 +94,7 @@ class StructuralTypeMapping<S> extends SimpleTypeVisitor14<TypeMirror, S> {
       new DefaultDeclaredType(visitedEnclosingType,
                               visitedTypeArguments,
                               List.of());
-    r.setDefiningElement(t.asElement());
+    r.setDefiningElement((TypeElement)t.asElement());
     return r;
   }
 

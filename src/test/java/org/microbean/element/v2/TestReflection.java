@@ -16,12 +16,22 @@
  */
 package org.microbean.element.v2;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
+import javax.annotation.processing.ProcessingEnvironment;
+
+import javax.lang.model.element.TypeElement;
+
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeMirror;
+
+import com.sun.tools.javac.model.JavacTypes;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -30,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+@ExtendWith(AnnotationProcessingInterceptor.class)
 final class TestReflection {
 
   private Reflection reflection;
@@ -52,8 +63,29 @@ final class TestReflection {
   }
 
   @Test
-  final void testReflectionOnClassWithTypeParameters() throws IllegalAccessException, InvocationTargetException {
-    final DefaultTypeElement c = reflection.elementStubFrom(Class.class);
+  final void testAccuracy(final ProcessingEnvironment env) throws IllegalAccessException, InvocationTargetException {
+    final javax.lang.model.util.Elements elements = env.getElementUtils();
+    final javax.lang.model.util.Types javacModelTypes = env.getTypeUtils();
+    assertTrue(javacModelTypes instanceof JavacTypes);
+
+    com.sun.tools.javac.code.Types javacTypes = null;
+    try {
+      final Field f = JavacTypes.class.getDeclaredField("types");
+      assertTrue(f.trySetAccessible());
+      javacTypes = (com.sun.tools.javac.code.Types)f.get(javacModelTypes);
+    } catch (final ReflectiveOperationException reflectiveOperationException) {
+      fail(reflectiveOperationException);
+    }
+    assertNotNull(javacTypes);
+
+    final TypeElement comparableElement = elements.getTypeElement("java.lang.Comparable");
+    final TypeElement myComparableElement = reflection.elementStubFrom(Comparable.class);
+    assertTrue(Equality.equalsIncludingAnnotations(comparableElement, myComparableElement));
+
+    final TypeMirror comparableType = comparableElement.asType();
+    final TypeMirror myComparableType = myComparableElement.asType();
+    assertTrue(Equality.equalsIncludingAnnotations(comparableType, myComparableType));
+
   }
 
 }

@@ -273,7 +273,7 @@ public final class Reflection {
         nestingKind = NestingKind.TOP_LEVEL;
         enclosingElement = null;
       }
-      final List<TypeMirror> permittedSubclassTypeMirrors;
+      final List<DeclaredType> permittedSubclassTypeMirrors;
       if (c.isSealed()) {
         final Class<?>[] permittedSubclasses = c.getPermittedSubclasses();
         if (permittedSubclasses.length <= 0) {
@@ -281,27 +281,28 @@ public final class Reflection {
         } else {
           permittedSubclassTypeMirrors = new ArrayList<>(permittedSubclasses.length);
           for (final Class<?> psc : permittedSubclasses) {
-            permittedSubclassTypeMirrors.add(typeStubFrom(psc));
+            permittedSubclassTypeMirrors.add((DeclaredType)typeStubFrom(psc));
           }
         }
       } else {
         permittedSubclassTypeMirrors = List.of();
       }
-      final List<TypeMirror> interfaceTypeMirrors;
+      final List<DeclaredType> interfaceTypeMirrors;
       final AnnotatedType[] annotatedInterfaces = c.getAnnotatedInterfaces();
       if (annotatedInterfaces.length <= 0) {
         interfaceTypeMirrors = List.of();
       } else {
         interfaceTypeMirrors = new ArrayList<>(annotatedInterfaces.length);
         for (final AnnotatedType t : annotatedInterfaces) {
-          interfaceTypeMirrors.add(typeStubFrom(t));
+          interfaceTypeMirrors.add((DeclaredType)typeStubFrom(t));
         }
       }
       final List<DefaultTypeParameterElement> typeParameterElements;
       // A Class can be seen as representing both a type and an
       // element.  Viewed as an element, it has type parameters.
-      // Viewed as a type, it has type arguments.
-      // java.lang.reflect.TypeVariable represents both.
+      // Viewed as a type, it has type arguments, which are always
+      // type variables.  java.lang.reflect.TypeVariable represents
+      // both type parameters and type arguments.
       final java.lang.reflect.TypeVariable<?>[] tvs = c.getTypeParameters();
       if (tvs.length <= 0) {
         typeParameterElements = List.of();
@@ -314,7 +315,7 @@ public final class Reflection {
       e =
         new DefaultTypeElement(AnnotatedName.of(annotationMirrorsFrom(c), DefaultName.of(c.getName())),
                                kind,
-                               typeStubFrom(c),
+                               (DefaultDeclaredType)typeStubFrom(c),
                                finalModifiers,
                                nestingKind,
                                typeStubFrom(c.getAnnotatedSuperclass()),
@@ -503,11 +504,12 @@ public final class Reflection {
                                  null);
   }
 
-  public final DefaultTypeParameterElement elementStubFrom(final java.lang.reflect.TypeVariable<?> t) throws IllegalAccessException, InvocationTargetException {
+  public final DefaultTypeParameterElement elementStubFrom(final java.lang.reflect.TypeVariable<?> t)
+    throws IllegalAccessException, InvocationTargetException {
     return
       new DefaultTypeParameterElement(AnnotatedName.of(annotationMirrorsFrom(t), DefaultName.of(t.getName())),
                                       typeStubFrom(t),
-                                      Set.of()); // TODO: verify: what modifiers could possibly exist on a TypeParameterElement?
+                                      Set.of());
   }
 
   public final AbstractTypeMirror typeStubFrom(final AnnotatedType t) throws IllegalAccessException, InvocationTargetException {
@@ -537,9 +539,9 @@ public final class Reflection {
         boolean annotated = false;
         typeArguments = new ArrayList<>(tvs.length);        
         for (final java.lang.reflect.TypeVariable<?> tv : tvs) {
-          final TypeVariable stub = typeStubFrom(tv);
-          typeArguments.add(stub);
-          if (!annotated && !stub.getAnnotationMirrors().isEmpty()) {
+          final TypeVariable typeStub = typeStubFrom(tv);
+          typeArguments.add(typeStub);
+          if (!annotated && !typeStub.getAnnotationMirrors().isEmpty()) {
             annotated = true;
           }
         }
@@ -590,6 +592,7 @@ public final class Reflection {
     // If a java.lang.reflect.TypeVariable has a
     // java.lang.reflect.TypeVariable as its first bound, it is
     // required that this first bound be its only bound.
+    final DefaultTypeVariable dtv;
     switch (bounds.length) {
     case 0:
       throw new AssertionError();
@@ -597,16 +600,20 @@ public final class Reflection {
       // Class, interface, or type variable
       final AnnotatedType soleBound = bounds[0];
       if (soleBound instanceof AnnotatedTypeVariable tvBound) {
-        return new DefaultTypeVariable(typeStubFrom(tvBound), null, annotationMirrorsFrom(tv));
+        dtv = new DefaultTypeVariable(typeStubFrom(tvBound), null, annotationMirrorsFrom(tv));
+      } else {
+        dtv = new DefaultTypeVariable(typeStubFrom(soleBound), null, annotationMirrorsFrom(tv));
       }
-      return new DefaultTypeVariable(typeStubFrom(soleBound), null, annotationMirrorsFrom(tv));
+      break;
     default:
       final List<TypeMirror> intersectionTypeBounds = new ArrayList<>(bounds.length);
       for (final AnnotatedType bound : bounds) {
         intersectionTypeBounds.add(typeStubFrom(bound));
       }
-      return new DefaultTypeVariable(DefaultIntersectionType.of(intersectionTypeBounds), null, annotationMirrorsFrom(tv));
+      dtv = new DefaultTypeVariable(DefaultIntersectionType.of(intersectionTypeBounds), null, annotationMirrorsFrom(tv));
+      break;
     }
+    return dtv;
   }
 
   public final DefaultWildcardType typeStubFrom(final java.lang.reflect.WildcardType w) throws IllegalAccessException, InvocationTargetException {

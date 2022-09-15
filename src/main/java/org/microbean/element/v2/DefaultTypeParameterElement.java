@@ -38,22 +38,20 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
 
   private Element genericElement;
   
-  public DefaultTypeParameterElement(final AnnotatedName simpleName, final TypeVariable type) {
+  public <T extends TypeVariable & DefineableType<? super TypeParameterElement>>
+    DefaultTypeParameterElement(final AnnotatedName simpleName, final T type) {
     this(simpleName, type, Set.of());
   }
   
-  public DefaultTypeParameterElement(final AnnotatedName simpleName,
-                                     final TypeVariable typeVariable,
-                                     final Set<? extends Modifier> modifiers) {
+  public <T extends TypeVariable & DefineableType<? super TypeParameterElement>>
+    DefaultTypeParameterElement(final AnnotatedName simpleName, final T typeVariable, final Set<? extends Modifier> modifiers) {
     super(simpleName,
           ElementKind.TYPE_PARAMETER,
           validateTypeVariable(typeVariable),
           modifiers,
-          null,
+          null, // enclosingElement. See #setEnclosingElement(Element) below.
           List.of());
-    if (typeVariable instanceof DefaultTypeVariable dtv) {
-      dtv.definingElement(this);
-    }
+    typeVariable.setDefiningElement(this);
   }
   
   @Override // AbstractElement
@@ -160,7 +158,7 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
     }
     return
       new DefaultTypeParameterElement(AnnotatedName.of(e.getAnnotationMirrors(), e.getSimpleName()),
-                                      (TypeVariable)e.asType(),
+                                      DefaultTypeVariable.of((TypeVariable)e.asType()),
                                       e.getModifiers());
   }
 

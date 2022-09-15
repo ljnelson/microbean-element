@@ -65,6 +65,7 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
 
   private final NestingKind nestingKind;
 
+  // Can't be DeclaredType because it might be NoType.NONE.
   private final TypeMirror superclass;
 
   private final List<? extends TypeMirror> interfaces;
@@ -78,17 +79,19 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
 
 
   public
-    <T extends Element & Encloseable, P extends TypeParameterElement & Encloseable>
+    <E extends Element & Encloseable,
+               P extends TypeParameterElement & Encloseable,
+                         T extends DeclaredType & DefineableType<? super TypeElement>>
     DefaultTypeElement(final AnnotatedName qualifiedName,
                        final ElementKind kind,
-                       final TypeMirror type,
+                       final T type,
                        final Set<? extends Modifier> modifiers,
                        final NestingKind nestingKind,
-                       final TypeMirror superclass,
-                       final List<? extends TypeMirror> permittedSubclasses,
-                       final List<? extends TypeMirror> interfaces,
-                       final Element enclosingElement,
-                       final List<? extends T> enclosedElements,
+                       final TypeMirror superclass, // could be NoType.NONE or DeclaredType
+                       final List<? extends DeclaredType> permittedSubclasses,
+                       final List<? extends DeclaredType> interfaces,
+                       final Element enclosingElement, // could be ExecutableElement or TypeElement
+                       final List<? extends E> enclosedElements,
                        final List<? extends P> typeParameters) {
     super(qualifiedName,
           validateKind(kind),
@@ -105,9 +108,7 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
       throw new IllegalArgumentException("permittedSubclasses: " + permittedSubclasses);
     }
     this.permittedSubclasses = permittedSubclasses == null || permittedSubclasses.isEmpty() ? List.of() : List.copyOf(permittedSubclasses);
-    if (type instanceof DefineableType dt) {
-      dt.setDefiningElement(this);
-    }
+    type.setDefiningElement(this);
   }
 
 
@@ -183,28 +184,29 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
   private static final TypeMirror validateType(final TypeMirror type) {
     switch (type.getKind()) {
     case DECLARED:
+    case ERROR:
       return type;
     default:
       throw new IllegalArgumentException("type: " + type);
     }
   }
 
-  public static final DefaultTypeElement of(final TypeElement t) {
-    if (t instanceof DefaultTypeElement defaultTypeElement) {
+  public static final DefaultTypeElement of(final TypeElement e) {
+    if (e instanceof DefaultTypeElement defaultTypeElement) {
       return defaultTypeElement;
     }
     return
-      new DefaultTypeElement(AnnotatedName.of(t.getAnnotationMirrors(), t.getSimpleName()),
-                             t.getKind(),
-                             DefaultExecutableType.of((ExecutableType)t.asType()),
-                             t.getModifiers(),
-                             t.getNestingKind(),
-                             t.getSuperclass(),
-                             t.getPermittedSubclasses(),
-                             t.getInterfaces(),
-                             t.getEnclosingElement(),
-                             AbstractElement.encloseablesOf(t.getEnclosedElements()),
-                             DefaultTypeParameterElement.encloseableTypeParametersOf(t.getTypeParameters()));
+      new DefaultTypeElement(AnnotatedName.of(e.getAnnotationMirrors(), e.getSimpleName()),
+                             e.getKind(),
+                             DefaultDeclaredType.of((DeclaredType)e.asType()),
+                             e.getModifiers(),
+                             e.getNestingKind(),
+                             e.getSuperclass(),
+                             (List<? extends DeclaredType>)e.getPermittedSubclasses(),
+                             (List<? extends DeclaredType>)e.getInterfaces(),
+                             e.getEnclosingElement(),
+                             AbstractElement.encloseablesOf(e.getEnclosedElements()),
+                             DefaultTypeParameterElement.encloseableTypeParametersOf(e.getTypeParameters()));
   }
 
   @SuppressWarnings("unchecked")

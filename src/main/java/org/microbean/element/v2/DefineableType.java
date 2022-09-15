@@ -18,10 +18,10 @@ package org.microbean.element.v2;
 
 import javax.lang.model.element.Element;
 
-import javax.lang.model.type.DeclaredType;
+public interface DefineableType<E extends Element> {
 
-public interface DefineableType extends DeclaredType {
-
-  public void setDefiningElement(final Element definingElement);
+  public E asElement();
+  
+  public void setDefiningElement(final E definingElement);
   
 }

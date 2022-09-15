@@ -59,7 +59,7 @@ public sealed class AbstractTypeMirror extends AbstractAnnotatedConstruct implem
   }
 
   @Override // TypeMirror
-  public final TypeKind getKind() {
+  public TypeKind getKind() {
     return this.kind;
   }
 

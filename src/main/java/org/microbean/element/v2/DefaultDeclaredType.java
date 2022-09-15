@@ -42,11 +42,11 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.TypeVisitor;
 
-public sealed class DefaultDeclaredType extends AbstractTypeMirror implements DefineableType permits DefaultErrorType {
+public sealed class DefaultDeclaredType extends AbstractTypeMirror implements DeclaredType, DefineableType<TypeElement> permits DefaultErrorType {
 
   private TypeMirror enclosingType;
 
-  private Element definingElement;
+  private TypeElement definingElement;
 
   private final List<? extends TypeMirror> typeArguments;
 
@@ -93,17 +93,33 @@ public sealed class DefaultDeclaredType extends AbstractTypeMirror implements De
     this.typeArguments = validateTypeArguments(erased || typeArguments == null || typeArguments.isEmpty() ? List.of() : List.copyOf(typeArguments));
   }
 
-  final DefaultDeclaredType withEnclosingType(final TypeMirror enclosingType) {
-    return withEnclosingType(this, enclosingType);
+  @Override // TypeMirror
+  public final <R, P> R accept(final TypeVisitor<R, P> v, P p) {
+    return v.visitDeclared(this, p);
   }
-  
+
+  @Override // DeclaredType, DefineableType<TypeElement>
+  public final TypeElement asElement() {
+    return this.definingElement;
+  }
+
   final boolean erased() {
     return this.erased;
   }
   
+  @Override // DeclaredType
+  public final TypeMirror getEnclosingType() {
+    return this.enclosingType;
+  }
+
+  @Override // DeclaredType
+  public final List<? extends TypeMirror> getTypeArguments() {
+    return this.typeArguments;
+  }
+
   @Override // DefineableType
-  public final void setDefiningElement(final Element e) {
-    if (this.asElement() != null) {
+  public final void setDefiningElement(final TypeElement e) {
+    if (this.definingElement != null) {
       throw new IllegalStateException();
     }
     if (e != null) {
@@ -120,27 +136,11 @@ public sealed class DefaultDeclaredType extends AbstractTypeMirror implements De
       }
     }
   }
-
-  @Override // TypeMirror
-  public final <R, P> R accept(final TypeVisitor<R, P> v, P p) {
-    return v.visitDeclared(this, p);
+  
+  final DefaultDeclaredType withEnclosingType(final TypeMirror enclosingType) {
+    return withEnclosingType(this, enclosingType);
   }
-
-  @Override // DeclaredType
-  public final Element asElement() {
-    return this.definingElement;
-  }
-
-  @Override // DeclaredType
-  public final TypeMirror getEnclosingType() {
-    return this.enclosingType;
-  }
-
-  @Override // DeclaredType
-  public final List<? extends TypeMirror> getTypeArguments() {
-    return this.typeArguments;
-  }
-
+  
 
   /*
    * Static methods.
@@ -192,7 +192,7 @@ public sealed class DefaultDeclaredType extends AbstractTypeMirror implements De
       new DefaultDeclaredType(enclosingType,
                               t.getTypeArguments(),
                               t.getAnnotationMirrors());
-    r.setDefiningElement(t.asElement());
+    r.setDefiningElement((TypeElement)t.asElement());
     return r;
   }
 

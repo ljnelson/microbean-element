@@ -25,26 +25,44 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.Parameterizable;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeMirror;
 
 public abstract sealed class AbstractParameterizableElement extends AbstractElement implements Parameterizable permits DefaultExecutableElement, DefaultTypeElement {
 
   private final List<? extends TypeParameterElement> typeParameters;
-  
+
   protected
     <T extends Element & Encloseable, P extends TypeParameterElement & Encloseable>
     AbstractParameterizableElement(final AnnotatedName name,
                                    final ElementKind kind,
-                                   final TypeMirror type,
+                                   final TypeMirror type, // DeclaredType or ExecutableType
                                    final Set<? extends Modifier> modifiers,
-                                   final Element enclosingElement,
+                                   final Element enclosingElement, // ExecutableElement or TypeElement
                                    final List<? extends T> enclosedElements,
                                    final List<? extends P> typeParameters) {
-    super(name, kind, type, modifiers, enclosingElement, enclosedElements);
+    super(name,
+          kind, // no need to validate; sealed class; subclasses already validate
+          type, // no need to validate; sealed class; subclasses already validate
+          modifiers,
+          validateEnclosingElement(enclosingElement),
+          enclosedElements);
+    // assert (type instanceof ExecutableType) || (type instanceof DeclaredType);
     if (typeParameters == null || typeParameters.isEmpty()) {
       this.typeParameters = List.of();
+      if (type instanceof ExecutableType et) {
+        if (!et.getTypeVariables().isEmpty()) {
+          throw new IllegalArgumentException("type: " + type);
+        }
+      } else {
+        if (!((DeclaredType)type).getTypeArguments().isEmpty()) {
+          throw new IllegalArgumentException("type: " + type);
+        }
+      }
     } else {
       final List<P> tps = List.copyOf(typeParameters);
       for (final P tp : tps) {
@@ -60,6 +78,44 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
   @Override // Parameterizable
   public List<? extends TypeParameterElement> getTypeParameters() {
     return this.typeParameters;
+  }
+
+  private static final ElementKind validateKind(final ElementKind kind) {
+    switch (kind) {
+    case ANNOTATION_TYPE:
+    case CLASS:
+    case CONSTRUCTOR:
+    case ENUM:
+    case INSTANCE_INIT:
+    case INTERFACE:
+    case METHOD:
+    case RECORD:
+    case STATIC_INIT:
+      return kind;
+    default:
+      throw new IllegalArgumentException("kind: " + kind);
+
+    }
+  }
+  
+  private static final Element validateEnclosingElement(final Element enclosingElement) {
+    if (enclosingElement == null) {
+      return null;
+    }
+    switch (enclosingElement.getKind()) {
+    case ANNOTATION_TYPE:
+    case CLASS:
+    case CONSTRUCTOR:
+    case ENUM:
+    case INSTANCE_INIT:
+    case INTERFACE:
+    case METHOD:
+    case RECORD:
+    case STATIC_INIT:
+      return enclosingElement;
+    default:
+      throw new IllegalArgumentException("enclosingElement: " + enclosingElement);
+    }
   }
 
 }

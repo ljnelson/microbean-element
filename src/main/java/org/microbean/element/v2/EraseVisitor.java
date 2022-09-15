@@ -19,6 +19,8 @@ package org.microbean.element.v2;
 import java.util.List;
 import java.util.Objects;
 
+import javax.lang.model.element.TypeElement;
+
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
@@ -102,7 +104,7 @@ final class EraseVisitor extends StructuralTypeMapping<Boolean> {
       erasedType = t;
     } else {
       erasedType = new DefaultDeclaredType(this.visit(t.getEnclosingType(), false), List.of(), true, List.of());
-      ((DefineableType)erasedType).setDefiningElement(t.asElement());
+      ((DefineableType<TypeElement>)erasedType).setDefiningElement((TypeElement)t.asElement());
       assert this.types2.raw(erasedType);
     }
     // Commenting this out because it does not appear to be necessary

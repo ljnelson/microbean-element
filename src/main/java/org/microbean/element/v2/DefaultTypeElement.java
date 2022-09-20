@@ -97,10 +97,10 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
     super(qualifiedName,
           validateKind(kind),
           validateType(type),
-          modifiers,
-          enclosingElement,
-          enclosedElements,
-          typeParameters);
+          validateModifiers(modifiers == null ? Set.of() : modifiers),
+          validateEnclosingElement(enclosingElement),
+          validateEnclosedElements(enclosedElements == null ? List.of() : enclosedElements),
+          validateTypeParameters(typeParameters == null ? List.of() : typeParameters));
     this.simpleName = DefaultName.ofSimple(qualifiedName.getName());
     this.nestingKind = nestingKind == null ? NestingKind.TOP_LEVEL : nestingKind;
     this.superclass = superclass == null ? DefaultNoType.NONE : superclass;
@@ -169,6 +169,26 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
    */
 
 
+  private static final Element validateEnclosingElement(final Element enclosingElement) {
+    if (enclosingElement == null) {
+      return null;
+    }
+    switch (enclosingElement.getKind()) {
+    case ANNOTATION_TYPE:
+    case CLASS:
+    case ENUM:
+    case INTERFACE:
+    case RECORD:
+      return enclosingElement;
+    default:
+      throw new IllegalArgumentException("enclosingElement: " + enclosingElement);
+    }
+  }
+
+  private static final <E extends Element & Encloseable> List<? extends E> validateEnclosedElements(final List<? extends E> enclosedElements) {
+    return enclosedElements;
+  }
+  
   private static final ElementKind validateKind(final ElementKind kind) {
     switch (kind) {
     case ANNOTATION_TYPE:
@@ -182,7 +202,19 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
     }
   }
 
-  private static final TypeMirror validateType(final TypeMirror type) {
+  private static final Set<? extends Modifier> validateModifiers(final Set<? extends Modifier> modifiers) {
+    if (modifiers.contains(Modifier.DEFAULT) ||
+        modifiers.contains(Modifier.NATIVE) ||
+        modifiers.contains(Modifier.STRICTFP) ||
+        modifiers.contains(Modifier.SYNCHRONIZED) ||
+        modifiers.contains(Modifier.TRANSIENT) ||
+        modifiers.contains(Modifier.VOLATILE)) {
+      throw new IllegalArgumentException("modifiers: " + modifiers);
+    }
+    return modifiers;
+  }
+  
+  private static final <T extends DefineableType<? super TypeElement> & DeclaredType> T validateType(final T type) {
     switch (type.getKind()) {
     case DECLARED:
     case ERROR:
@@ -192,6 +224,15 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
     }
   }
 
+  private static final <P extends TypeParameterElement & Encloseable> List<? extends P> validateTypeParameters(final List<? extends P> typeParameters) {
+    for (final P typeParameter : typeParameters) {
+      if (typeParameter.getKind() != ElementKind.TYPE_PARAMETER) {
+        throw new IllegalArgumentException("typeParameters: " + typeParameters);
+      }
+    }
+    return typeParameters;
+  }
+  
   public static final DefaultTypeElement of(final TypeElement e) {
     if (e instanceof DefaultTypeElement defaultTypeElement) {
       return defaultTypeElement;

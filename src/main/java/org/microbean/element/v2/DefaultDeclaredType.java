@@ -103,7 +103,7 @@ public sealed class DefaultDeclaredType extends DefineableType<TypeElement> impl
                               final List<? extends AnnotationMirror> annotationMirrors) {
     super(validateKind(kind), erased ? List.of() : annotationMirrors);
     this.erased = erased;
-    this.enclosingType = validateEnclosingType(enclosingType);
+    this.enclosingType = validateEnclosingType(enclosingType == null ? DefaultNoType.NONE : enclosingType);
     this.typeArguments = validateTypeArguments(erased || typeArguments == null || typeArguments.isEmpty() ? List.of() : List.copyOf(typeArguments));
   }
 
@@ -182,9 +182,6 @@ public sealed class DefaultDeclaredType extends DefineableType<TypeElement> impl
   }
 
   private static final <T extends TypeMirror> T validateEnclosingType(final T t) {
-    if (t == null) {
-      return null;
-    }
     switch (t.getKind()) {
     case DECLARED:
     case NONE:

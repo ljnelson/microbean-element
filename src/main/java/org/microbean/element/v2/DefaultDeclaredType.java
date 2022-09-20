@@ -42,7 +42,13 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.TypeVisitor;
 
-public sealed class DefaultDeclaredType extends AbstractTypeMirror implements DeclaredType, DefineableType<TypeElement> permits DefaultErrorType {
+public sealed class DefaultDeclaredType extends DefineableType<TypeElement> implements DeclaredType permits DefaultErrorType {
+
+
+  /*
+   * Instance fields.
+   */
+
 
   private TypeMirror enclosingType;
 
@@ -54,62 +60,104 @@ public sealed class DefaultDeclaredType extends AbstractTypeMirror implements De
   // https://github.com/openjdk/jdk/blob/jdk-20+11/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Type.java#L1197-L1200
   private final boolean erased;
 
+
+  /*
+   * Constructors.
+   */
+
+
   public DefaultDeclaredType() {
     this(TypeKind.DECLARED, null, List.of(), false, List.of());
   }
 
+  public DefaultDeclaredType(final TypeMirror enclosingType) {
+    this(TypeKind.DECLARED, enclosingType, List.of(), false, List.of());
+  }
+  
+  public DefaultDeclaredType(final TypeMirror enclosingType,
+                             final List<? extends TypeMirror> typeArguments) {
+    this(TypeKind.DECLARED, enclosingType, typeArguments, false, List.of());
+  }
+  
   public DefaultDeclaredType(final TypeMirror enclosingType,
                              final List<? extends TypeMirror> typeArguments,
                              final List<? extends AnnotationMirror> annotationMirrors) {
     this(TypeKind.DECLARED, enclosingType, typeArguments, false, annotationMirrors);
   }
-  
-  DefaultDeclaredType(final TypeKind kind) {
+
+  DefaultDeclaredType(final TypeKind kind) { // kind could be ERROR
     this(kind, null, List.of(), false, List.of());
   }
-  
+
   DefaultDeclaredType(final TypeMirror enclosingType,
                       final List<? extends TypeMirror> typeArguments,
                       final boolean erased,
                       final List<? extends AnnotationMirror> annotationMirrors) {
     this(TypeKind.DECLARED, enclosingType, typeArguments, erased, annotationMirrors);
   }
-  
+
   private DefaultDeclaredType(final TypeKind kind,
                               final TypeMirror enclosingType,
                               final List<? extends TypeMirror> typeArguments,
                               final boolean erased,
                               final List<? extends AnnotationMirror> annotationMirrors) {
-    super(kind, erased ? List.of() : annotationMirrors);
-    switch (kind) {
-    case DECLARED:
-    case ERROR:
-      break;
-    default:
-      throw new IllegalArgumentException("kind: " + kind);
-    }
+    super(validateKind(kind), erased ? List.of() : annotationMirrors);
     this.erased = erased;
     this.enclosingType = validateEnclosingType(enclosingType);
     this.typeArguments = validateTypeArguments(erased || typeArguments == null || typeArguments.isEmpty() ? List.of() : List.copyOf(typeArguments));
   }
+
+
+  /*
+   * Instance methods.
+   */
+
 
   @Override // TypeMirror
   public final <R, P> R accept(final TypeVisitor<R, P> v, P p) {
     return v.visitDeclared(this, p);
   }
 
-  @Override // DeclaredType, DefineableType<TypeElement>
-  public final TypeElement asElement() {
-    return this.definingElement;
+  @Override // DefineableType<TypeElement>
+  final TypeElement validateDefiningElement(final TypeElement e) {
+    switch (e.getKind()) {
+    case ANNOTATION_TYPE:
+    case CLASS:
+    case ENUM:
+    case INTERFACE:
+    case RECORD:
+      break;
+    default:
+      throw new IllegalArgumentException("e: " + e);
+    }
+    final DeclaredType elementType = (DeclaredType)e.asType();
+    assert elementType != null : "null elementType for e: " + e;
+    if (this != elementType) {
+      // We are a parameterized type, i.e. a type usage,
+      // i.e. the-type-denoted-by-Set<String>
+      // vs. the-type-denoted-by-Set<E>
+      final int size = this.getTypeArguments().size();
+      if (size > 0 && size != elementType.getTypeArguments().size()) {
+        // We aren't a raw type (size > 0) and our type arguments
+        // aren't of the required size, so someone passed a bad
+        // defining element.
+        throw new IllegalArgumentException("e: " + e);
+      }
+    }
+    return e;
   }
 
   final boolean erased() {
     return this.erased;
   }
-  
+
   @Override // DeclaredType
   public final TypeMirror getEnclosingType() {
     return this.enclosingType;
+  }
+
+  final DefaultDeclaredType withEnclosingType(final TypeMirror enclosingType) {
+    return withEnclosingType(this, enclosingType);
   }
 
   @Override // DeclaredType
@@ -117,35 +165,21 @@ public sealed class DefaultDeclaredType extends AbstractTypeMirror implements De
     return this.typeArguments;
   }
 
-  @Override // DefineableType
-  public final void setDefiningElement(final TypeElement e) {
-    if (this.definingElement != null) {
-      throw new IllegalStateException();
-    }
-    if (e != null) {
-      switch (e.getKind()) {
-      case ANNOTATION_TYPE:
-      case CLASS:
-      case ENUM:
-      case INTERFACE:
-      case RECORD:
-        this.definingElement = e;
-        break;
-      default:
-        throw new IllegalArgumentException("e: " + e);
-      }
-    }
-  }
-  
-  final DefaultDeclaredType withEnclosingType(final TypeMirror enclosingType) {
-    return withEnclosingType(this, enclosingType);
-  }
-  
 
   /*
    * Static methods.
    */
 
+
+  private static final TypeKind validateKind(final TypeKind kind) {
+    switch (kind) {
+    case DECLARED:
+    case ERROR:
+      return kind;
+    default:
+      throw new IllegalArgumentException("kind: " + kind);
+    }
+  }
 
   private static final <T extends TypeMirror> T validateEnclosingType(final T t) {
     if (t == null) {

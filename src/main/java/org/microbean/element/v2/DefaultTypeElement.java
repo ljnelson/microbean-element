@@ -50,6 +50,7 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.type.TypeVariable;
 
 import javax.lang.model.util.ElementFilter;
 
@@ -80,8 +81,8 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
 
   public
     <E extends Element & Encloseable,
-               P extends TypeParameterElement & Encloseable,
-                         T extends DeclaredType & DefineableType<? super TypeElement>>
+     P extends TypeParameterElement & Encloseable,
+     T extends DefineableType<? super TypeElement> & DeclaredType>
     DefaultTypeElement(final AnnotatedName qualifiedName,
                        final ElementKind kind,
                        final T type,

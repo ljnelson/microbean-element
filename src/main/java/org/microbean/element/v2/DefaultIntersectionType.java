@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.StringJoiner;
 
 import javax.lang.model.element.AnnotationMirror;
 
@@ -64,6 +65,15 @@ public final class DefaultIntersectionType extends AbstractTypeMirror implements
   @Override // IntersectionType
   public final List<? extends TypeMirror> getBounds() {
     return this.bounds;
+  }
+
+  @Override
+  public final String toString() {
+    final StringJoiner sj = new StringJoiner(" & ");
+    for (final TypeMirror bound : bounds) {
+      sj.add(bound.toString());
+    }
+    return sj.toString();
   }
 
   public static DefaultIntersectionType of(final List<? extends TypeMirror> bounds) {

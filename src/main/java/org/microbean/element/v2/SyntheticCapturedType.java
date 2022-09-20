@@ -32,7 +32,7 @@ import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.TypeVisitor;
 import javax.lang.model.type.WildcardType;
 
-final class SyntheticCapturedType extends AbstractTypeMirror implements DefineableType<TypeParameterElement>, TypeVariable {
+final class SyntheticCapturedType extends DefineableType<TypeParameterElement> implements TypeVariable {
 
   private TypeMirror upperBound;
 
@@ -42,45 +42,22 @@ final class SyntheticCapturedType extends AbstractTypeMirror implements Defineab
   
   private final WildcardType wildcardType;
 
-  // In the compiler (javac):
-  //
-  // constructor takes a Name, a Symbol, a Type for upper, a Type for
-  // lower and the Wildcard
-  // (https://github.com/openjdk/jdk/blob/41daa88dcc89e509f21d1685c436874d6479cf62/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Type.java#L1729-L1733).
-  //
-  // new CapturedType(name, owner /* Symbol */, upper, lower, wildcard)
-  //
-  // calls TypeVar constructor and assembles what we have here as an Element:
-  //
-  // new TypeVariableSymbol(0 /* flags */, name, this /* type */, owner /* Symbol */);
-  //
-  // TypeVariableSymbol --> DefaultTypeParameterElement
-
   SyntheticCapturedType(final WildcardType wildcardType) {
     this(AnnotatedName.of(DefaultName.of("<captured wildcard>")), wildcardType);
   }
   
   SyntheticCapturedType(final AnnotatedName name, final WildcardType wildcardType) {
-    super(TypeKind.TYPEVAR, List.of());    
+    super(TypeKind.TYPEVAR, name.getAnnotationMirrors());
     this.wildcardType = wildcardType;
     this.setDefiningElement(new DefaultTypeParameterElement(name, this, Set.of()));
   }
-  
-  @Override // TypeVariable
-  public final TypeParameterElement asElement() {
-    return this.definingElement;
-  }
 
-  @Override
-  public final void setDefiningElement(final TypeParameterElement e) {
-    if (this.definingElement != null) {
-      throw new IllegalStateException();
-    } else if (e != null &&
-               (e.asType() != this ||
-                e.getKind() != ElementKind.TYPE_PARAMETER)) {
+  @Override // DefineableType<TypeParameterElement>
+  final TypeParameterElement validateDefiningElement(final TypeParameterElement e) {
+    if (e.asType() != this || e.getKind() != ElementKind.TYPE_PARAMETER) {
       throw new IllegalArgumentException("e: " + e);
     }
-    this.definingElement = e;
+    return e;
   }
   
   @Override // AbstractTypeVariable

@@ -16,6 +16,7 @@
  */
 package org.microbean.element.v2;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -30,7 +31,9 @@ import javax.lang.model.element.TypeParameterElement;
 
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.ExecutableType;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.type.TypeVariable;
 
 public abstract sealed class AbstractParameterizableElement extends AbstractElement implements Parameterizable permits DefaultExecutableElement, DefaultTypeElement {
 
@@ -51,19 +54,14 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
           modifiers,
           validateEnclosingElement(enclosingElement),
           enclosedElements);
-    // assert (type instanceof ExecutableType) || (type instanceof DeclaredType);
+    final List<? extends TypeMirror> typeArguments = typeArguments(type);
     if (typeParameters == null || typeParameters.isEmpty()) {
-      this.typeParameters = List.of();
-      if (type instanceof ExecutableType et) {
-        if (!et.getTypeVariables().isEmpty()) {
-          throw new IllegalArgumentException("type: " + type);
-        }
-      } else {
-        if (!((DeclaredType)type).getTypeArguments().isEmpty()) {
-          throw new IllegalArgumentException("type: " + type);
-        }
+      if (!typeArguments.isEmpty()) {
+        throw new IllegalArgumentException("type: " + type);
       }
-    } else {
+      this.typeParameters = List.of();
+    } else if (typeArguments.isEmpty()) {
+      // Raw type
       final List<P> tps = List.copyOf(typeParameters);
       for (final P tp : tps) {
         if (tp.getKind() != ElementKind.TYPE_PARAMETER) {
@@ -71,13 +69,51 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
         }
         tp.setEnclosingElement(this);
       }
+      this.typeParameters = tps;      
+    } else if (typeArguments.size() != typeParameters.size()) {
+      throw new IllegalArgumentException("type: " + type);
+    } else {
+      final List<P> tps = List.copyOf(typeParameters);
+      final int size = tps.size();
+      for (int i = 0; i < size; i++) {
+        final P tp = tps.get(i);
+        if (tp.getKind() != ElementKind.TYPE_PARAMETER) {
+          throw new IllegalArgumentException("typeParameters: " + typeParameters);
+        }
+        tp.setEnclosingElement(this);
+        final TypeVariable tpVariable = (TypeVariable)tp.asType();
+        assert tpVariable != null;
+        assert tpVariable.asElement() == tp;
+        final TypeMirror typeArgument = typeArguments.get(i);
+        final DefineableType<? super TypeParameterElement> dt = (DefineableType<? super TypeParameterElement>)typeArgument;
+        assert dt.asElement() == null;
+        dt.setDefiningElement(tp);
+      }
       this.typeParameters = tps;
     }
   }
 
+  
   @Override // Parameterizable
   public List<? extends TypeParameterElement> getTypeParameters() {
     return this.typeParameters;
+  }
+
+
+  /*
+   * Static methods.
+   */
+
+
+  private static final List<? extends TypeMirror> typeArguments(final TypeMirror t) {
+    switch (t.getKind()) {
+    case DECLARED:
+      return ((DeclaredType)t).getTypeArguments();
+    case EXECUTABLE:
+      return ((ExecutableType)t).getTypeVariables();
+    default:
+      throw new IllegalArgumentException("t: " + t);
+    }
   }
 
   private static final ElementKind validateKind(final ElementKind kind) {
@@ -97,7 +133,7 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
 
     }
   }
-  
+
   private static final Element validateEnclosingElement(final Element enclosingElement) {
     if (enclosingElement == null) {
       return null;

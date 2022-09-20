@@ -38,12 +38,12 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
 
   private Element genericElement;
   
-  public <T extends TypeVariable & DefineableType<? super TypeParameterElement>>
+  public <T extends DefineableType<? super TypeParameterElement> & TypeVariable>
     DefaultTypeParameterElement(final AnnotatedName simpleName, final T type) {
     this(simpleName, type, Set.of());
   }
   
-  public <T extends TypeVariable & DefineableType<? super TypeParameterElement>>
+  public <T extends DefineableType<? super TypeParameterElement> & TypeVariable>
     DefaultTypeParameterElement(final AnnotatedName simpleName, final T typeVariable, final Set<? extends Modifier> modifiers) {
     super(simpleName,
           ElementKind.TYPE_PARAMETER,
@@ -84,6 +84,11 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
     return this.genericElement;
   }
 
+  @Override
+  public final String toString() {
+    return this.getSimpleName() + " " + this.asType();
+  }
+  
   private final void setGenericElement(final Element genericElement) {
     final Element old = this.genericElement;
     if (old != null) {

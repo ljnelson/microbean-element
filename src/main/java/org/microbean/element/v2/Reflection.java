@@ -200,7 +200,9 @@ public final class Reflection {
     } else if (c == void.class || c.isArray() || c.isPrimitive()) {
       throw new IllegalArgumentException("c: " + c);
     }
+
     DefaultTypeElement e = null;
+
     Lock lock = this.elementStubsByClassLock.readLock();
     lock.lock();
     try {
@@ -208,7 +210,9 @@ public final class Reflection {
     } finally {
       lock.unlock();
     }
+
     if (e == null) {
+
       final ElementKind kind;
       if (c.isAnnotation()) {
         kind = ElementKind.ANNOTATION_TYPE;
@@ -221,6 +225,7 @@ public final class Reflection {
       } else {
         kind = ElementKind.CLASS;
       }
+
       final Collection<Modifier> modifierSet = new HashSet<>();
       final int modifiers = c.getModifiers();
 
@@ -245,6 +250,7 @@ public final class Reflection {
         modifierSet.add(Modifier.STATIC);
       }
       final EnumSet<Modifier> finalModifiers = EnumSet.copyOf(modifierSet);
+
       final Element enclosingElement;
       final NestingKind nestingKind;
       if (c.isAnonymousClass()) {
@@ -273,6 +279,7 @@ public final class Reflection {
         nestingKind = NestingKind.TOP_LEVEL;
         enclosingElement = null;
       }
+
       final List<DeclaredType> permittedSubclassTypeMirrors;
       if (c.isSealed()) {
         final Class<?>[] permittedSubclasses = c.getPermittedSubclasses();
@@ -287,6 +294,7 @@ public final class Reflection {
       } else {
         permittedSubclassTypeMirrors = List.of();
       }
+
       final List<DeclaredType> interfaceTypeMirrors;
       final AnnotatedType[] annotatedInterfaces = c.getAnnotatedInterfaces();
       if (annotatedInterfaces.length <= 0) {
@@ -297,6 +305,7 @@ public final class Reflection {
           interfaceTypeMirrors.add((DeclaredType)typeStubFrom(t));
         }
       }
+
       final List<DefaultTypeParameterElement> typeParameterElements;
       // A Class can be seen as representing both a type and an
       // element.  Viewed as an element, it has type parameters.
@@ -312,6 +321,7 @@ public final class Reflection {
           typeParameterElements.add(elementStubFrom(typeParameter));
         }
       }
+
       e =
         new DefaultTypeElement(AnnotatedName.of(annotationMirrorsFrom(c), DefaultName.of(c.getName())),
                                kind,
@@ -324,6 +334,7 @@ public final class Reflection {
                                enclosingElement,
                                List.of(), // enclosedElements; this is a stub; we don't inflate them
                                typeParameterElements);
+
       lock = this.elementStubsByClassLock.writeLock();
       lock.lock();
       try {
@@ -336,6 +347,7 @@ public final class Reflection {
       } finally {
         lock.unlock();
       }
+
     }
     return e;
   }
@@ -520,7 +532,7 @@ public final class Reflection {
     case AnnotatedTypeVariable atv -> typeStubFrom(atv);
     case AnnotatedWildcardType awt -> typeStubFrom(awt);
     case AnnotatedType t2 when t2.getType() instanceof Class<?> c -> {
-      List<? extends AnnotationMirror> annotations = annotationMirrorsFrom(t);      
+      List<? extends AnnotationMirror> annotations = annotationMirrorsFrom(t);
       final TypeMirror enclosingType = typeStubFrom(t2.getAnnotatedOwnerType());
       // A Class can be seen as representing both a type and an
       // element.  Viewed as an element, it has type parameters.
@@ -537,7 +549,7 @@ public final class Reflection {
         }
       } else {
         boolean annotated = false;
-        typeArguments = new ArrayList<>(tvs.length);        
+        typeArguments = new ArrayList<>(tvs.length);
         for (final java.lang.reflect.TypeVariable<?> tv : tvs) {
           final TypeVariable typeStub = typeStubFrom(tv);
           typeArguments.add(typeStub);

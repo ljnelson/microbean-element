@@ -45,6 +45,10 @@ public final class DefaultArrayType extends AbstractTypeMirror implements ArrayT
     return this.componentType;
   }
 
+  public final String toString() {
+    return this.componentType + "[]";
+  }
+  
   private static final TypeMirror validateComponentType(final TypeMirror componentType) {
     switch (componentType.getKind()) {
     case ARRAY:

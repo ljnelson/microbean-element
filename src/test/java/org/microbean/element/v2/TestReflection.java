@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 @ExtendWith(AnnotationProcessingInterceptor.class)
 final class TestReflection {
 
-  private Reflection reflection;
+  private org.microbean.element.v2.Reflection reflection;
   
   private TestReflection() {
     super();
@@ -51,7 +51,7 @@ final class TestReflection {
 
   @BeforeEach
   final void setup() {
-    this.reflection = new Reflection();
+    this.reflection = new org.microbean.element.v2.Reflection();
   }
 
   @Test
@@ -79,6 +79,15 @@ final class TestReflection {
     assertNotNull(javacTypes);
 
     final TypeElement comparableElement = elements.getTypeElement("java.lang.Comparable");
+
+    // Raw type
+    final DeclaredType rawComparableType = javacModelTypes.getDeclaredType(comparableElement);
+
+    // Nested class
+    final TypeElement nestedElement = elements.getTypeElement(NestedClass.class.getName());
+
+    final TypeElement innerElement = elements.getTypeElement(InnerClass.class.getName());
+
     final TypeElement myComparableElement = reflection.elementStubFrom(Comparable.class);
     assertTrue(Equality.equalsIncludingAnnotations(comparableElement, myComparableElement));
 
@@ -86,6 +95,22 @@ final class TestReflection {
     final TypeMirror myComparableType = myComparableElement.asType();
     assertTrue(Equality.equalsIncludingAnnotations(comparableType, myComparableType));
 
+  }
+
+  private final class InnerClass {
+
+    private InnerClass() {
+      super();
+    }
+    
+  }
+  
+  private static final class NestedClass {
+
+    private NestedClass() {
+      super();
+    }
+    
   }
 
 }

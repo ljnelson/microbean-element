@@ -28,9 +28,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.TypeVisitor;
 
-public final class DefaultTypeVariable extends AbstractTypeMirror implements DefineableType<TypeParameterElement>, TypeVariable {
-
-  private TypeParameterElement definingElement;
+public final class DefaultTypeVariable extends DefineableType<TypeParameterElement> implements TypeVariable {
 
   private final TypeMirror upperBound;
 
@@ -45,50 +43,44 @@ public final class DefaultTypeVariable extends AbstractTypeMirror implements Def
   }
 
   final DefaultTypeVariable withUpperBound(final TypeMirror upperBound) {
-    checkState();
     return withUpperBound(this, upperBound);
   }
 
   @Override // TypeVariable
   public final TypeMirror getLowerBound() {
-    checkState();
     return this.lowerBound;
   }
 
   @Override // TypeVariable
   public final TypeMirror getUpperBound() {
-    checkState();
     return this.upperBound;
   }
 
-  @Override // DefineableType
-  public final void setDefiningElement(final TypeParameterElement e) {
-    if (this.definingElement != null) {
-      throw new IllegalStateException();
-    } else if (e != null &&
-               (e.asType() != this ||
-                e.getKind() != ElementKind.TYPE_PARAMETER)) {
+  @Override // DefineableType<TypeParameterElement>
+  final TypeParameterElement validateDefiningElement(final TypeParameterElement e) {
+    switch (e.getKind()) {
+    case TYPE_PARAMETER:
+      break;
+    default:
       throw new IllegalArgumentException("e: " + e);
     }
-    this.definingElement = e;
+    final TypeVariable elementType = (TypeVariable)e.asType();
+    assert elementType != null : "null elementType for e: " + e;
+    if (this != elementType) {
+      // TODO: not clear whether this is a possible use case or not
+      throw new IllegalArgumentException("e: " + e + "; this != e.asType()");
+    }
+    return e;
   }
 
   @Override // AbstractTypeVariable
   public <R, P> R accept(final TypeVisitor<R, P> v, final P p) {
-    checkState();
     return v.visitTypeVariable(this, p);
   }
 
-  @Override // TypeVariable, DefineableType<TypeParameterElement>
-  public final TypeParameterElement asElement() {
-    checkState();
-    return this.definingElement;
-  }
-
-  private final void checkState() {
-    if (this.definingElement == null) {
-      throw new IllegalStateException("definingElement == null");
-    }
+  @Override // Object
+  public final String toString() {
+    return "extends " + this.getUpperBound();
   }
 
 

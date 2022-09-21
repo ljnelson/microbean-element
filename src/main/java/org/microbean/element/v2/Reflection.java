@@ -306,6 +306,9 @@ public final class Reflection {
         }
       }
 
+      final DefaultDeclaredType type = (DefaultDeclaredType)typeStubFrom(c);
+      final List<? extends DefaultTypeVariable> typeArguments = (List<? extends DefaultTypeVariable>)type.getTypeArguments();
+      
       final List<DefaultTypeParameterElement> typeParameterElements;
       // A Class can be seen as representing both a type and an
       // element.  Viewed as an element, it has type parameters.
@@ -314,18 +317,23 @@ public final class Reflection {
       // both type parameters and type arguments.
       final java.lang.reflect.TypeVariable<?>[] tvs = c.getTypeParameters();
       if (tvs.length <= 0) {
+        assert typeArguments.isEmpty();
         typeParameterElements = List.of();
       } else {
+        assert typeArguments.size() == tvs.length;
         typeParameterElements = new ArrayList<>(tvs.length);
-        for (final java.lang.reflect.TypeVariable<?> typeParameter : tvs) {
-          typeParameterElements.add(elementStubFrom(typeParameter));
+        for (int i = 0; i < tvs.length; i++) {
+          final java.lang.reflect.TypeVariable<?> typeParameter = tvs[i];
+          final DefaultTypeVariable dtv = typeArguments.get(i);
+          assert !dtv.defined();
+          typeParameterElements.add(elementStubFrom(typeParameter, dtv));
         }
       }
 
       e =
         new DefaultTypeElement(AnnotatedName.of(annotationMirrorsFrom(c), DefaultName.of(c.getName())),
                                kind,
-                               (DefaultDeclaredType)typeStubFrom(c),
+                               type,
                                finalModifiers,
                                nestingKind,
                                typeStubFrom(c.getAnnotatedSuperclass()),
@@ -518,9 +526,15 @@ public final class Reflection {
 
   public final DefaultTypeParameterElement elementStubFrom(final java.lang.reflect.TypeVariable<?> t)
     throws IllegalAccessException, InvocationTargetException {
+    return elementStubFrom(t, typeStubFrom(t));
+  }
+
+  public final DefaultTypeParameterElement elementStubFrom(final java.lang.reflect.TypeVariable<?> t,
+                                                           final TypeVariable tv)
+    throws IllegalAccessException, InvocationTargetException {
     return
       new DefaultTypeParameterElement(AnnotatedName.of(annotationMirrorsFrom(t), DefaultName.of(t.getName())),
-                                      typeStubFrom(t),
+                                      DefaultTypeVariable.of(tv),
                                       Set.of());
   }
 
@@ -540,7 +554,7 @@ public final class Reflection {
       // java.lang.reflect.TypeVariable represents both.
       final java.lang.reflect.TypeVariable<?>[] tvs = c.getTypeParameters();
       boolean shortcut = annotations.isEmpty() && (enclosingType == null || enclosingType.getKind() == TypeKind.NONE || enclosingType.getAnnotationMirrors().isEmpty());
-      final List<TypeVariable> typeArguments;
+      final List<DefaultTypeVariable> typeArguments;
       if (tvs.length <= 0) {
         typeArguments = List.of();
         if (shortcut) {
@@ -551,14 +565,14 @@ public final class Reflection {
         boolean annotated = false;
         typeArguments = new ArrayList<>(tvs.length);
         for (final java.lang.reflect.TypeVariable<?> tv : tvs) {
-          final TypeVariable typeStub = typeStubFrom(tv);
+          final DefaultTypeVariable typeStub = typeStubFrom(tv);
           typeArguments.add(typeStub);
           if (!annotated && !typeStub.getAnnotationMirrors().isEmpty()) {
             annotated = true;
           }
         }
         if (shortcut && !annotated) {
-          // Uses caching
+          // Discard typeArguments; use caching instead
           yield typeStubFrom(c);
         }
       }

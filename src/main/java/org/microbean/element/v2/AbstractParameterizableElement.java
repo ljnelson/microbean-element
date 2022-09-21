@@ -78,16 +78,22 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
         validateAndEncloseTypeParameter(tp);
         
         final TypeMirror typeArgument = typeArguments.get(i);
-        if (!(typeArgument instanceof DefineableType)) {
-          throw new IllegalArgumentException("type: " + type);
-        }
         if (!(typeArgument instanceof TypeVariable)) {
           throw new IllegalArgumentException("type: " + type);
         }
+        if (!(typeArgument instanceof DefineableType)) {
+          throw new IllegalArgumentException("type: " + type);
+        }
         final DefineableType<? super TypeParameterElement> dt = (DefineableType<? super TypeParameterElement>)typeArgument;
-        assert !dt.defined();
-        assert dt.asElement() == null;
-        dt.setDefiningElement(tp);
+        final Element definingElement = dt.asElement();
+        if (definingElement == null) {
+          dt.setDefiningElement(tp);
+        } else if (definingElement != tp) {
+          throw new IllegalArgumentException("typeParameters: " + tps);
+        }
+        // assert !dt.defined();
+        // assert dt.asElement() == null;
+        // dt.setDefiningElement(tp);
       }
       this.typeParameters = tps;
     }

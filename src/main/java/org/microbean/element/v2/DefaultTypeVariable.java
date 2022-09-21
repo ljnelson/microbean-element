@@ -67,6 +67,16 @@ public final class DefaultTypeVariable extends DefineableType<TypeParameterEleme
     final TypeVariable elementType = (TypeVariable)e.asType();
     assert elementType != null : "null elementType for e: " + e;
     if (this != elementType) {
+      /*
+      System.out.println("*** me: " + this);
+      System.out.println("*** e's type: " + elementType);
+      System.out.println("*** same? (no): " + (this == elementType));
+      System.out.println("*** upper bounds same? " + (this.getUpperBound() == elementType.getUpperBound()));
+      System.out.println("*** lower bounds same? " + (this.getLowerBound() == elementType.getLowerBound()));
+      System.out.println("*** e: " + e);
+      System.out.println("*** her element: " + elementType.asElement() + " (which better be e: " + e + ")");
+      System.out.println("*** her element's type: " + elementType.asElement().asType());
+      */
       // TODO: not clear whether this is a possible use case or not
       throw new IllegalArgumentException("e: " + e + "; this != e.asType()");
     }

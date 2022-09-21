@@ -40,7 +40,8 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
   private final List<? extends TypeParameterElement> typeParameters;
 
   protected
-    <T extends Element & Encloseable, P extends TypeParameterElement & Encloseable>
+    <T extends Element & Encloseable,
+     P extends TypeParameterElement & Encloseable>
     AbstractParameterizableElement(final AnnotatedName name,
                                    final ElementKind kind,
                                    final TypeMirror type, // DeclaredType or ExecutableType
@@ -52,7 +53,7 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
           kind, // no need to validate; sealed class; subclasses already validate
           type, // no need to validate; sealed class; subclasses already validate
           modifiers,
-          validateEnclosingElement(enclosingElement),
+          enclosingElement, // no need to validate; sealed class; subclasses already validate
           enclosedElements);
     final List<? extends TypeMirror> typeArguments = typeArguments(type);
     if (typeParameters == null || typeParameters.isEmpty()) {
@@ -64,10 +65,7 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
       // Raw type
       final List<P> tps = List.copyOf(typeParameters);
       for (final P tp : tps) {
-        if (tp.getKind() != ElementKind.TYPE_PARAMETER) {
-          throw new IllegalArgumentException("typeParameters: " + typeParameters);
-        }
-        tp.setEnclosingElement(this);
+        validateAndEncloseTypeParameter(tp);
       }
       this.typeParameters = tps;      
     } else if (typeArguments.size() != typeParameters.size()) {
@@ -77,15 +75,17 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
       final int size = tps.size();
       for (int i = 0; i < size; i++) {
         final P tp = tps.get(i);
-        if (tp.getKind() != ElementKind.TYPE_PARAMETER) {
-          throw new IllegalArgumentException("typeParameters: " + typeParameters);
-        }
-        tp.setEnclosingElement(this);
-        final TypeVariable tpVariable = (TypeVariable)tp.asType();
-        assert tpVariable != null;
-        assert tpVariable.asElement() == tp;
+        validateAndEncloseTypeParameter(tp);
+        
         final TypeMirror typeArgument = typeArguments.get(i);
+        if (!(typeArgument instanceof DefineableType)) {
+          throw new IllegalArgumentException("type: " + type);
+        }
+        if (!(typeArgument instanceof TypeVariable)) {
+          throw new IllegalArgumentException("type: " + type);
+        }
         final DefineableType<? super TypeParameterElement> dt = (DefineableType<? super TypeParameterElement>)typeArgument;
+        assert !dt.defined();
         assert dt.asElement() == null;
         dt.setDefiningElement(tp);
       }
@@ -97,6 +97,19 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
   @Override // Parameterizable
   public List<? extends TypeParameterElement> getTypeParameters() {
     return this.typeParameters;
+  }
+
+  private final <P extends TypeParameterElement & Encloseable> void validateAndEncloseTypeParameter(final P tp) {
+    if (tp.getKind() != ElementKind.TYPE_PARAMETER) {
+      throw new IllegalArgumentException("typeParameter: " + tp);
+    }
+    final TypeMirror elementType = tp.asType();
+    if (!(elementType instanceof TypeVariable) ||
+        elementType.getKind() != TypeKind.TYPEVAR ||
+        ((TypeVariable)elementType).asElement() != tp) {
+      throw new IllegalArgumentException("typeParameter: " + tp);
+    }
+    tp.setEnclosingElement(this);
   }
 
 
@@ -131,26 +144,6 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
     default:
       throw new IllegalArgumentException("kind: " + kind);
 
-    }
-  }
-
-  private static final Element validateEnclosingElement(final Element enclosingElement) {
-    if (enclosingElement == null) {
-      return null;
-    }
-    switch (enclosingElement.getKind()) {
-    case ANNOTATION_TYPE:
-    case CLASS:
-    case CONSTRUCTOR:
-    case ENUM:
-    case INSTANCE_INIT:
-    case INTERFACE:
-    case METHOD:
-    case RECORD:
-    case STATIC_INIT:
-      return enclosingElement;
-    default:
-      throw new IllegalArgumentException("enclosingElement: " + enclosingElement);
     }
   }
 

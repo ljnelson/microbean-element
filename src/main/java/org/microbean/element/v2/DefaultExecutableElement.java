@@ -46,7 +46,8 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
   private final AnnotationValue defaultValue;
 
   public
-    <TP extends TypeParameterElement & Encloseable, P extends VariableElement & Encloseable>
+    <TP extends TypeParameterElement & Encloseable,
+     P extends VariableElement & Encloseable>
     DefaultExecutableElement(final AnnotatedName simpleName,
                              final ElementKind kind,
                              final ExecutableType type,
@@ -57,13 +58,11 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
                              final boolean varArgs,
                              final boolean isDefault,
                              final AnnotationValue defaultValue) {
-    super(kind == ElementKind.CONSTRUCTOR ? AnnotatedName.of(DefaultName.of("<init>")) :
-          (kind == ElementKind.STATIC_INIT ? AnnotatedName.of(DefaultName.of("<clinit>")) :
-           (kind == ElementKind.INSTANCE_INIT ? AnnotatedName.of(DefaultName.of()) : simpleName)),
-          validateKind(kind),
+    super(validateNameAndKind(simpleName, kind),
+          kind, // validated immediately above
           validateType(type),
-          modifiers,
-          Objects.requireNonNull(enclosingElement),
+          validateModifiers(modifiers),
+          validateEnclosingElement(enclosingElement),
           List.of(),
           typeParameters);
     if (parameters == null || parameters.isEmpty()) {
@@ -143,16 +142,61 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
     }
   }
 
-  private static final ElementKind validateKind(final ElementKind kind) {
+  private static final AnnotatedName validateNameAndKind(final AnnotatedName simpleName, final ElementKind kind) {
+    final Name name = simpleName.getName();
     switch (kind) {
     case CONSTRUCTOR:
-    case INSTANCE_INIT:
-    case METHOD:
+      if (!name.contentEquals("<init>")) {
+        throw new IllegalArgumentException("name: " + simpleName);
+      }
+      break;
     case STATIC_INIT:
-      return kind;
+      if (!name.contentEquals("<clinit>")) {
+        throw new IllegalArgumentException("name: " + simpleName);
+      }
+      break;
+    case INSTANCE_INIT:
+      if (!name.isEmpty()) {
+        throw new IllegalArgumentException("name: " + simpleName);
+      }
+      break;
+    case METHOD:
+      if (name.isEmpty()) {
+        throw new IllegalArgumentException("name.isEmpty()");
+      } else if (name.contentEquals("<init>") || name.contentEquals("<clinit>")) {
+        throw new IllegalArgumentException("name: " + simpleName);
+      }
+      break;
     default:
       throw new IllegalArgumentException("kind: " + kind);
     }
+    return simpleName;
+  }
+  
+  private static final TypeElement validateEnclosingElement(final TypeElement enclosingElement) {
+    switch (enclosingElement.getKind()) {
+    case ANNOTATION_TYPE:
+    case CLASS:
+    case ENUM:
+    case INTERFACE:
+    case RECORD:
+      return enclosingElement;
+    default:
+      throw new IllegalArgumentException("enclosingElement: " + enclosingElement);
+    }
+  }
+
+  private static final Set<? extends Modifier> validateModifiers(final Set<? extends Modifier> modifiers) {
+    for (final Modifier m : modifiers) {
+      if (m == Modifier.NON_SEALED ||
+          m == Modifier.SEALED ||
+          m == Modifier.STRICTFP ||
+          m == Modifier.TRANSIENT ||
+          m == Modifier.VOLATILE) {
+        throw new IllegalArgumentException("modifiers: " + modifiers);
+      }
+    }
+    return modifiers;
   }
 
   public static final DefaultExecutableElement of(final ExecutableElement e) {

@@ -195,10 +195,18 @@ public final class Reflection {
   }
 
   public final DefaultTypeElement elementStubFrom(final Class<?> c) throws IllegalAccessException, InvocationTargetException {
+    return elementStubFrom(c, (DefaultDeclaredType)typeStubFrom(c));
+  }
+
+  public final DefaultTypeElement elementStubFrom(final Class<?> c,
+                                                  final DefaultDeclaredType type)
+    throws IllegalAccessException, InvocationTargetException {
     if (c == null) {
       return null;
     } else if (c == void.class || c.isArray() || c.isPrimitive()) {
       throw new IllegalArgumentException("c: " + c);
+    } else if (type.asElement() != null) {
+      throw new IllegalArgumentException("type: " + type);
     }
 
     DefaultTypeElement e = null;
@@ -260,18 +268,20 @@ public final class Reflection {
           enclosingObject = c.getEnclosingConstructor();
         }
         // Note: we don't want to call c.getEnclosingClass(), because
-        // that will jump the hierarchy. An anonymous class is lexically
-        // enclosed only by an non-static executable.  (I think. :-))
+        // that will jump the hierarchy. An anonymous class is
+        // lexically enclosed only by an non-static executable.  (I
+        // think. :-) (What about private Gorp gorp = new Gorp()
+        // {};?))
         assert enclosingObject != null;
         enclosingElement = elementStubFrom(enclosingObject);
       } else if (c.isLocalClass()) {
         nestingKind = NestingKind.LOCAL;
-        Executable enclosingObject = c.getEnclosingMethod();
-        if (enclosingObject == null) {
-          enclosingObject = c.getEnclosingConstructor();
+        Executable enclosingExecutable = c.getEnclosingMethod();
+        if (enclosingExecutable == null) {
+          enclosingExecutable = c.getEnclosingConstructor();
         }
-        assert enclosingObject != null;
-        enclosingElement = elementStubFrom(enclosingObject);
+        assert enclosingExecutable != null;
+        enclosingElement = elementStubFrom(enclosingExecutable);
       } else if (c.isMemberClass()) {
         nestingKind = NestingKind.MEMBER;
         enclosingElement = elementStubFrom(c.getDeclaringClass());
@@ -305,9 +315,6 @@ public final class Reflection {
           interfaceTypeMirrors.add((DeclaredType)typeStubFrom(t));
         }
       }
-
-      final DefaultDeclaredType type = (DefaultDeclaredType)typeStubFrom(c);
-      final List<? extends DefaultTypeVariable> typeArguments = (List<? extends DefaultTypeVariable>)type.getTypeArguments();
       
       final List<DefaultTypeParameterElement> typeParameterElements;
       // A Class can be seen as representing both a type and an
@@ -317,16 +324,20 @@ public final class Reflection {
       // both type parameters and type arguments.
       final java.lang.reflect.TypeVariable<?>[] tvs = c.getTypeParameters();
       if (tvs.length <= 0) {
-        assert typeArguments.isEmpty();
+        assert type.getTypeArguments().isEmpty();
         typeParameterElements = List.of();
       } else {
+        final List<? extends DefaultTypeVariable> typeArguments = (List<? extends DefaultTypeVariable>)type.getTypeArguments();
         assert typeArguments.size() == tvs.length;
         typeParameterElements = new ArrayList<>(tvs.length);
         for (int i = 0; i < tvs.length; i++) {
-          final java.lang.reflect.TypeVariable<?> typeParameter = tvs[i];
           final DefaultTypeVariable dtv = typeArguments.get(i);
-          assert !dtv.defined();
-          typeParameterElements.add(elementStubFrom(typeParameter, dtv));
+          // final java.lang.reflect.TypeVariable<?> typeParameter = tvs[i];
+          // assert !dtv.defined();
+          // typeParameterElements.add(elementStubFrom(typeParameter, dtv));
+          assert dtv.defined();
+          typeParameterElements.add(DefaultTypeParameterElement.of(dtv.asElement()));
+
         }
       }
 
@@ -639,6 +650,7 @@ public final class Reflection {
       dtv = new DefaultTypeVariable(DefaultIntersectionType.of(intersectionTypeBounds), null, annotationMirrorsFrom(tv));
       break;
     }
+    final DefaultTypeParameterElement e = elementStubFrom(tv, dtv);
     return dtv;
   }
 

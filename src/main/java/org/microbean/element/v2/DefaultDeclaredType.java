@@ -16,30 +16,14 @@
  */
 package org.microbean.element.v2;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodHandles.Lookup;
-import java.lang.invoke.VarHandle;
-
-import java.lang.reflect.AnnotatedParameterizedType;
-import java.lang.reflect.AnnotatedType;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
-
-import java.util.function.Supplier;
 
 import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.TypeVisitor;
 
 public sealed class DefaultDeclaredType extends DefineableType<TypeElement> implements DeclaredType permits DefaultErrorType {
@@ -52,8 +36,7 @@ public sealed class DefaultDeclaredType extends DefineableType<TypeElement> impl
 
   private TypeMirror enclosingType;
 
-  private TypeElement definingElement;
-
+  // ArrayType, DeclaredType, ErrorType, TypeVariable, WildcardType
   private final List<? extends TypeMirror> typeArguments;
 
   // See
@@ -73,12 +56,12 @@ public sealed class DefaultDeclaredType extends DefineableType<TypeElement> impl
   public DefaultDeclaredType(final TypeMirror enclosingType) {
     this(TypeKind.DECLARED, enclosingType, List.of(), false, List.of());
   }
-  
+
   public DefaultDeclaredType(final TypeMirror enclosingType,
                              final List<? extends TypeMirror> typeArguments) {
     this(TypeKind.DECLARED, enclosingType, typeArguments, false, List.of());
   }
-  
+
   public DefaultDeclaredType(final TypeMirror enclosingType,
                              final List<? extends TypeMirror> typeArguments,
                              final List<? extends AnnotationMirror> annotationMirrors) {

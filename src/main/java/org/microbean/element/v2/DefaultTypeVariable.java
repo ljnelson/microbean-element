@@ -17,6 +17,7 @@
 package org.microbean.element.v2;
 
 import java.util.List;
+import java.util.Objects;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -38,11 +39,11 @@ public final class DefaultTypeVariable extends DefineableType<TypeParameterEleme
                              final TypeMirror lowerBound,
                              final List<? extends AnnotationMirror> annotationMirrors) {
     super(TypeKind.TYPEVAR, annotationMirrors);
-    this.upperBound = upperBound == null ? ObjectConstruct.JAVA_LANG_OBJECT_TYPE : upperBound;
-    this.lowerBound = lowerBound;
+    this.upperBound = validateUpperBound(Objects.requireNonNull(upperBound, "upperBound"));
+    this.lowerBound = lowerBound == null ? null : validateLowerBound(lowerBound);
   }
 
-  final DefaultTypeVariable withUpperBound(final TypeMirror upperBound) {
+  public final DefaultTypeVariable withUpperBound(final TypeMirror upperBound) {
     return withUpperBound(this, upperBound);
   }
 
@@ -58,33 +59,16 @@ public final class DefaultTypeVariable extends DefineableType<TypeParameterEleme
 
   @Override // DefineableType<TypeParameterElement>
   final TypeParameterElement validateDefiningElement(final TypeParameterElement e) {
-    switch (e.getKind()) {
-    case TYPE_PARAMETER:
-      break;
-    default:
+    if (e.getKind() != ElementKind.TYPE_PARAMETER) {
       throw new IllegalArgumentException("e: " + e);
-    }
-    final TypeVariable elementType = (TypeVariable)e.asType();
-    assert elementType != null : "null elementType for e: " + e;
-    if (this != elementType) {
-      /*
-      System.out.println("*** me: " + this);
-      System.out.println("*** e's type: " + elementType);
-      System.out.println("*** same? (no): " + (this == elementType));
-      System.out.println("*** upper bounds same? " + (this.getUpperBound() == elementType.getUpperBound()));
-      System.out.println("*** lower bounds same? " + (this.getLowerBound() == elementType.getLowerBound()));
-      System.out.println("*** e: " + e);
-      System.out.println("*** her element: " + elementType.asElement() + " (which better be e: " + e + ")");
-      System.out.println("*** her element's type: " + elementType.asElement().asType());
-      */
-      // TODO: not clear whether this is a possible use case or not
-      throw new IllegalArgumentException("e: " + e + "; this != e.asType()");
+    } else if (this != e.asType()) {
+      throw new IllegalArgumentException("e: " + e + "; this (" + this + ") != e.asType() (" + e.asType() + ")");
     }
     return e;
   }
 
   @Override // AbstractTypeVariable
-  public <R, P> R accept(final TypeVisitor<R, P> v, final P p) {
+  public final <R, P> R accept(final TypeVisitor<R, P> v, final P p) {
     return v.visitTypeVariable(this, p);
   }
 
@@ -99,18 +83,34 @@ public final class DefaultTypeVariable extends DefineableType<TypeParameterEleme
    */
 
 
-  public static DefaultTypeVariable of(final TypeVariable tv) {
+  public static final DefaultTypeVariable of(final TypeVariable tv) {
     if (tv instanceof DefaultTypeVariable dtv) {
       return dtv;
     }
-    return new DefaultTypeVariable(tv.getUpperBound(), tv.getLowerBound(), tv.getAnnotationMirrors());
+    final DefaultTypeVariable r = new DefaultTypeVariable(tv.getUpperBound(), tv.getLowerBound(), tv.getAnnotationMirrors());
+    r.setDefiningElement((TypeParameterElement)tv.asElement());
+    return r;
   }
 
-  public static DefaultTypeVariable withUpperBound(final TypeVariable tv, final TypeMirror upperBound) {
+  public static final DefaultTypeVariable withUpperBound(final TypeVariable tv, final TypeMirror upperBound) {
     final DefaultTypeVariable r = new DefaultTypeVariable(upperBound, tv.getLowerBound(), tv.getAnnotationMirrors());
     r.setDefiningElement((TypeParameterElement)tv.asElement());
-    assert r.asElement().asType() == tv;
     return r;
+  }
+
+  private static final TypeMirror validateUpperBound(final TypeMirror upperBound) {
+    switch (upperBound.getKind()) {
+    case DECLARED:
+    case INTERSECTION:
+    case TYPEVAR:
+      return upperBound;
+    default:
+      throw new IllegalArgumentException("upperBound: " + upperBound);
+    }
+  }
+
+  private static final TypeMirror validateLowerBound(final TypeMirror lowerBound) {
+    return lowerBound;
   }
 
 }

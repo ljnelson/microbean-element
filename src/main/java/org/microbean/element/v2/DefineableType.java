@@ -39,11 +39,10 @@ public abstract sealed class DefineableType<E extends Element> extends AbstractT
 
   public final void setDefiningElement(final E definingElement) {
     final E old = this.asElement();
-    if (old != null) {
-      throw new IllegalStateException();
-    }
-    if (definingElement != old) {
+    if (old == null) {
       this.definingElement = this.validateDefiningElement(Objects.requireNonNull(definingElement, "definingElement"));
+    } else if (old != definingElement) {
+      throw new IllegalStateException();
     }
   }
 

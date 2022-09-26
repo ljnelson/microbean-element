@@ -194,17 +194,6 @@ public final class Reflection {
       });
   }
 
-  /*
-  public final AbstractElement elementStubFrom(final Type t) throws IllegalAccessException, InvocationTargetException {
-    return switch (t) {
-    case null -> null;
-    case Class<?> c -> elementStubFrom(c);
-    case java.lang.reflect.TypeVariable<?> tv -> elementStubFrom(tv);
-    default -> throw new IllegalArgumentException("t: " + t);
-    };
-  }
-  */
-
   public final DefaultTypeElement elementStubFrom(final Class<?> c)
     throws IllegalAccessException, InvocationTargetException {
     return elementStubFrom(c, (DefaultDeclaredType)typeStubFrom(c));
@@ -334,20 +323,40 @@ public final class Reflection {
       // Viewed as a type, it has type arguments, which are always
       // type variables.  java.lang.reflect.TypeVariable represents
       // both type parameters and type arguments.
-      final java.lang.reflect.TypeVariable<?>[] tvs = c.getTypeParameters();
-      if (tvs.length <= 0) {
-        assert type.getTypeArguments().isEmpty();
+      final java.lang.reflect.TypeVariable<?>[] typeParameters = c.getTypeParameters();
+      if (typeParameters.length <= 0) {
+        if (!type.getTypeArguments().isEmpty()) {
+          throw new IllegalArgumentException("type: " + type);
+        }
         typeParameterElements = List.of();
       } else {
         @SuppressWarnings("unchecked")
         final List<? extends DefaultTypeVariable> typeArguments = (List<? extends DefaultTypeVariable>)type.getTypeArguments();
-        assert typeArguments.size() == tvs.length;
-        typeParameterElements = new ArrayList<>(tvs.length);
-        for (int i = 0; i < tvs.length; i++) {
-          final java.lang.reflect.TypeVariable<?> typeParameter = tvs[i];
-          final DefaultTypeVariable dtv = typeArguments.get(i);
-          assert !dtv.defined();
-          typeParameterElements.add(elementStubFrom(typeParameter, dtv));
+        assert typeArguments.size() == typeParameters.length;
+        typeParameterElements = new ArrayList<>(typeParameters.length);
+        for (int i = 0; i < typeParameters.length; i++) {
+          final java.lang.reflect.TypeVariable<?> typeParameter = typeParameters[i];
+          final DefaultTypeVariable typeArgument = typeArguments.get(i);
+          assert !typeArgument.defined();
+          final DefaultTypeParameterElement typeParameterElement = elementStubFrom(typeParameter, typeArgument);
+          assert typeArgument.defined();
+          assert typeArgument.asElement() == typeParameterElement;
+
+          // For every bound, use the elementStubFrom() methods to
+          // create an appropriate Element for it (when, obviously,
+          // the bound is either a Class or a
+          // java.lang.reflect.TypeVariable, as those are the only
+          // kinds of types that have Elements in the
+          // javax.lang.model.* language model).  This relies on
+          // elementStubFrom()'s caching behavior as a side effect.
+          for (final AnnotatedType bound : typeParameter.getAnnotatedBounds()) {
+            switch (bound) {
+            case AnnotatedTypeVariable tv -> elementStubFrom(tv);
+            case AnnotatedType a -> elementStubFrom(a);
+            };
+          }
+
+          typeParameterElements.add(typeParameterElement);
         }
       }
 
@@ -389,7 +398,7 @@ public final class Reflection {
     default -> throw new IllegalArgumentException("a: " + a);
     };
   }
-  
+
   public final AbstractElement elementStubFrom(final GenericDeclaration g) throws IllegalAccessException, InvocationTargetException {
     return switch (g) {
     case null -> null;
@@ -398,7 +407,7 @@ public final class Reflection {
     default -> throw new IllegalArgumentException("g: " + g);
     };
   }
-  
+
   public final DefaultExecutableElement elementStubFrom(final Executable e) throws IllegalAccessException, InvocationTargetException {
     if (e == null) {
       return null;
@@ -563,17 +572,37 @@ public final class Reflection {
                                  null);
   }
 
-  public final DefaultTypeParameterElement elementStubFrom(final java.lang.reflect.TypeVariable<?> t)
-    throws IllegalAccessException, InvocationTargetException {
-    return elementStubFrom(t, typeStubFrom(t)); // OK
+  public final AbstractElement elementStubFrom(final AnnotatedType t) throws IllegalAccessException, InvocationTargetException {
+    return switch (t) {
+    case AnnotatedTypeVariable tv -> elementStubFrom(tv);
+    case AnnotatedType t2 when t2.getType() instanceof Class<?> c -> elementStubFrom(c);
+    default -> throw new IllegalArgumentException("t: " + t);
+    };
   }
 
-  private final DefaultTypeParameterElement elementStubFrom(final java.lang.reflect.TypeVariable<?> t,
-                                                           final TypeVariable tv)
+  public final DefaultTypeParameterElement elementStubFrom(final AnnotatedTypeVariable t)
     throws IllegalAccessException, InvocationTargetException {
+    // Discard annotations on purpose.
+    return elementStubFrom((java.lang.reflect.TypeVariable<?>)t);
+  }
+
+  public final DefaultTypeParameterElement elementStubFrom(final java.lang.reflect.TypeVariable<?> t)
+    throws IllegalAccessException, InvocationTargetException {
+    // Yes, you need the two-argument form.
+    return elementStubFrom(t, typeStubFrom(t));
+  }
+
+  public final DefaultTypeParameterElement elementStubFrom(final java.lang.reflect.TypeVariable<?> t, final DefaultTypeVariable tv)
+    throws IllegalAccessException, InvocationTargetException {
+    // Don't get clever; this method is implemented nice and simple
+    // and should stay that way.  Yes, you need the two-argument form.
+    // If you're looking for various side-effect element-defining
+    // shenanigans, look elsewhere.
+    assert !tv.defined();
     return
-      new DefaultTypeParameterElement(AnnotatedName.of(annotationMirrorsFrom(t), DefaultName.of(t.getName())),
-                                      DefaultTypeVariable.of(tv),
+      new DefaultTypeParameterElement(AnnotatedName.of(annotationMirrorsFrom(t), // annotations are element annotations; this is appropriate
+                                                       DefaultName.of(t.getName())),
+                                      tv,
                                       Set.of()); // modifiers
   }
 
@@ -666,10 +695,10 @@ public final class Reflection {
   }
 
   public final DefaultTypeVariable typeStubFrom(final java.lang.reflect.TypeVariable<?> tv) throws IllegalAccessException, InvocationTargetException {
+    // Don't get clever.  This method is implemented simply and
+    // straightforwardly and that's all on purpose.  If you're looking
+    // for element-related side-effect shenanigans, look elsewhere.
     final AnnotatedType[] bounds = tv.getAnnotatedBounds();
-    // If a java.lang.reflect.TypeVariable has a
-    // java.lang.reflect.TypeVariable as its first bound, it is
-    // required that this first bound be its only bound.
     final DefaultTypeVariable dtv;
     switch (bounds.length) {
     case 0:
@@ -687,7 +716,6 @@ public final class Reflection {
       dtv = new DefaultTypeVariable(DefaultIntersectionType.of(intersectionTypeBounds), null, annotationMirrorsFrom(tv));
       break;
     }
-    // final DefaultTypeParameterElement e = elementStubFrom(tv, dtv);
     return dtv;
   }
 

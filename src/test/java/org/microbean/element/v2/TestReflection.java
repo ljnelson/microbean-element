@@ -29,6 +29,7 @@ import javax.lang.model.type.TypeMirror;
 import com.sun.tools.javac.model.JavacTypes;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,6 +55,7 @@ final class TestReflection {
     this.reflection = new org.microbean.element.v2.Reflection();
   }
 
+  // @Disabled
   @Test
   final void testReflection() throws IllegalAccessException, InvocationTargetException {
     final DefaultTypeElement string = reflection.elementStubFrom(String.class);
@@ -62,6 +64,7 @@ final class TestReflection {
     assertSame(string.asType(), reflection.typeStubFrom(String.class));    
   }
 
+  // @Disabled
   @Test
   final void testAccuracy(final ProcessingEnvironment env) throws IllegalAccessException, InvocationTargetException {
     final javax.lang.model.util.Elements elements = env.getElementUtils();

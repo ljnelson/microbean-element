@@ -52,7 +52,7 @@ public sealed class AbstractTypeMirror extends AbstractAnnotatedConstruct implem
   public AbstractTypeMirror(final TypeKind kind) {
     this(kind, List.of());
   }
-  
+
   public AbstractTypeMirror(final TypeKind kind, final List<? extends AnnotationMirror> annotationMirrors) {
     super(annotationMirrors);
     this.kind = Objects.requireNonNull(kind, "kind");
@@ -120,7 +120,7 @@ public sealed class AbstractTypeMirror extends AbstractAnnotatedConstruct implem
   public int hashCode() {
     return Equality.hashCode(this, true);
   }
-  
+
   @Override // TypeMirror
   public boolean equals(final Object other) {
     if (this == other) {

@@ -74,7 +74,7 @@ public final class DefaultTypeVariable extends DefineableType<TypeParameterEleme
 
   @Override // Object
   public final String toString() {
-    return "extends " + this.getUpperBound();
+    return super.toString() + " extends " + this.getUpperBound();
   }
 
 

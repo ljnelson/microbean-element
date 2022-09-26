@@ -49,10 +49,15 @@ import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.api.extension.ReflectiveInvocationContext;
+import org.junit.jupiter.api.extension.TestExecutionExceptionHandler;
+
+import org.opentest4j.AssertionFailedError;
+import org.opentest4j.IncompleteExecutionException;
+import org.opentest4j.MultipleFailuresError;
 
 import static javax.tools.ToolProvider.getSystemJavaCompiler;
 
-public final class AnnotationProcessingInterceptor implements InvocationInterceptor, ParameterResolver {
+public final class AnnotationProcessingInterceptor implements InvocationInterceptor, ParameterResolver, TestExecutionExceptionHandler {
 
   @Deprecated // for use by JUnit Jupiter internals only
   private AnnotationProcessingInterceptor() {
@@ -135,6 +140,18 @@ public final class AnnotationProcessingInterceptor implements InvocationIntercep
       task.call();
     } finally {
       store.remove(ForwardingProcessingEnvironment.class);
+    }
+  }
+
+  @Override // TestExecutionExceptionHandler
+  public final void handleTestExecutionException(final ExtensionContext extensionContext,
+                                                 final Throwable throwable)
+    throws Throwable {
+    if ((throwable instanceof Error) || (throwable instanceof IncompleteExecutionException)) {
+      throw throwable;
+    } else if (throwable != null) {
+      handleTestExecutionException(extensionContext, throwable.getCause());
+      throw throwable;
     }
   }
 

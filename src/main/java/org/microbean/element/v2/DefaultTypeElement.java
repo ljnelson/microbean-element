@@ -232,7 +232,8 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
     }
     return typeParameters;
   }
-  
+
+  @SuppressWarnings("unchecked")
   public static final DefaultTypeElement of(final TypeElement e) {
     if (e instanceof DefaultTypeElement defaultTypeElement) {
       return defaultTypeElement;

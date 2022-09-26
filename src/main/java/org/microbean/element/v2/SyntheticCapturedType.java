@@ -37,15 +37,15 @@ final class SyntheticCapturedType extends DefineableType<TypeParameterElement> i
   private TypeMirror upperBound;
 
   private TypeMirror lowerBound;
-  
+
   private TypeParameterElement definingElement;
-  
+
   private final WildcardType wildcardType;
 
   SyntheticCapturedType(final WildcardType wildcardType) {
     this(AnnotatedName.of(DefaultName.of("<captured wildcard>")), wildcardType);
   }
-  
+
   SyntheticCapturedType(final AnnotatedName name, final WildcardType wildcardType) {
     super(TypeKind.TYPEVAR, name.getAnnotationMirrors());
     this.wildcardType = wildcardType;
@@ -54,12 +54,14 @@ final class SyntheticCapturedType extends DefineableType<TypeParameterElement> i
 
   @Override // DefineableType<TypeParameterElement>
   final TypeParameterElement validateDefiningElement(final TypeParameterElement e) {
-    if (e.asType() != this || e.getKind() != ElementKind.TYPE_PARAMETER) {
+    if (e.getKind() != ElementKind.TYPE_PARAMETER) {
       throw new IllegalArgumentException("e: " + e);
+    } else if (this != e.asType()) {
+      throw new IllegalArgumentException("e: " + e + "; this (" + this + ") != e.asType() (" + e.asType() + ")");
     }
     return e;
   }
-  
+
   @Override // AbstractTypeVariable
   public final <R, P> R accept(final TypeVisitor<R, P> v, final P p) {
     return v.visitTypeVariable(this, p);
@@ -70,7 +72,7 @@ final class SyntheticCapturedType extends DefineableType<TypeParameterElement> i
     return this.lowerBound;
   }
 
-  public final void setLowerBound(final TypeMirror lowerBound) {
+  final void setLowerBound(final TypeMirror lowerBound) {
     this.lowerBound = lowerBound;
   }
 
@@ -79,11 +81,11 @@ final class SyntheticCapturedType extends DefineableType<TypeParameterElement> i
     return this.upperBound;
   }
 
-  public final void setUpperBound(final TypeMirror upperBound) {
+  final void setUpperBound(final TypeMirror upperBound) {
     this.upperBound = upperBound;
   }
-  
-  public final WildcardType getWildcardType() {
+
+  final WildcardType getWildcardType() {
     return this.wildcardType;
   }
 

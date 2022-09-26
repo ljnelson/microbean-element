@@ -84,6 +84,7 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
         if (!(typeArgument instanceof DefineableType)) {
           throw new IllegalArgumentException("type: " + type);
         }
+        @SuppressWarnings("unchecked")
         final DefineableType<? super TypeParameterElement> dt = (DefineableType<? super TypeParameterElement>)typeArgument;
         final Element definingElement = dt.asElement();
         if (definingElement == null) {

@@ -45,7 +45,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 final class TestReflection {
 
   private org.microbean.element.v2.Reflection reflection;
-  
+
   private TestReflection() {
     super();
   }
@@ -55,65 +55,32 @@ final class TestReflection {
     this.reflection = new org.microbean.element.v2.Reflection();
   }
 
-  // @Disabled
   @Test
   final void testReflection() throws IllegalAccessException, InvocationTargetException {
-    final DefaultTypeElement string = reflection.elementStubFrom(String.class);
+    final DefaultTypeElement string = this.reflection.elementStubFrom(String.class);
     assertTrue(string.getQualifiedName().contentEquals("java.lang.String"));
-    assertSame(string, reflection.elementStubFrom(String.class));
-    assertSame(string.asType(), reflection.typeStubFrom(String.class));    
+    assertSame(string, this.reflection.elementStubFrom(String.class));
+    assertSame(string.asType(), this.reflection.typeStubFrom(String.class));
   }
 
-  // @Disabled
   @Test
-  final void testAccuracy(final ProcessingEnvironment env) throws IllegalAccessException, InvocationTargetException {
+  final void testEquality(final ProcessingEnvironment env) throws IllegalAccessException, InvocationTargetException {
     final javax.lang.model.util.Elements elements = env.getElementUtils();
     final javax.lang.model.util.Types javacModelTypes = env.getTypeUtils();
-    assertTrue(javacModelTypes instanceof JavacTypes);
-
-    com.sun.tools.javac.code.Types javacTypes = null;
-    try {
-      final Field f = JavacTypes.class.getDeclaredField("types");
-      assertTrue(f.trySetAccessible());
-      javacTypes = (com.sun.tools.javac.code.Types)f.get(javacModelTypes);
-    } catch (final ReflectiveOperationException reflectiveOperationException) {
-      fail(reflectiveOperationException);
-    }
-    assertNotNull(javacTypes);
 
     final TypeElement comparableElement = elements.getTypeElement("java.lang.Comparable");
-
-    // Raw type
-    final DeclaredType rawComparableType = javacModelTypes.getDeclaredType(comparableElement);
-
-    // Nested class
-    final TypeElement nestedElement = elements.getTypeElement(NestedClass.class.getName());
-
-    final TypeElement innerElement = elements.getTypeElement(InnerClass.class.getName());
-
-    final TypeElement myComparableElement = reflection.elementStubFrom(Comparable.class);
+    final TypeElement myComparableElement = this.reflection.elementStubFrom(Comparable.class);
     assertTrue(Equality.equalsIncludingAnnotations(comparableElement, myComparableElement));
 
-    final TypeMirror comparableType = comparableElement.asType();
-    final TypeMirror myComparableType = myComparableElement.asType();
-    assertTrue(Equality.equalsIncludingAnnotations(comparableType, myComparableType));
+    final TypeMirror comparableElementAsType = comparableElement.asType();
+    final TypeMirror myComparableElementAsType = myComparableElement.asType();
+    assertTrue(Equality.equalsIncludingAnnotations(comparableElementAsType, myComparableElementAsType));
 
-  }
+    final DeclaredType comparableRawType = javacModelTypes.getDeclaredType(comparableElement);
+    final DefaultDeclaredType myComparableRawType = new DefaultDeclaredType();
+    myComparableRawType.setDefiningElement(myComparableElement);
+    assertTrue(Equality.equalsIncludingAnnotations(comparableRawType, myComparableRawType));
 
-  private final class InnerClass {
-
-    private InnerClass() {
-      super();
-    }
-    
-  }
-  
-  private static final class NestedClass {
-
-    private NestedClass() {
-      super();
-    }
-    
   }
 
 }

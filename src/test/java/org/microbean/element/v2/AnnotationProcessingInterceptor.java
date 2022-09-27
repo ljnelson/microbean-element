@@ -17,12 +17,16 @@
 package org.microbean.element.v2;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import java.util.function.Supplier;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
@@ -65,7 +69,14 @@ public final class AnnotationProcessingInterceptor implements InvocationIntercep
   }
 
   /*
-   * Invocation order: supportsParameter, resolveParameter, interceptTestMethod
+   * Invocation order:
+   *
+   * 1. supportsParameter(ParameterContext, ExtensionContext)
+   * 2. resolveParameter(ParameterContext, ExtensionContext)
+   * 3. interceptTestMethod(Invocation<Void>,
+   *                        ReflectiveInvocationContext<Method>,
+   *                        ExtensionContext)
+   * 4. (handleTestExecutionException(ExtensionContext, Throwable))
    */
 
   @Deprecated // for use by JUnit Jupiter internals only
@@ -77,8 +88,8 @@ public final class AnnotationProcessingInterceptor implements InvocationIntercep
 
   @Deprecated // for use by JUnit Jupiter internals only
   @Override // ParameterResolver
-  public final ProcessingEnvironment resolveParameter(final ParameterContext parameterContext,
-                                                      final ExtensionContext extensionContext) {
+  public final Object resolveParameter(final ParameterContext parameterContext,
+                                       final ExtensionContext extensionContext) {
     return extensionContext.getStore(Namespace.create(Thread.currentThread().getId()))
       .getOrComputeIfAbsent(ForwardingProcessingEnvironment.class,
                             k -> new ForwardingProcessingEnvironment(),

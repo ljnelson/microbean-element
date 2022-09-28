@@ -140,7 +140,13 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
   private final boolean visitDeclared(final DeclaredType t, final WildcardType s) {
     assert t.getKind() == TypeKind.DECLARED && s.getKind() == TypeKind.WILDCARD;
-    throw new UnsupportedOperationException();
+    // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1401-L1402
+    final TypeMirror superBound = s.getSuperBound();
+    return
+      superBound != null &&
+      s.getExtendsBound() == null &&
+      this.visitDeclared(t, ObjectConstruct.JAVA_LANG_OBJECT_TYPE) &&
+      this.visit(t, superBound);
   }
 
   @Override
@@ -407,9 +413,11 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
   private final boolean hasSameBounds(final ExecutableType t, final ExecutableType s) {
     final List<? extends TypeVariable> tVariables = t.getTypeVariables();
     final List<? extends TypeVariable> sVariables = s.getTypeVariables();
-    if (tVariables.isEmpty()) {
-      return sVariables.isEmpty();
-    } else if (sVariables.isEmpty()) {
+    if (tVariables.size() != sVariables.size() || tVariables.isEmpty()) {
+      // This size check code is not in javac (only an emptiness
+      // check) but seems harmless and an easy productive
+      // optimization.  My guess is the size check was deemed
+      // expensive because javac's List is a linked list.
       return false;
     }
     final Iterator<? extends TypeVariable> ti = tVariables.iterator();
@@ -417,7 +425,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     while (ti.hasNext() &&
            si.hasNext() &&
            this.visit(ti.next().getUpperBound(),
-                      new SubstituteVisitor(this.supertypeVisitor, sVariables, tVariables).visit(si.next().getUpperBound()))) {
+                      new SubstituteVisitor(this.supertypeVisitor, sVariables, tVariables).visit(si.next().getUpperBound()))) { // TODO: concurrent iteration exception?
       continue;
     }
     return !ti.hasNext() && !si.hasNext();
@@ -431,9 +439,11 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
   }
 
   private final boolean containsTypeEquivalent(final List<? extends TypeMirror> ts, final List<? extends TypeMirror> ss) {
-    if (ts.isEmpty()) {
-      return ss.isEmpty();
-    } else if (ss.isEmpty()) {
+    if (ts.size() != ss.size() || ts.isEmpty()) {
+      // This size check code is not in javac (only an emptiness
+      // check) but seems harmless and an easy productive
+      // optimization.  My guess is the size check was deemed
+      // expensive because javac's List is a linked list.
       return false;
     }
     final Iterator<? extends TypeMirror> ti = ts.iterator();

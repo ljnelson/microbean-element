@@ -102,6 +102,11 @@ public sealed class DefaultDeclaredType extends DefineableType<TypeElement> impl
   }
 
   @Override // DefineableType<TypeElement>
+  DefaultDeclaredType definedBy(final TypeElement e) {
+    return (DefaultDeclaredType)super.definedBy(e);
+  }
+  
+  @Override // DefineableType<TypeElement>
   final TypeElement validateDefiningElement(final TypeElement e) {
     switch (e.getKind()) {
     case ANNOTATION_TYPE:

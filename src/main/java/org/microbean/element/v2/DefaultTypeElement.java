@@ -178,6 +178,7 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
     case CLASS:
     case ENUM:
     case INTERFACE:
+    case PACKAGE:
     case RECORD:
       return enclosingElement;
     default:

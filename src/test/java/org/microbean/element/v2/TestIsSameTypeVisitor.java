@@ -49,14 +49,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @ExtendWith(AnnotationProcessingInterceptor.class)
-final class TestErase {
+final class TestIsSameTypeVisitor {
 
-  private TestErase() {
+  private TestIsSameTypeVisitor() {
     super();
   }
 
   @Test
-  final void testErase(final ProcessingEnvironment env) {
+  final void testIsSameTypeVisitor(final ProcessingEnvironment env) {
     final javax.lang.model.util.Elements elements = env.getElementUtils();
     final javax.lang.model.util.Types javacModelTypes = env.getTypeUtils();
     assertTrue(javacModelTypes instanceof JavacTypes);
@@ -70,50 +70,19 @@ final class TestErase {
     }
     assertNotNull(javacTypes);
 
-    final TypeElement integerElement = elements.getTypeElement("java.lang.Integer");
-
-    final DeclaredType integerElementType = (DeclaredType)integerElement.asType();
-    assertSame(TypeKind.DECLARED, integerElementType.getKind());
-
-    // Get the type denoted by the type expression
-    // Comparable<Integer>.  Interfaces must be returned in
-    // declaration order, and Comparable<Integer> is the first one
-    // declared.
-    final DeclaredType comparableIntegerType = (DeclaredType)integerElement.getInterfaces().get(0);
-    assertSame(TypeKind.DECLARED, comparableIntegerType.getKind()); // ...which is kind of weird when you think about it
-
-    List<? extends TypeMirror> typeArguments = comparableIntegerType.getTypeArguments();
-    System.out.println("*** type arguments: " + typeArguments);
-
-    // Cannot rely on identity for some reason:
-    // assertSame(integerElementType, typeArguments.get(0));
-
-    // ...but the type representing java.lang.Integer best be equal to
-    // the type representing java.lang.Integer!
-    assertTrue(Equality.equalsIncludingAnnotations(integerElementType, typeArguments.get(0)));
-
-    // Now test "official" erasure, via javax.lang.model.util.Types.
-    DeclaredType erasure = (DeclaredType)javacModelTypes.erasure(comparableIntegerType);
-    typeArguments = erasure.getTypeArguments();
-    assertEquals(0, typeArguments.size());
-    assertTrue(((Type)erasure).isRaw());
-
-    // Now do it with our stuff.
-
+    // Set up the fundamentals.
     final Types2 types2 = new Types2();
-
-    // Make sure our stuff thinks the javac erasure is raw.
-    assertTrue(types2.raw(erasure));
-
     final EraseVisitor eraseVisitor = new EraseVisitor(types2);
-    erasure = (DeclaredType)eraseVisitor.visit(comparableIntegerType);
-    typeArguments = erasure.getTypeArguments();
-    assertEquals(0, typeArguments.size());
-    assertTrue(types2.raw(erasure));
+    final SupertypeVisitor supertypeVisitor = new SupertypeVisitor(types2, eraseVisitor);
 
-    // Check that we do erasure of primitive types properly.
-    final TypeMirror intType = javacModelTypes.getPrimitiveType(TypeKind.INT);
-    assertSame(intType, eraseVisitor.visit(intType));
+    // These have cycles.
+    final ContainsTypeVisitor containsTypeVisitor = new ContainsTypeVisitor(types2);
+    final IsSameTypeVisitor isSameTypeVisitor = new IsSameTypeVisitor(containsTypeVisitor, supertypeVisitor);    
+    final SubtypeVisitor subtypeVisitor = new SubtypeVisitor(types2, supertypeVisitor, isSameTypeVisitor);
+    containsTypeVisitor.subtypeVisitor = subtypeVisitor;
+    subtypeVisitor.containsTypeVisitor = containsTypeVisitor;
+
+    // Should be ready to go.
     
   }
 

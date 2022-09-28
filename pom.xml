@@ -20,6 +20,11 @@
     </license>
   </licenses>
 
+  <organization>
+    <name>microBean™</name>
+    <url>http://microbean.systems/</url>
+  </organization>
+
   <developers>
     <developer>
       <id>ljnelson</id>
@@ -103,7 +108,7 @@
         <version>5.9.0</version>
         <type>jar</type>
       </dependency>
-      
+
     </dependencies>
   </dependencyManagement>
 
@@ -309,7 +314,7 @@
               <project.build.testOutputDirectory>${project.build.testOutputDirectory}</project.build.testOutputDirectory>
             </systemPropertyVariables>
           </configuration>
-          <dependencies>            
+          <dependencies>
             <!-- See https://lists.apache.org/thread/dr5r15kq2gd4x644k50wv8olz6qo3j00 -->
             <dependency>
               <groupId>org.ow2.asm</groupId>
@@ -385,7 +390,7 @@
     <bottom><![CDATA[Copyright &copy; ${project.inceptionYear}&ndash;{currentYear}, <a href="${project.organization.url}" target="_top">${project.organization.name}</a>. All rights reserved.]]></bottom>
     <detectJavaApiLink>false</detectJavaApiLink>
     <detectLinks>false</detectLinks>
-    <links>https://download.java.net/java/early_access/jdk19/docs/api/,https://microbean.github.io/microbean-development-annotations/apidocs/</links>
+    <links>https://docs.oracle.com/en/java/javase/19/docs/api/,https://microbean.github.io/microbean-development-annotations/apidocs/</links>
 
     <!-- maven-release-plugin properties; see http://maven.apache.org/maven-release/maven-release-plugin/ -->
     <goals>deploy,post-site,scm-publish:publish-scm</goals>

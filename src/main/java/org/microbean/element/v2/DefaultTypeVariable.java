@@ -58,6 +58,11 @@ public final class DefaultTypeVariable extends DefineableType<TypeParameterEleme
   }
 
   @Override // DefineableType<TypeParameterElement>
+  final DefaultTypeVariable definedBy(final TypeParameterElement e) {
+    return (DefaultTypeVariable)super.definedBy(e);
+  }
+  
+  @Override // DefineableType<TypeParameterElement>
   final TypeParameterElement validateDefiningElement(final TypeParameterElement e) {
     if (e.getKind() != ElementKind.TYPE_PARAMETER) {
       throw new IllegalArgumentException("e: " + e);

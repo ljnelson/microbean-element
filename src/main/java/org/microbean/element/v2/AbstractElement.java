@@ -332,23 +332,16 @@ abstract sealed class AbstractElement extends AbstractAnnotatedConstruct impleme
     }
     final List<E> newList = new ArrayList<>(list.size());
     for (final Element e : list) {
-      if (e instanceof Encloseable enc) {
-        newList.add((E)enc);
-      } else if (e instanceof ExecutableElement ee) {
-        newList.add((E)DefaultExecutableElement.of(ee));
-      } else if (e instanceof PackageElement pe) {
-        newList.add((E)DefaultPackageElement.of(pe));
-      } else if (e instanceof RecordComponentElement rce) {
-        newList.add((E)DefaultRecordComponentElement.of(rce));
-      } else if (e instanceof TypeElement te) {
-        newList.add((E)DefaultTypeElement.of(te));
-      } else if (e instanceof TypeParameterElement tpe) {
-        newList.add((E)DefaultTypeParameterElement.of(tpe));
-      } else if (e instanceof VariableElement ve) {
-        newList.add((E)DefaultVariableElement.of(ve));
-      } else {
-        throw new IllegalArgumentException("list: " + list);
-      }
+      switch (e) {
+      case Encloseable enc -> newList.add((E)enc);
+      case ExecutableElement ee -> newList.add((E)DefaultExecutableElement.of(ee));
+      case PackageElement pe -> newList.add((E)DefaultPackageElement.of(pe));
+      case RecordComponentElement rce -> newList.add((E)DefaultRecordComponentElement.of(rce));
+      case TypeElement te -> newList.add((E)DefaultTypeElement.of(te));
+      case TypeParameterElement tpe -> newList.add((E)DefaultTypeParameterElement.of(tpe));
+      case VariableElement ve -> newList.add((E)DefaultVariableElement.of(ve));
+      default -> throw new IllegalArgumentException("list: " + list);
+      }      
     }
     return Collections.unmodifiableList(newList);
   }

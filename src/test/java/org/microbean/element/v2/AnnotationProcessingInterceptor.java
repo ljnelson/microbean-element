@@ -43,10 +43,9 @@ import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 
 import javax.tools.JavaCompiler.CompilationTask;
+import javax.tools.ToolProvider;
 
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
-import org.junit.jupiter.api.extension.ExtensionContext.Store;
 import org.junit.jupiter.api.extension.InvocationInterceptor;
 import org.junit.jupiter.api.extension.InvocationInterceptor.Invocation;
 import org.junit.jupiter.api.extension.ParameterContext;
@@ -58,8 +57,6 @@ import org.junit.jupiter.api.extension.TestExecutionExceptionHandler;
 import org.opentest4j.AssertionFailedError;
 import org.opentest4j.IncompleteExecutionException;
 import org.opentest4j.MultipleFailuresError;
-
-import static javax.tools.ToolProvider.getSystemJavaCompiler;
 
 public final class AnnotationProcessingInterceptor implements InvocationInterceptor, ParameterResolver, TestExecutionExceptionHandler {
 
@@ -88,12 +85,9 @@ public final class AnnotationProcessingInterceptor implements InvocationIntercep
 
   @Deprecated // for use by JUnit Jupiter internals only
   @Override // ParameterResolver
-  public final Object resolveParameter(final ParameterContext parameterContext,
-                                       final ExtensionContext extensionContext) {
-    return extensionContext.getStore(Namespace.create(Thread.currentThread().getId()))
-      .getOrComputeIfAbsent(ForwardingProcessingEnvironment.class,
-                            k -> new ForwardingProcessingEnvironment(),
-                            ForwardingProcessingEnvironment.class);
+  public final ForwardingProcessingEnvironment resolveParameter(final ParameterContext parameterContext,
+                                                                final ExtensionContext extensionContext) {
+    return new ForwardingProcessingEnvironment();
   }
 
   @Deprecated // for use by JUnit Jupiter internals only
@@ -102,56 +96,57 @@ public final class AnnotationProcessingInterceptor implements InvocationIntercep
                                         final ReflectiveInvocationContext<Method> invocationContext,
                                         final ExtensionContext extensionContext)
     throws Throwable {
-    final Store store = extensionContext.getStore(Namespace.create(Thread.currentThread().getId()));
-    final ForwardingProcessingEnvironment fpe = store.get(ForwardingProcessingEnvironment.class, ForwardingProcessingEnvironment.class);
-    if (fpe == null) {
+    final List<?> arguments = invocationContext.getArguments();
+    if (arguments.size() != 1) {
       invocation.proceed();
       return;
     }
-    try {
-      // SupportedSourceVersion targets types only.
-      final SupportedSourceVersion ssv = invocationContext.getTargetClass().getAnnotation(SupportedSourceVersion.class);
-      final SourceVersion sourceVersion = ssv == null ? SourceVersion.latest() : ssv.value();
-      final CompilationTask task = getSystemJavaCompiler()
-        .getTask(null,
-                 null,
-                 null,
-                 List.of("-proc:only"),
-                 List.of("java.lang.Object"),
-                 null);
-      task.setProcessors(List.of(new AbstractProcessor() {
-
-          @Override // AbstractProcessor
-          public final void init(final ProcessingEnvironment processingEnvironment) {
-            try {
-              fpe.delegate = processingEnvironment;
-              invocation.proceed();
-            } catch (final RuntimeException | Error e) {
-              throw e;
-            } catch (final Exception e) {
-              throw new RuntimeException(e.getMessage(), e);
-            } catch (final Throwable t) {
-              throw new AssertionError(t.getMessage(), t);
-            } finally {
-              fpe.delegate = null;
-            }
-          }
-
-          @Override // AbstractProcessor
-          public final SourceVersion getSupportedSourceVersion() {
-            return sourceVersion;
-          }
-
-          @Override // AbstractProcessor
-          public final boolean process(final Set<? extends TypeElement> annotations, final RoundEnvironment roundEnvironment) {
-            return false;
-          }
-
-        }));
-      task.call();
-    } finally {
-      store.remove(ForwardingProcessingEnvironment.class);
+    final Object soleArgument = arguments.get(0);
+    if (!(soleArgument instanceof ForwardingProcessingEnvironment)) {
+      invocation.proceed();
+      return;
     }
+    final ForwardingProcessingEnvironment fpe = (ForwardingProcessingEnvironment)soleArgument;
+    final CompilationTask task = ToolProvider.getSystemJavaCompiler()
+      .getTask(null,
+               null,
+               null,
+               List.of("-proc:only"),
+               List.of("java.lang.Object"),
+               null);
+    // SupportedSourceVersion targets types only.
+    final SupportedSourceVersion ssv = invocationContext.getTargetClass().getAnnotation(SupportedSourceVersion.class);
+    final SourceVersion sourceVersion = ssv == null ? SourceVersion.latest() : ssv.value();
+    task.setProcessors(List.of(new AbstractProcessor() {
+
+        @Override // AbstractProcessor
+        public final void init(final ProcessingEnvironment processingEnvironment) {
+          try {
+            fpe.delegate = processingEnvironment;
+            invocation.proceed();
+          } catch (final RuntimeException | Error e) {
+            throw e;
+          } catch (final Exception e) {
+            throw new RuntimeException(e.getMessage(), e);
+          } catch (final Throwable t) {
+            throw new AssertionError(t.getMessage(), t);
+          } finally {
+            fpe.delegate = null;
+          }
+        }
+
+        @Override // AbstractProcessor
+        public final SourceVersion getSupportedSourceVersion() {
+          return sourceVersion;
+        }
+
+        @Override // AbstractProcessor
+        public final boolean process(final Set<? extends TypeElement> annotations, final RoundEnvironment roundEnvironment) {
+          return false;
+        }
+
+      }));
+    task.call();
   }
 
   @Override // TestExecutionExceptionHandler

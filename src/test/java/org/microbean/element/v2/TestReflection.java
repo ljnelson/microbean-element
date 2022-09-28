@@ -16,7 +16,6 @@
  */
 package org.microbean.element.v2;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -26,20 +25,13 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 
-import com.sun.tools.javac.model.JavacTypes;
-
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 @ExtendWith(AnnotationProcessingInterceptor.class)
 final class TestReflection {
@@ -52,7 +44,7 @@ final class TestReflection {
 
   @BeforeEach
   final void setup() {
-    this.reflection = new org.microbean.element.v2.Reflection();
+    this.reflection = new Reflection();
   }
 
   @Test
@@ -77,8 +69,7 @@ final class TestReflection {
     assertTrue(Equality.equalsIncludingAnnotations(comparableElementAsType, myComparableElementAsType));
 
     final DeclaredType comparableRawType = javacModelTypes.getDeclaredType(comparableElement);
-    final DefaultDeclaredType myComparableRawType = new DefaultDeclaredType();
-    myComparableRawType.setDefiningElement(myComparableElement);
+    final DefaultDeclaredType myComparableRawType = new DefaultDeclaredType().definedBy(myComparableElement);
     assertTrue(Equality.equalsIncludingAnnotations(comparableRawType, myComparableRawType));
 
   }

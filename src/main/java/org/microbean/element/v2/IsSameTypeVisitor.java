@@ -107,7 +107,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     }
   }
 
-  // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1424-L1426
+  // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1424-L1426
   private final boolean visitDeclared(final DeclaredType t, final DeclaredType s) {
     assert t.getKind() == TypeKind.DECLARED && s.getKind() == TypeKind.DECLARED;
     assert t != s;
@@ -119,7 +119,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
   private final boolean visitDeclared(final DeclaredType t, final IntersectionType s) {
     assert t.getKind() == TypeKind.DECLARED && s.getKind() == TypeKind.INTERSECTION;
-    // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1424-L1426
+    // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1424-L1426
     //
     // javac falls back on some common code that starts with:
     //
@@ -128,7 +128,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     //
     // But the Symbol of an IntersectionClassType will never be the
     // same as the Symbol of any other Type.  That's because
-    // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L2497-L2504
+    // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L2497-L2504
     // is the only place where a new IntersectionClassType is created
     // (https://github.com/openjdk/jdk/search?q=%22new+IntersectionClassType%22),
     // and you can see that a new synthetic Symbol is created each
@@ -175,7 +175,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
       return this.visitExecutable(t, substitutedS); // RECURSIVE
     }
     // javac has, effectively
-    // (https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1445):
+    // (https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1445):
     //
     //   return hasSameArgs(t, s) && this.visit(t.getReturnType(), s.getReturnType())
     //
@@ -202,7 +202,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     case INTERSECTION:
       return this.visitIntersection(t, (IntersectionType)s);
     default:
-      // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1424-L1426
+      // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1424-L1426
       //
       // javac falls back on some common code that starts with:
       //
@@ -211,7 +211,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
       //
       // But the Symbol of an IntersectionClassType will never be the
       // same as the Symbol of any other Type.  That's because
-      // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L2497-L2504
+      // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L2497-L2504
       // is the only place where a new IntersectionClassType is
       // created
       // (https://github.com/openjdk/jdk/search?q=%22new+IntersectionClassType%22),
@@ -223,7 +223,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     }
   }
 
-  // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1404-L1423
+  // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1404-L1423
   private final boolean visitIntersection(final IntersectionType t, final IntersectionType s) {
     assert t.getKind() == TypeKind.INTERSECTION && s.getKind() == TypeKind.INTERSECTION;
     assert t != s;
@@ -260,10 +260,10 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     }
     switch (tKind) {
     case NONE:
-      // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1361-L1362
+      // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1361-L1362
       return s.getKind() == TypeKind.NONE;
     case PACKAGE:
-      // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1448-L1451
+      // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1448-L1451
       return t == s;
     default:
       return Equality.equalsNotIncludingAnnotations(t, s);
@@ -278,7 +278,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     }
     switch (s.getKind()) {
     case NULL:
-      // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1361-L1362
+      // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1361-L1362
       return true;
     default:
       return Equality.equalsNotIncludingAnnotations(t, s);
@@ -314,7 +314,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     assert t.getKind() == TypeKind.TYPEVAR;
     switch (s.getKind()) {
     case TYPEVAR:
-      // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1363-L1368
+      // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1363-L1368
       return t == s;
     case WILDCARD:
       return this.visitTypeVariable(t, (WildcardType)s);
@@ -325,7 +325,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
   private final boolean visitTypeVariable(final TypeVariable t, final WildcardType s) {
     assert t.getKind() == TypeKind.TYPEVAR && s.getKind() == TypeKind.WILDCARD;
-    // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1370-L1374
+    // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1370-L1374
     return
       s.getExtendsBound() == null &&
       s.getSuperBound() != null &&
@@ -340,6 +340,11 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
   private final boolean visitWildcard(final WildcardType t, final WildcardType s) {
     assert t.getKind() == TypeKind.WILDCARD && s.getKind() == TypeKind.WILDCARD;
+    // See
+    // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/model/JavacTypes.java#L88-L90,
+    // and then
+    // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1382-L1391,
+    // which does not deal with this case. Not sure what to do.
     final TypeMirror tExtendsBound = t.getExtendsBound();
     final TypeMirror sExtendsBound = s.getExtendsBound();
     final TypeMirror tSuperBound = t.getSuperBound();
@@ -389,7 +394,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
   
   // NOTE: Not currently used.  See comments in visitExecutable() above.
   //
-  // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3245-L3256
+  // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3245-L3256
   //
   // Duplication in javac all over the place.
   /*
@@ -398,7 +403,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
   }
   */
 
-  // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3468-L3480
+  // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3468-L3480
   private final boolean hasSameBounds(final ExecutableType t, final ExecutableType s) {
     final List<? extends TypeVariable> tVariables = t.getTypeVariables();
     final List<? extends TypeVariable> sVariables = s.getTypeVariables();
@@ -418,7 +423,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     return !ti.hasNext() && !si.hasNext();
   }
 
-  // https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4562-L4565
+  // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4562-L4565
   private final boolean containsTypeEquivalent(final TypeMirror t, final TypeMirror s) {
     return
       this.visit(t, s) ||
@@ -443,7 +448,7 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
   // NOTE: Not currently used.
   //
-  // See https://github.com/openjdk/jdk/blob/jdk-20+14/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3266-L3298.
+  // See https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L3266-L3298.
   //
   // Note that visitExecutable, above, a port of javac logic, calls
   // this (indirectly), and duplicates most of its logic.  This is

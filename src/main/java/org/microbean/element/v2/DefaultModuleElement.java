@@ -58,7 +58,7 @@ public final class DefaultModuleElement extends AbstractElement implements Modul
     super(fullyQualifiedName,
           ElementKind.MODULE,
           DefaultNoType.MODULE,
-          Set.of(),
+          Set.of(), // modifiers
           null, // enclosingElement
           List.of());
     this.simpleName = DefaultName.ofSimple(fullyQualifiedName.getName());

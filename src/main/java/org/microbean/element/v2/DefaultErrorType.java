@@ -16,6 +16,8 @@
  */
 package org.microbean.element.v2;
 
+import javax.lang.model.element.TypeElement;
+
 import javax.lang.model.type.ErrorType;
 import javax.lang.model.type.TypeKind;
 
@@ -24,5 +26,10 @@ public final class DefaultErrorType extends DefaultDeclaredType implements Error
   public DefaultErrorType() {
     super(TypeKind.ERROR);
   }
-  
+
+  @Override // DefineableType<TypeElement>
+  final DefaultErrorType definedBy(final TypeElement e) {
+    return (DefaultErrorType)super.definedBy(e);
+  }
+
 }

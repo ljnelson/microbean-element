@@ -75,7 +75,6 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.WildcardType;
 
-@Deprecated // this class is a MESS
 public final class Reflection {
 
   private final ReadWriteLock typeStubsByClassLock;
@@ -142,7 +141,7 @@ public final class Reflection {
     return List.of();
   }
 
-  public final List<? extends DefaultAnnotationValue> annotationValuesFrom(final Collection<?> c) throws IllegalAccessException, InvocationTargetException {
+  private final List<? extends DefaultAnnotationValue> annotationValuesFrom(final Collection<?> c) throws IllegalAccessException, InvocationTargetException {
     if (c.isEmpty()) {
       return List.of();
     }
@@ -153,7 +152,7 @@ public final class Reflection {
     return Collections.unmodifiableList(list);
   }
 
-  public final List<? extends DefaultAnnotationValue> annotationValuesFrom(final Object[] array) throws IllegalAccessException, InvocationTargetException {
+  private final List<? extends DefaultAnnotationValue> annotationValuesFrom(final Object[] array) throws IllegalAccessException, InvocationTargetException {
     if (array == null || array.length <= 0) {
       return List.of();
     }
@@ -164,7 +163,7 @@ public final class Reflection {
     return Collections.unmodifiableList(list);
   }
 
-  public final DefaultAnnotationValue annotationValueFrom(final Object value) throws IllegalAccessException, InvocationTargetException {
+  private final DefaultAnnotationValue annotationValueFrom(final Object value) throws IllegalAccessException, InvocationTargetException {
     return new DefaultAnnotationValue(switch (value) {
       case String s -> s;
       case Boolean b -> b;
@@ -285,7 +284,7 @@ public final class Reflection {
         enclosingElement = elementStubFrom(c.getDeclaringClass());
       } else {
         nestingKind = NestingKind.TOP_LEVEL;
-        enclosingElement = null;
+        enclosingElement = elementStubFrom(c.getModule(), c.getPackage());
       }
 
       final AnnotatedType annotatedSuperclass = c.getAnnotatedSuperclass();
@@ -347,8 +346,9 @@ public final class Reflection {
           // the bound is either a Class or a
           // java.lang.reflect.TypeVariable, as those are the only
           // kinds of types that have Elements in the
-          // javax.lang.model.* language model).  This relies on
-          // elementStubFrom()'s caching behavior as a side effect.
+          // javax.lang.model.* language model).  This deliberately
+          // relies on elementStubFrom()'s caching behavior as a side
+          // effect.
           for (final AnnotatedType bound : typeParameter.getAnnotatedBounds()) {
             switch (bound) {
             case AnnotatedTypeVariable tv -> elementStubFrom(tv);
@@ -390,7 +390,7 @@ public final class Reflection {
     return e;
   }
 
-  public final AbstractElement elementStubFrom(final AccessibleObject a) throws IllegalAccessException, InvocationTargetException {
+  private final AbstractElement elementStubFrom(final AccessibleObject a) throws IllegalAccessException, InvocationTargetException {
     return switch (a) {
     case null -> null;
     case GenericDeclaration g -> elementStubFrom(g);
@@ -399,7 +399,7 @@ public final class Reflection {
     };
   }
 
-  public final AbstractElement elementStubFrom(final GenericDeclaration g) throws IllegalAccessException, InvocationTargetException {
+  private final AbstractElement elementStubFrom(final GenericDeclaration g) throws IllegalAccessException, InvocationTargetException {
     return switch (g) {
     case null -> null;
     case Class<?> c -> elementStubFrom(c);
@@ -549,27 +549,32 @@ public final class Reflection {
                                  ElementKind.FIELD,
                                  typeStubFrom(annotatedType),
                                  finalModifiers,
-                                 null,
+                                 elementStubFrom(f.getDeclaringClass()),
                                  constantValue);
   }
 
-  public final DefaultModuleElement elementStubFrom(final Module m) throws IllegalAccessException, InvocationTargetException {
+  private final DefaultModuleElement elementStubFrom(final Module m) throws IllegalAccessException, InvocationTargetException {
     final ModuleDescriptor md = m.getDescriptor();
     return new DefaultModuleElement(AnnotatedName.of(annotationMirrorsFrom(m), DefaultName.of(md.name())), md.isOpen(), List.of());
   }
 
-  public final DefaultPackageElement elementStubFrom(final Package p) throws IllegalAccessException, InvocationTargetException {
-    return new DefaultPackageElement(AnnotatedName.of(annotationMirrorsFrom(p), DefaultName.of(p.getName())));
+  private final DefaultPackageElement elementStubFrom(final Module m, final Package p)
+    throws IllegalAccessException, InvocationTargetException {
+    final DefaultPackageElement returnValue =
+      new DefaultPackageElement(AnnotatedName.of(annotationMirrorsFrom(p), DefaultName.of(p.getName())));
+    returnValue.setEnclosingElement(elementStubFrom(m));
+    return returnValue;
   }
 
-  public final DefaultVariableElement elementStubFrom(final Parameter p) throws IllegalAccessException, InvocationTargetException {
+  private final DefaultVariableElement elementStubFrom(final Parameter p)
+    throws IllegalAccessException, InvocationTargetException {
     return
       new DefaultVariableElement(AnnotatedName.of(annotationMirrorsFrom(p), DefaultName.of(p.getName())),
                                  ElementKind.PARAMETER,
                                  typeStubFrom(p.getParameterizedType()),
-                                 Set.of(),
-                                 null,
-                                 null);
+                                 Set.of(), // modifiers
+                                 null, // enclosing element; normally is set by the DefaultExecutableElement that is probably being built
+                                 null); // constant value
   }
 
   public final AbstractElement elementStubFrom(final AnnotatedType t) throws IllegalAccessException, InvocationTargetException {
@@ -580,19 +585,20 @@ public final class Reflection {
     };
   }
 
-  public final DefaultTypeParameterElement elementStubFrom(final AnnotatedTypeVariable t)
+  private final DefaultTypeParameterElement elementStubFrom(final AnnotatedTypeVariable t)
     throws IllegalAccessException, InvocationTargetException {
     // Discard annotations on purpose.
-    return elementStubFrom((java.lang.reflect.TypeVariable<?>)t);
+    return elementStubFrom((java.lang.reflect.TypeVariable<?>)t.getType());
   }
 
-  public final DefaultTypeParameterElement elementStubFrom(final java.lang.reflect.TypeVariable<?> t)
+  private final DefaultTypeParameterElement elementStubFrom(final java.lang.reflect.TypeVariable<?> t)
     throws IllegalAccessException, InvocationTargetException {
     // Yes, you need the two-argument form.
     return elementStubFrom(t, typeStubFrom(t));
   }
 
-  public final DefaultTypeParameterElement elementStubFrom(final java.lang.reflect.TypeVariable<?> t, final DefaultTypeVariable tv)
+  private final DefaultTypeParameterElement elementStubFrom(final java.lang.reflect.TypeVariable<?> t,
+                                                            final DefaultTypeVariable tv)
     throws IllegalAccessException, InvocationTargetException {
     // Don't get clever; this method is implemented nice and simple
     // and should stay that way.  Yes, you need the two-argument form.
@@ -617,7 +623,9 @@ public final class Reflection {
       List<? extends AnnotationMirror> annotations = annotationMirrorsFrom(t);
       final TypeMirror enclosingType = typeStubFrom(t2.getAnnotatedOwnerType()); // OK; could be NONE, remember
       final java.lang.reflect.TypeVariable<?>[] tvs = c.getTypeParameters();
-      boolean shortcut = annotations.isEmpty() && (enclosingType == null || enclosingType.getKind() == TypeKind.NONE || enclosingType.getAnnotationMirrors().isEmpty());
+      boolean shortcut =
+        annotations.isEmpty() &&
+        (enclosingType == null || enclosingType.getKind() == TypeKind.NONE || enclosingType.getAnnotationMirrors().isEmpty());
       final List<DefaultTypeVariable> typeArguments;
       if (tvs.length <= 0) {
         typeArguments = List.of();
@@ -661,7 +669,7 @@ public final class Reflection {
     };
   }
 
-  public final AbstractTypeMirror typeStubFrom(final Type t) throws IllegalAccessException, InvocationTargetException {
+  private final AbstractTypeMirror typeStubFrom(final Type t) throws IllegalAccessException, InvocationTargetException {
     return switch (t) {
     case null -> null;
     case Class<?> c -> typeStubFrom(c);
@@ -673,8 +681,8 @@ public final class Reflection {
     };
   }
 
-  public final DefaultDeclaredType typeStubFrom(final ParameterizedType p) throws IllegalAccessException, InvocationTargetException {
-    // final TypeMirror enclosingType = typeStubFrom(p.getOwnerType());
+  public final DefaultDeclaredType typeStubFrom(final ParameterizedType p)
+    throws IllegalAccessException, InvocationTargetException {
     final Type ownerType = p.getOwnerType();
     final TypeMirror enclosingType = ownerType == null ? DefaultNoType.NONE : typeStubFrom(ownerType);
     final List<TypeMirror> typeArguments;
@@ -694,7 +702,8 @@ public final class Reflection {
     return new DefaultArrayType(typeStubFrom(t.getGenericComponentType()), null);
   }
 
-  public final DefaultTypeVariable typeStubFrom(final java.lang.reflect.TypeVariable<?> tv) throws IllegalAccessException, InvocationTargetException {
+  private final DefaultTypeVariable typeStubFrom(final java.lang.reflect.TypeVariable<?> tv)
+    throws IllegalAccessException, InvocationTargetException {
     // Don't get clever.  This method is implemented simply and
     // straightforwardly and that's all on purpose.  If you're looking
     // for element-related side-effect shenanigans, look elsewhere.
@@ -719,7 +728,8 @@ public final class Reflection {
     return dtv;
   }
 
-  public final DefaultWildcardType typeStubFrom(final java.lang.reflect.WildcardType w) throws IllegalAccessException, InvocationTargetException {
+  private final DefaultWildcardType typeStubFrom(final java.lang.reflect.WildcardType w)
+    throws IllegalAccessException, InvocationTargetException {
     final Type[] lowerBounds = w.getLowerBounds();
     if (lowerBounds.length > 0) {
       return DefaultWildcardType.lowerBoundedWildcardType(typeStubFrom(lowerBounds[0]));
@@ -735,11 +745,13 @@ public final class Reflection {
     }
   }
 
-  public final DefaultArrayType typeStubFrom(final AnnotatedArrayType t) throws IllegalAccessException, InvocationTargetException {
+  public final DefaultArrayType typeStubFrom(final AnnotatedArrayType t)
+    throws IllegalAccessException, InvocationTargetException {
     return new DefaultArrayType(typeStubFrom(t.getAnnotatedGenericComponentType()), annotationMirrorsFrom(t));
   }
 
-  public final DefaultDeclaredType typeStubFrom(final AnnotatedParameterizedType p) throws IllegalAccessException, InvocationTargetException {
+  public final DefaultDeclaredType typeStubFrom(final AnnotatedParameterizedType p)
+    throws IllegalAccessException, InvocationTargetException {
     final AnnotatedType annotatedOwnerType = p.getAnnotatedOwnerType();
     final TypeMirror enclosingType = annotatedOwnerType == null ? DefaultNoType.NONE : typeStubFrom(annotatedOwnerType);
     final List<TypeMirror> typeArguments;
@@ -755,7 +767,8 @@ public final class Reflection {
     return new DefaultDeclaredType(enclosingType, typeArguments, annotationMirrorsFrom(p));
   }
 
-  public final DefaultTypeVariable typeStubFrom(final AnnotatedTypeVariable tv) throws IllegalAccessException, InvocationTargetException {
+  private final DefaultTypeVariable typeStubFrom(final AnnotatedTypeVariable tv)
+    throws IllegalAccessException, InvocationTargetException {
     final AnnotatedType[] bounds = tv.getAnnotatedBounds();
     // If a java.lang.reflect.TypeVariable has a
     // java.lang.reflect.TypeVariable as its first bound, it is
@@ -775,7 +788,8 @@ public final class Reflection {
     }
   }
 
-  public final DefaultWildcardType typeStubFrom(final AnnotatedWildcardType w) throws IllegalAccessException, InvocationTargetException {
+  private final DefaultWildcardType typeStubFrom(final AnnotatedWildcardType w)
+    throws IllegalAccessException, InvocationTargetException {
     final AnnotatedType[] lowerBounds = w.getAnnotatedLowerBounds();
     if (lowerBounds.length > 0) {
       return DefaultWildcardType.lowerBoundedWildcardType(typeStubFrom(lowerBounds[0]));

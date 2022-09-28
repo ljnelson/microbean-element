@@ -50,6 +50,11 @@ public abstract sealed class DefineableType<E extends Element> extends AbstractT
     return this.definingElement != null;
   }
 
+  DefineableType<E> definedBy(final E definingElement) {
+    this.setDefiningElement(definingElement);
+    return this;
+  }
+
   TypeMirror elementType() {
     final Element e = this.asElement();
     return e == null ? null : e.asType();

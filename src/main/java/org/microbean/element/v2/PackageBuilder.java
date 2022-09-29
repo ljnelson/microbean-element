@@ -33,4 +33,8 @@ public interface PackageBuilder
           HasType<NoType>,
           HasType.Mutable<NoType, PackageBuilder> {
 
+  public PackageBuilder module(final ModuleElement module);
+
+  public ModuleElement module();
+  
 }

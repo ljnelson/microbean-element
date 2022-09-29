@@ -35,6 +35,10 @@ public final class DefaultTypeVariable extends DefineableType<TypeParameterEleme
 
   private final TypeMirror lowerBound;
 
+  public DefaultTypeVariable(final TypeMirror upperBound) {
+    this(upperBound, null, List.of());
+  }
+  
   public DefaultTypeVariable(final TypeMirror upperBound,
                              final TypeMirror lowerBound,
                              final List<? extends AnnotationMirror> annotationMirrors) {

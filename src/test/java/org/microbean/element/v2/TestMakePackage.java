@@ -61,6 +61,8 @@ final class TestMakePackage {
     private Stream<TypeElement> rawEnclosedElements;
 
     private NoType type;
+
+    private ModuleElement module;
     
     private Packages() {
       super();
@@ -113,10 +115,22 @@ final class TestMakePackage {
     }
 
     @Override
+    public final ModuleElement module() {
+      return this.module;
+    }
+
+    @Override
+    public final Packages module(final ModuleElement module) {
+      this.module = module;
+      return this;
+    }
+
+    @Override
     public final PackageElement build() {
       return
         new DefaultPackageElement(AnnotatedName.of(this.annotations(), this.fullyQualifiedName()),
                                   DefaultNoType.of(this.type()),
+                                  DefaultModuleElement.of(this.module()),
                                   DefaultTypeElement.encloseableTypeElementsOf(this.enclosedElements().get()));
     }
     

@@ -57,6 +57,10 @@ public sealed class DefaultDeclaredType extends DefineableType<TypeElement> impl
     this(TypeKind.DECLARED, enclosingType, List.of(), false, List.of());
   }
 
+  public DefaultDeclaredType(final List<? extends TypeMirror> typeArguments) {
+    this(TypeKind.DECLARED, null, typeArguments, false, List.of());
+  }
+
   public DefaultDeclaredType(final TypeMirror enclosingType,
                              final List<? extends TypeMirror> typeArguments) {
     this(TypeKind.DECLARED, enclosingType, typeArguments, false, List.of());
@@ -77,6 +81,19 @@ public sealed class DefaultDeclaredType extends DefineableType<TypeElement> impl
                       final boolean erased,
                       final List<? extends AnnotationMirror> annotationMirrors) {
     this(TypeKind.DECLARED, enclosingType, typeArguments, erased, annotationMirrors);
+  }
+
+  DefaultDeclaredType(final TypeElement definingElement,
+                      final List<? extends TypeMirror> typeArguments) {
+    this(definingElement, null, typeArguments, List.of());
+  }
+  
+  DefaultDeclaredType(final TypeElement definingElement,
+                      final TypeMirror enclosingType,
+                      final List<? extends TypeMirror> typeArguments,
+                      final List<? extends AnnotationMirror> annotationMirrors) {
+    this(TypeKind.DECLARED, enclosingType, typeArguments, false, annotationMirrors);
+    this.setDefiningElement(definingElement);
   }
 
   private DefaultDeclaredType(final TypeKind kind,
@@ -148,6 +165,10 @@ public sealed class DefaultDeclaredType extends DefineableType<TypeElement> impl
     return withEnclosingType(this, enclosingType);
   }
 
+  final DefaultDeclaredType withTypeArguments(final List<? extends TypeMirror> typeArguments) {
+    return withTypeArguments(this, typeArguments);
+  }
+
   @Override // DeclaredType
   public final List<? extends TypeMirror> getTypeArguments() {
     return this.typeArguments;
@@ -205,14 +226,22 @@ public sealed class DefaultDeclaredType extends DefineableType<TypeElement> impl
                               t.getAnnotationMirrors());
   }
 
+  public static final DefaultDeclaredType withTypeArguments(final DeclaredType t,
+                                                            final List<? extends TypeMirror> typeArguments) {
+    return
+      new DefaultDeclaredType(t.getEnclosingType(),
+                              validateTypeArguments(typeArguments),
+                              t.getAnnotationMirrors())
+      .definedBy((TypeElement)t.asElement());      
+  }
+  
   public static final DefaultDeclaredType withEnclosingType(final DeclaredType t,
                                                             final TypeMirror enclosingType) {
-    final DefaultDeclaredType r =
-      new DefaultDeclaredType(enclosingType,
+    return
+      new DefaultDeclaredType(validateEnclosingType(enclosingType),
                               t.getTypeArguments(),
-                              t.getAnnotationMirrors());
-    r.setDefiningElement((TypeElement)t.asElement());
-    return r;
+                              t.getAnnotationMirrors())
+      .definedBy((TypeElement)t.asElement());
   }
 
 }

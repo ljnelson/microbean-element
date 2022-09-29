@@ -198,7 +198,7 @@ public final class Reflection {
     return elementStubFrom(c, (DefaultDeclaredType)typeStubFrom(c));
   }
 
-  private final DefaultTypeElement elementStubFrom(final Class<?> c, final DefaultDeclaredType type)
+  final DefaultTypeElement elementStubFrom(final Class<?> c, final DefaultDeclaredType type)
     throws IllegalAccessException, InvocationTargetException {
     if (c == null) {
       return null;

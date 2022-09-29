@@ -103,7 +103,17 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
           validateTypeParameters(typeParameters == null ? List.of() : typeParameters));
     this.simpleName = DefaultName.ofSimple(qualifiedName.getName());
     this.nestingKind = nestingKind == null ? NestingKind.TOP_LEVEL : nestingKind;
-    this.superclass = superclass == null ? DefaultNoType.NONE : superclass;
+    if (superclass == null || superclass.getKind() == TypeKind.NONE) {
+      if (kind.isInterface() || (kind.isClass() && qualifiedName.getName().contentEquals("java.lang.Object"))) {
+        this.superclass = DefaultNoType.NONE;
+      } else {
+        throw new NullPointerException("superclass");
+      }
+    } else if (kind.isInterface()) {
+      throw new IllegalArgumentException("superclass: " + superclass);
+    } else {
+      this.superclass = superclass;
+    }
     this.interfaces = interfaces == null || interfaces.isEmpty() ? List.of() : List.copyOf(interfaces);
     if (!modifiers.contains(Modifier.SEALED) && permittedSubclasses != null && !permittedSubclasses.isEmpty()) {
       throw new IllegalArgumentException("permittedSubclasses: " + permittedSubclasses);

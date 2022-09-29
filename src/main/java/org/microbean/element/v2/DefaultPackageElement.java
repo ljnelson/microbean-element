@@ -58,27 +58,28 @@ public final class DefaultPackageElement extends AbstractElement implements Pack
 
 
   public DefaultPackageElement() {
-    this(AnnotatedName.of(DefaultName.of("")), DefaultNoType.PACKAGE, List.of());
+    this(AnnotatedName.of(DefaultName.of("")), DefaultNoType.PACKAGE, null, List.of());
   }
 
   public DefaultPackageElement(final AnnotatedName fullyQualifiedName) {
-    this(fullyQualifiedName, DefaultNoType.PACKAGE, List.of());
+    this(fullyQualifiedName, DefaultNoType.PACKAGE, null, List.of());
   }
 
   public DefaultPackageElement(final AnnotatedName fullyQualifiedName, final NoType packageType) {
-    this(fullyQualifiedName, packageType, List.of());
+    this(fullyQualifiedName, packageType, null, List.of());
   }
 
   public
     <T extends TypeElement & Encloseable>
     DefaultPackageElement(final AnnotatedName fullyQualifiedName,
                           final NoType packageType,
+                          final ModuleElement enclosingElement,
                           final List<? extends T> enclosedElements) {
     super(fullyQualifiedName,
           ElementKind.PACKAGE,
           validateType(packageType),
           Set.of(),
-          null,
+          enclosingElement,
           enclosedElements);
     this.simpleName = DefaultName.ofSimple(fullyQualifiedName.getName());
   }
@@ -141,6 +142,7 @@ public final class DefaultPackageElement extends AbstractElement implements Pack
     return
       new DefaultPackageElement(AnnotatedName.of(e.getAnnotationMirrors(), e.getQualifiedName()),
                                 (NoType)e.asType(),
+                                (ModuleElement)e.getEnclosingElement(),
                                 DefaultTypeElement.encloseableTypeElementsOf(e.getEnclosedElements()));
   }
   

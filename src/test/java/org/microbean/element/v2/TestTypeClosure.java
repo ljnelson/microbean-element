@@ -82,7 +82,7 @@ final class TestTypeClosure {
 
     // These have cycles.
     final ContainsTypeVisitor containsTypeVisitor = new ContainsTypeVisitor(types2);
-    final IsSameTypeVisitor isSameTypeVisitor = new IsSameTypeVisitor(containsTypeVisitor, supertypeVisitor);    
+    final IsSameTypeVisitor isSameTypeVisitor = new IsSameTypeVisitor(containsTypeVisitor, supertypeVisitor, true);    
     final SubtypeVisitor subtypeVisitor = new SubtypeVisitor(types2, supertypeVisitor, isSameTypeVisitor);
     containsTypeVisitor.subtypeVisitor = subtypeVisitor;
     subtypeVisitor.containsTypeVisitor = containsTypeVisitor;
@@ -142,7 +142,7 @@ final class TestTypeClosure {
 
     // These have cycles.
     final ContainsTypeVisitor containsTypeVisitor = new ContainsTypeVisitor(types2);
-    final IsSameTypeVisitor isSameTypeVisitor = new IsSameTypeVisitor(containsTypeVisitor, supertypeVisitor);    
+    final IsSameTypeVisitor isSameTypeVisitor = new IsSameTypeVisitor(containsTypeVisitor, supertypeVisitor, true);    
     final SubtypeVisitor subtypeVisitor = new SubtypeVisitor(types2, supertypeVisitor, isSameTypeVisitor);
     containsTypeVisitor.subtypeVisitor = subtypeVisitor;
     subtypeVisitor.containsTypeVisitor = containsTypeVisitor;

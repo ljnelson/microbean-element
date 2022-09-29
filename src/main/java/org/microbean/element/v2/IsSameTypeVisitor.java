@@ -45,17 +45,21 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
   private final SupertypeVisitor supertypeVisitor;
 
+  private final boolean wildcardsComparable;
+
   // See comments in visitExecutable().
   // private final HasSameParameterTypesVisitor hasSameParameterTypesVisitor; // inner class
 
   IsSameTypeVisitor(final ContainsTypeVisitor containsTypeVisitor,
-                    final SupertypeVisitor supertypeVisitor) {
+                    final SupertypeVisitor supertypeVisitor,
+                    final boolean wildcardsComparable) {
     super(Boolean.FALSE);
     this.containsTypeVisitor = Objects.requireNonNull(containsTypeVisitor, "containsTypeVisitor");
     containsTypeVisitor.isSameTypeVisitor = this;
     this.supertypeVisitor = Objects.requireNonNull(supertypeVisitor, "supertypeVisitor");
     // See comments in visitExecutable().
     // this.hasSameParameterTypesVisitor = new HasSameParameterTypesVisitor();
+    this.wildcardsComparable = wildcardsComparable;
   }
 
   @Override
@@ -349,53 +353,55 @@ final class IsSameTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
     // See
     // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/model/JavacTypes.java#L88-L90,
     // and then
-    // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1382-L1391,
-    // which does not deal with this case. Not sure what to do.
-    final TypeMirror tExtendsBound = t.getExtendsBound();
-    final TypeMirror sExtendsBound = s.getExtendsBound();
-    final TypeMirror tSuperBound = t.getSuperBound();
-    final TypeMirror sSuperBound = s.getSuperBound();
-    // return (t.kind == t2.kind || (t.isExtendsBound() && s.isExtendsBound())) &&
-    //         isSameType(t.type, t2.type);
-    if (tExtendsBound == null) {
-      if (sExtendsBound == null) {
-        if (tSuperBound == null) {
-          return sSuperBound == null;
+    // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L1382-L1391.
+    if (this.wildcardsComparable) {
+      final TypeMirror tExtendsBound = t.getExtendsBound();
+      final TypeMirror sExtendsBound = s.getExtendsBound();
+      final TypeMirror tSuperBound = t.getSuperBound();
+      final TypeMirror sSuperBound = s.getSuperBound();
+      // return (t.kind == t2.kind || (t.isExtendsBound() && s.isExtendsBound())) &&
+      //         isSameType(t.type, t2.type);
+      if (tExtendsBound == null) {
+        if (sExtendsBound == null) {
+          if (tSuperBound == null) {
+            return sSuperBound == null;
+          } else if (sSuperBound == null) {
+            // t is super-bounded
+            // s is super-bounded and extends-bounded
+            return false;
+          } else {
+            // t is super-bounded
+            // s is super-bounded
+            return this.visit(tSuperBound, sSuperBound);
+          }
+        } else if (tSuperBound == null) {
+          if (sSuperBound == null) {
+            // t is super-bounded and extends-bounded
+            // s is extends-bounded
+            return this.visit(tExtendsBound, sExtendsBound);
+          } else {
+            throw new IllegalArgumentException("s: " + s);
+          }
         } else if (sSuperBound == null) {
-          // t is super-bounded
-          // s is super-bounded and extends-bounded
           return false;
         } else {
-          // t is super-bounded
-          // s is super-bounded
-          return this.visit(tSuperBound, sSuperBound);
+          throw new IllegalArgumentException("s: " + s);
         }
       } else if (tSuperBound == null) {
-        if (sSuperBound == null) {
-          // t is super-bounded and extends-bounded
+        if (sExtendsBound == null) {
+          return sSuperBound == null && this.visit(tExtendsBound, sExtendsBound);
+        } else if (sSuperBound == null) {
+          // t is extends-bounded
           // s is extends-bounded
           return this.visit(tExtendsBound, sExtendsBound);
         } else {
           throw new IllegalArgumentException("s: " + s);
         }
-      } else if (sSuperBound == null) {
-        return false;
       } else {
-        throw new IllegalArgumentException("s: " + s);
+        throw new IllegalArgumentException("t: " + t);
       }
-    } else if (tSuperBound == null) {
-      if (sExtendsBound == null) {
-        return sSuperBound == null && this.visit(tExtendsBound, sExtendsBound);
-      } else if (sSuperBound == null) {
-        // t is extends-bounded
-        // s is extends-bounded
-        return this.visit(tExtendsBound, sExtendsBound);
-      } else {
-        throw new IllegalArgumentException("s: " + s);
-      }
-    } else {
-      throw new IllegalArgumentException("t: " + t);
     }
+    return false;
   }
   
   // NOTE: Not currently used.  See comments in visitExecutable() above.

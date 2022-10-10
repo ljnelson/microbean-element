@@ -721,15 +721,11 @@ public final class Equality {
     assert at.asElement().getKind() == ElementKind.ANNOTATION_TYPE;
     final Map<String, AnnotationValue> map = new TreeMap<>();
     for (final Object e : at.asElement().getEnclosedElements()) {
-      if (e instanceof ExecutableElement ee) {
-        switch (ee.getKind()) {
-        case METHOD:
-          final AnnotationValue dv = ee.getDefaultValue();
+      if (e instanceof ExecutableElement ee && ee.getKind() == ElementKind.METHOD) {
+        final AnnotationValue dv = ee.getDefaultValue();
+        if (dv != null) {
           map.put(((TypeElement)ee.getEnclosingElement()).getQualifiedName().toString() + '.' + ee.getSimpleName().toString(),
                   dv instanceof DefaultAnnotationValue dav ? dav : DefaultAnnotationValue.of(dv.getValue()));
-          break;
-        default:
-          break;
         }
       }
     }

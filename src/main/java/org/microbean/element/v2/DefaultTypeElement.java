@@ -64,7 +64,7 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
 
   private final DefaultName simpleName;
 
-  private final List<? extends AnnotationMirror> annotationMirrors;
+  private List<? extends AnnotationMirror> annotationMirrors;
 
   private final NestingKind nestingKind;
 
@@ -105,9 +105,7 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
           validateEnclosedElements(enclosedElements == null ? List.of() : enclosedElements),
           validateTypeParameters(typeParameters == null ? List.of() : typeParameters));
     this.simpleName = DefaultName.ofSimple(qualifiedName);
-    if (annotationMirrors == null) {
-      this.annotationMirrors = List.of();
-    } else if (annotationMirrors instanceof DeferredList<? extends AnnotationMirror>) {
+    if (annotationMirrors == null || annotationMirrors instanceof DeferredList<? extends AnnotationMirror>) {
       this.annotationMirrors = annotationMirrors;
     } else {
       this.annotationMirrors = List.copyOf(annotationMirrors);
@@ -144,8 +142,18 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
   }
 
   @Override
-  public List<? extends AnnotationMirror> getAnnotationMirrors() {
+  public final List<? extends AnnotationMirror> getAnnotationMirrors() {
+    if (this.annotationMirrors == null) {
+      throw new IllegalStateException();
+    }
     return this.annotationMirrors;
+  }
+
+  public final void setAnnotationMirrors(final List<? extends AnnotationMirror> annotationMirrors) {
+    if (this.annotationMirrors != null) {
+      throw new IllegalStateException();
+    }
+    this.annotationMirrors = Objects.requireNonNull(annotationMirrors, "annotationMirrors");
   }
   
   @Override // TypeElement

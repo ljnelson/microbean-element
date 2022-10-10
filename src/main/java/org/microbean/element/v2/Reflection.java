@@ -44,6 +44,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -104,13 +105,8 @@ public final class Reflection {
   private final DefaultAnnotationMirror annotationMirrorFrom(final Class<?> classBeingAnnotated, final Annotation a) throws IllegalAccessException, InvocationTargetException {
     final Class<? extends Annotation> annotationType = a.annotationType();
     final DefaultDeclaredType t = (DefaultDeclaredType)typeStubFrom(annotationType);
-    if (classBeingAnnotated != null && classBeingAnnotated != annotationType && t.asElement() == null) {
-      System.out.println("*** classBeingAnnotated: " + classBeingAnnotated.getName());
-      System.out.println("*** annotationType: " + annotationType.getName());
-      // Annotation interfaces can annotate themselves with themselves.
-      elementStubFrom(annotationType, t);
-    }
-    final Map<DefaultExecutableElement, DefaultAnnotationValue> values = new HashMap<>();
+    elementStubFrom(annotationType, t); // Used for side effects only
+    final Map<DefaultExecutableElement, DefaultAnnotationValue> values = new IdentityHashMap<>(); // TODO: I don't like this IdentityHashMap.
     for (final Method element : annotationType.getDeclaredMethods()) {
       assert element.getParameterCount() == 0;
       assert element.getReturnType() != void.class;
@@ -493,7 +489,7 @@ public final class Reflection {
 
       e =
         new DefaultTypeElement(DefaultName.of(c.getName()),
-                               annotationMirrorsFrom(c, declaredAnnotations),
+                               null, // annotations
                                kind,
                                type,
                                finalModifiers,
@@ -518,21 +514,9 @@ public final class Reflection {
         lock.unlock();
       }
 
-      /*
-      System.out.println("*** " + c);
-      for (final Annotation declaredAnnotation : declaredAnnotations) {
-        System.out.println("*** declaredAnnotation: " + declaredAnnotation);
-        final DefaultDeclaredType declaredType = typeStubFrom(declaredAnnotation);
-        assert declaredType == typeStubFrom(declaredAnnotation);
-        DefaultTypeElement annotationElement = (DefaultTypeElement)declaredType.asElement();
-        if (annotationElement == null) {
-          annotationElement = elementStubFrom(declaredAnnotation.annotationType(), declaredType);
-        }
-        assert annotationElement.asType() == declaredType;
-        assert declaredType.asElement() == annotationElement;
-      }
-      */
-
+      final List<? extends AnnotationMirror> annotationMirrors = annotationMirrorsFrom(c, declaredAnnotations);
+      e.setAnnotationMirrors(annotationMirrors);
+      
     }
     return e;
   }
@@ -670,8 +654,8 @@ public final class Reflection {
                                    kind,
                                    type,
                                    modifierSet.isEmpty() ? Set.of() : EnumSet.copyOf(modifierSet),
-                                   // elementStubFrom(e.getDeclaringClass()), // enclosingElement
-                                   null, // enclosingElement
+                                   elementStubFrom(e.getDeclaringClass()), // enclosingElement
+                                   // null, // enclosingElement
                                    typeParameterElements,
                                    parameterElements,
                                    e.isVarArgs(),
@@ -734,7 +718,8 @@ public final class Reflection {
                                  ElementKind.FIELD,
                                  typeStubFrom(annotatedType),
                                  finalModifiers,
-                                 elementStubFrom(f.getDeclaringClass()),
+                                 elementStubFrom(f.getDeclaringClass()), // enclosingElement
+                                 // null, // enclosingElement
                                  constantValue);
   }
 
@@ -1061,9 +1046,6 @@ public final class Reflection {
           }
         }
 
-        // TODO FIXME: this isn't right; c's declared annotations are
-        // *element* annotations, not *type use* annotations
-        // t = new DefaultDeclaredType(enclosingType, typeArguments, annotationMirrorsFrom(c));
         t = new DefaultDeclaredType(enclosingType, typeArguments, List.of());
       }
       lock = this.typeStubsByClassLock.writeLock();

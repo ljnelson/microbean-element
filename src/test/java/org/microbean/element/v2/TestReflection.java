@@ -64,26 +64,27 @@ final class TestReflection {
 
   @Test
   final void testCompilerViewOfDocumented(final ProcessingEnvironment env) {
-    // This is all a little batty.
+    // This is all a little batty. java.lang.annotation.Documented
+    // annotates itself.
     final TypeElement documentedElement = env.getElementUtils().getTypeElement("java.lang.annotation.Documented");
     assertSame(documentedElement,
                documentedElement.getAnnotationMirrors().get(0).getAnnotationType().asElement());
   }
   
-  @Disabled
+  // @Disabled
   @Test
   final void testDocumented() throws IllegalAccessException, InvocationTargetException {
-    // Triggers various exceptions because Documented annotates itself
+    // Nice edge case: java.lang.annotation.Documented annotates
+    // itself.
     final DefaultTypeElement documented = this.reflection.elementStubFrom(Documented.class);
   }
 
-  @Disabled
+  // @Disabled
   @Test  
   final void testEnclosedElements() throws IllegalAccessException, InvocationTargetException {
     final DefaultTypeElement string = this.reflection.elementStubFrom(String.class);
     for (final Element e : string.getEnclosedElements()) {
       assertSame(string, e.getEnclosingElement());
-      System.out.println("e: " + e);
     }
   }
 

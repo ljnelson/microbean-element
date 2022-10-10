@@ -52,7 +52,7 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
                              final ElementKind kind,
                              final ExecutableType type,
                              final Set<? extends Modifier> modifiers,
-                             final TypeElement enclosingElement,
+                             final TypeElement nullableEnclosingElement,
                              final List<? extends TP> typeParameters,
                              final List<? extends P> parameters,
                              final boolean varArgs,
@@ -62,7 +62,7 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
           kind, // validated immediately above
           validateType(type),
           validateModifiers(modifiers),
-          validateEnclosingElement(enclosingElement),
+          validateNullableEnclosingElement(nullableEnclosingElement),
           List.of(),
           typeParameters);
     if (parameters == null || parameters.isEmpty()) {
@@ -173,7 +173,10 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
     return simpleName;
   }
   
-  private static final TypeElement validateEnclosingElement(final TypeElement enclosingElement) {
+  private static final TypeElement validateNullableEnclosingElement(final TypeElement enclosingElement) {
+    if (enclosingElement == null) {
+      return null;
+    }
     switch (enclosingElement.getKind()) {
     case ANNOTATION_TYPE:
     case CLASS:
@@ -187,6 +190,9 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
   }
 
   private static final Set<? extends Modifier> validateModifiers(final Set<? extends Modifier> modifiers) {
+    if (modifiers == null) {
+      return Set.of();
+    }
     for (final Modifier m : modifiers) {
       if (m == Modifier.NON_SEALED ||
           m == Modifier.SEALED ||

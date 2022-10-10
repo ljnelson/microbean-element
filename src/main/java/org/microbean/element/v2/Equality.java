@@ -64,27 +64,18 @@ public final class Equality {
   }
 
   public static final int hashCode(final Object o, final boolean ia) {
-    if (o == null) {
-      return 0;
-    } else if (o instanceof AnnotationMirror am) {
-      return hashCode(am, ia);
-    } else if (o instanceof AnnotationValue av) {
-      return hashCode(av, ia);
-    } else if (o instanceof AnnotatedConstruct ac) {
-      return hashCode(ac, ia);
-    } else if (o instanceof CharSequence c) {
-      return hashCode(c);
-    } else if (o instanceof List<?> list) {
-      return hashCode(list, ia);
-    } else if (o instanceof int[] hashCodes) {
-      return hashCode(hashCodes);
-    } else if (o instanceof Object[] array) {
-      return hashCode(array, ia);
-    } else if (o instanceof Directive d) {
-      return hashCode(d, ia);
-    } else {
-      return o.hashCode();
-    }
+    return switch (o) {
+    case null -> 0;
+    case AnnotationMirror am -> hashCode(am, ia);
+    case AnnotationValue av -> hashCode(av, ia);
+    case AnnotatedConstruct ac -> hashCode(ac, ia);
+    case CharSequence c -> hashCode(c);
+    case List<?> list -> hashCode(list, ia);
+    case int[] hashCodes -> hashCode(hashCodes);
+    case Object[] array -> hashCode(array, ia);
+    case Directive d -> hashCode(d, ia);
+    default -> System.identityHashCode(o); // illegal argument
+    };
   }
 
   private static final int hashCode(final int... hashCodes) {
@@ -129,13 +120,11 @@ public final class Equality {
   }
 
   static final int hashCode(final CharSequence c) {
-    if (c == null) {
-      return 0;
-    } else if (c instanceof Name) {
-      return c.toString().hashCode();
-    } else {
-      return c.hashCode();
-    }
+    return switch (c) {
+    case null -> 0;
+    case Name n -> n.toString().hashCode();
+    default -> c.hashCode();
+    };
   }
 
   static final int hashCode(final AnnotationMirror am, final boolean ia) {
@@ -146,31 +135,23 @@ public final class Equality {
   }
 
   static final int hashCode(final AnnotationValue av, final boolean ia) {
-    if (av == null) {
-      return 0;
-    } else if (av instanceof AnnotationMirror am) {
-      return hashCode(am, ia);
-    } else if (av instanceof List<?> list) {
-      return hashCode(list, ia);
-    } else if (av instanceof TypeMirror t) {
-      return hashCode(t, ia);
-    } else if (av instanceof VariableElement e) {
-      return hashCode(e, ia);
-    } else {
-      return av.hashCode(); // illegal argument
-    }
+    return switch (av) {
+    case null -> 0;
+    case AnnotationMirror am -> hashCode(am, ia);
+    case List<?> list -> hashCode(list, ia);
+    case TypeMirror t -> hashCode(t, ia);
+    case VariableElement e -> hashCode(e, ia);
+    default -> System.identityHashCode(av); // illegal argument
+    };
   }
 
   static final int hashCode(final AnnotatedConstruct ac, final boolean ia) {
-    if (ac == null) {
-      return 0;
-    } else if (ac instanceof Element e) {
-      return hashCode(e, ia);
-    } else if (ac instanceof TypeMirror t) {
-      return hashCode(t, ia);
-    } else {
-      return ac.hashCode(); // illegal argument
-    }
+    return switch (ac) {
+    case null -> 0;
+    case Element e -> hashCode(e, ia);
+    case TypeMirror t -> hashCode(t, ia);
+    default -> System.identityHashCode(ac); // illegal argument
+    };
   }
 
   static final int hashCode(final Element e, final boolean ia) {
@@ -231,11 +212,40 @@ public final class Equality {
     default:
       return System.identityHashCode(e); // illegal argument
     }
+    // This gets tricky. If we're truly trying to do value-based
+    // hashcodes, we have a catch-22: a method's hashcode must include
+    // the hashcodes of its parameters, and parameters, taken in
+    // isolation, must include the hashcodes of their enclosing
+    // element (method).  That's an infinite loop.
+    //
+    // Next, VariableElement, which is the class assigned to
+    // executable/method/constructor parameters, is also used for
+    // things like fields.  So we can't make assumptions about its
+    // hashcode calculations, save for one:
+    //
+    // Given that VariableElements are always enclosed
+    // (https://docs.oracle.com/en/java/javase/19/docs/api/java.compiler/javax/lang/model/element/VariableElement.html#getEnclosingElement()),
+    // it is reasonable to assume that any given VariableElement
+    // implementation will likely include the return value of
+    // getEnclosingElement() in its hashcode calculations.  But the
+    // only enclosing "thing" that would "normally" include the
+    // hashcode calculations of its *enclosed* elements is an
+    // ExecutableElement (because its parameters make up its
+    // identity).
+    //
+    // So probably the best place to break that infinite loop is here,
+    // not there.
+    //
+    // Now, these are hashcodes, not equality comparisons, so the
+    // worst that happens if we eliminate parameters from the mix is a
+    // collision for overridden methods. That's what the
+    // java.lang.reflect.* Executable/Parameter split does.
     return
       hashCode(e.getKind().hashCode(),
-               hashCode(e.getEnclosingElement(), ia),
+               hashCode(e.getEnclosingElement(), ia), // this is OK
                hashCode(e.getSimpleName()),
-               hashCode(e.getParameters(), ia),
+               hashCode(e.getParameters().size(), ia),
+               // hashCode(e.getParameters(), ia), // this is problematic because each parameter includes this in its hashcode calculations
                hashCode(e.getReturnType(), ia),
                ia ? hashCode(e.getAnnotationMirrors(), ia) : 0);
   }
@@ -422,12 +432,13 @@ public final class Equality {
     } else if (t.getKind() != TypeKind.EXECUTABLE) {
       return System.identityHashCode(t); // illegal argument
     }
+    // See https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4194-L4202
     return
       hashCode(t.getKind().hashCode(),
                hashCode(t.getParameterTypes(), ia),
-               hashCode(t.getReceiverType(), ia),
+               // hashCode(t.getReceiverType(), ia), // not sure this is necessary
                hashCode(t.getReturnType(), ia),
-               hashCode(t.getTypeVariables(), ia), // not sure this is necessary
+               // hashCode(t.getTypeVariables(), ia), // not sure this is necessary
                ia ? hashCode(t.getAnnotationMirrors(), ia) : 0);
   }
 
@@ -525,22 +536,16 @@ public final class Equality {
       return 0;
     }
     switch (d.getKind()) {
-
     case EXPORTS:
       return hashCode((ExportsDirective)d, ia);
-
     case OPENS:
       return hashCode((OpensDirective)d, ia);
-
     case PROVIDES:
       return hashCode((ProvidesDirective)d, ia);
-
     case REQUIRES:
       return hashCode((RequiresDirective)d, ia);
-
     case USES:
       return hashCode((UsesDirective)d, ia);
-
     default:
       return System.identityHashCode(d); // illegal argument
     }

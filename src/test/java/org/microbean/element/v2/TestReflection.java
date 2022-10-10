@@ -16,22 +16,37 @@
  */
 package org.microbean.element.v2;
 
+import java.lang.annotation.Documented;
+
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
 import javax.annotation.processing.ProcessingEnvironment;
 
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 
+import com.sun.tools.javac.model.JavacTypes;
+
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+/*
+ * The Reflection class is currently savagely broken. Most tests in
+ * this class are disabled on purpose for the time being.
+ */
 
 @ExtendWith(AnnotationProcessingInterceptor.class)
 final class TestReflection {
@@ -45,6 +60,31 @@ final class TestReflection {
   @BeforeEach
   final void setup() {
     this.reflection = new Reflection();
+  }
+
+  @Test
+  final void testCompilerViewOfDocumented(final ProcessingEnvironment env) {
+    // This is all a little batty.
+    final TypeElement documentedElement = env.getElementUtils().getTypeElement("java.lang.annotation.Documented");
+    assertSame(documentedElement,
+               documentedElement.getAnnotationMirrors().get(0).getAnnotationType().asElement());
+  }
+  
+  @Disabled
+  @Test
+  final void testDocumented() throws IllegalAccessException, InvocationTargetException {
+    // Triggers various exceptions because Documented annotates itself
+    final DefaultTypeElement documented = this.reflection.elementStubFrom(Documented.class);
+  }
+
+  @Disabled
+  @Test  
+  final void testEnclosedElements() throws IllegalAccessException, InvocationTargetException {
+    final DefaultTypeElement string = this.reflection.elementStubFrom(String.class);
+    for (final Element e : string.getEnclosedElements()) {
+      assertSame(string, e.getEnclosingElement());
+      System.out.println("e: " + e);
+    }
   }
 
   @Test

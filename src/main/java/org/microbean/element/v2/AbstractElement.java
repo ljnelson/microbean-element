@@ -38,7 +38,19 @@ import javax.lang.model.element.VariableElement;
 
 import javax.lang.model.type.TypeMirror;
 
-abstract sealed class AbstractElement extends AbstractAnnotatedConstruct implements Element, Encloseable permits AbstractParameterizableElement, DefaultModuleElement, DefaultPackageElement, DefaultRecordComponentElement, DefaultTypeParameterElement, DefaultVariableElement, SyntheticArrayElement, SyntheticElement, SyntheticPrimitiveElement, SyntheticWildcardElement {
+abstract sealed class AbstractElement
+  extends AbstractAnnotatedConstruct
+  implements Element, Encloseable
+  permits AbstractParameterizableElement,
+          DefaultModuleElement,
+          DefaultPackageElement,
+          DefaultRecordComponentElement,
+          DefaultTypeParameterElement,
+          DefaultVariableElement,
+          SyntheticArrayElement,
+          SyntheticElement,
+          SyntheticPrimitiveElement,
+          SyntheticWildcardElement {
 
 
   /*
@@ -64,23 +76,29 @@ abstract sealed class AbstractElement extends AbstractAnnotatedConstruct impleme
    */
 
 
-  protected <T extends Element & Encloseable> AbstractElement(final AnnotatedName simpleName,
+  protected <E extends Element & Encloseable> AbstractElement(final AnnotatedName simpleName,
                                                               final ElementKind kind,
                                                               final TypeMirror type,
                                                               final Set<? extends Modifier> modifiers,
                                                               final Element enclosingElement, // nullable, normally null
-                                                              final List<? extends T> enclosedElements) {
+                                                              final List<? extends E> enclosedElements) {
     super(simpleName.getAnnotationMirrors());
     this.simpleName = simpleName.getName();
     this.kind = validateKind(kind);
     this.type = validateType(type);
     this.modifiers = modifiers == null || modifiers.isEmpty() ? Set.of() : Set.copyOf(modifiers);
     this.enclosingElement = enclosingElement;
-    if (enclosedElements == null || enclosedElements.isEmpty()) {
+    if (enclosedElements == null) {
       this.enclosedElements = List.of();
+    } else if (enclosedElements instanceof DeferredList<? extends E> dl) {
+      this.enclosedElements = dl.withTransformation(e -> {
+          if (this.canEnclose(e)) {
+            e.setEnclosingElement(this);
+          }
+        });
     } else {
-      final List<T> newEnclosedElements = List.copyOf(enclosedElements);
-      for (final T e : newEnclosedElements) {
+      final List<E> newEnclosedElements = List.copyOf(enclosedElements);
+      for (final E e : newEnclosedElements) {
         if (this.canEnclose(e)) {
           e.setEnclosingElement(this);
         }
@@ -220,10 +238,15 @@ abstract sealed class AbstractElement extends AbstractAnnotatedConstruct impleme
   @Override // Encloseable
   public void setEnclosingElement(final Element enclosingElement) {
     final Element old = this.enclosingElement;
-    if (old != null) {
-      throw new IllegalStateException();
+    if (old != enclosingElement) {
+      if (enclosingElement == null) {
+        throw new NullPointerException("enclosingElement");
+      } else if (old == null) {
+        this.enclosingElement = enclosingElement;
+      } else {
+        throw new IllegalStateException("this.enclosingElement != null: " + old + "; enclosingElement: " + enclosingElement);
+      }
     }
-    this.enclosingElement = enclosingElement;
   }
 
   @Override // Element
@@ -341,9 +364,9 @@ abstract sealed class AbstractElement extends AbstractAnnotatedConstruct impleme
       case TypeParameterElement tpe -> newList.add((E)DefaultTypeParameterElement.of(tpe));
       case VariableElement ve -> newList.add((E)DefaultVariableElement.of(ve));
       default -> throw new IllegalArgumentException("list: " + list);
-      }      
+      }
     }
     return Collections.unmodifiableList(newList);
   }
-  
+
 }

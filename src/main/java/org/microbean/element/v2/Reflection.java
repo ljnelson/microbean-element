@@ -27,6 +27,8 @@ import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.AnnotatedParameterizedType;
 import java.lang.reflect.AnnotatedTypeVariable;
 import java.lang.reflect.AnnotatedWildcardType;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.lang.reflect.GenericArrayType;
@@ -93,38 +95,59 @@ public final class Reflection {
     this.elementStubsByClass = new WeakHashMap<>();
   }
 
+  /*
   public final DefaultAnnotationMirror annotationMirrorFrom(final Annotation a) throws IllegalAccessException, InvocationTargetException {
-    final Class<? extends Annotation> c = a.annotationType();
+    return annotationMirrorFrom(null, a);
+  }
+  */
+
+  private final DefaultAnnotationMirror annotationMirrorFrom(final Class<?> classBeingAnnotated, final Annotation a) throws IllegalAccessException, InvocationTargetException {
+    final Class<? extends Annotation> annotationType = a.annotationType();
+    final DefaultDeclaredType t = (DefaultDeclaredType)typeStubFrom(annotationType);
+    if (classBeingAnnotated != null && classBeingAnnotated != annotationType && t.asElement() == null) {
+      System.out.println("*** classBeingAnnotated: " + classBeingAnnotated.getName());
+      System.out.println("*** annotationType: " + annotationType.getName());
+      // Annotation interfaces can annotate themselves with themselves.
+      elementStubFrom(annotationType, t);
+    }
     final Map<DefaultExecutableElement, DefaultAnnotationValue> values = new HashMap<>();
-    final Method[] elements = c.getDeclaredMethods();
-    for (final Method element : elements) {
+    for (final Method element : annotationType.getDeclaredMethods()) {
+      assert element.getParameterCount() == 0;
+      assert element.getReturnType() != void.class;
+      assert !"toString".equals(element.getName());
+      assert !"hashCode()".equals(element.getName());
       values.put(elementStubFrom(element), annotationValueFrom(element.invoke(a)));
     }
-    return new DefaultAnnotationMirror((DeclaredType)typeStubFrom(c), values);
+    return new DefaultAnnotationMirror(t, values);
   }
 
-  public final List<? extends DefaultAnnotationMirror> annotationMirrorsFrom(final AnnotatedElement e) throws IllegalAccessException, InvocationTargetException {
-    return annotationMirrorsFrom(e.getDeclaredAnnotations());
+  public final List<? extends DefaultAnnotationMirror> annotationMirrorsFrom(final AnnotatedElement ae)
+    throws IllegalAccessException, InvocationTargetException {
+    return annotationMirrorsFrom(ae instanceof Class<?> c ? c : null, ae.getDeclaredAnnotations());
   }
 
-  public final List<? extends DefaultAnnotationMirror> annotationMirrorsFrom(final Collection<? extends Annotation> annotations) throws IllegalAccessException, InvocationTargetException {
+  private final List<? extends DefaultAnnotationMirror> annotationMirrorsFrom(final Class<?> classBeingAnnotated,
+                                                                              final Collection<? extends Annotation> annotations)
+    throws IllegalAccessException, InvocationTargetException {
     if (annotations == null || annotations.isEmpty()) {
       return List.of();
     }
     final List<DefaultAnnotationMirror> list = new ArrayList<>(annotations.size());
     for (final Annotation annotation : annotations) {
-      list.add(annotationMirrorFrom(annotation));
+      list.add(annotationMirrorFrom(classBeingAnnotated, annotation));
     }
     return Collections.unmodifiableList(list);
   }
 
-  public final List<? extends DefaultAnnotationMirror> annotationMirrorsFrom(final Annotation[] annotations) throws IllegalAccessException, InvocationTargetException {
+  public final List<? extends DefaultAnnotationMirror> annotationMirrorsFrom(final Class<?> classBeingAnnotated,
+                                                                             final Annotation[] annotations)
+    throws IllegalAccessException, InvocationTargetException {
     if (annotations == null || annotations.length <= 0) {
       return List.of();
     }
     final List<DefaultAnnotationMirror> list = new ArrayList<>(annotations.length);
     for (final Annotation annotation : annotations) {
-      list.add(annotationMirrorFrom(annotation));
+      list.add(annotationMirrorFrom(classBeingAnnotated, annotation));
     }
     return Collections.unmodifiableList(list);
   }
@@ -164,33 +187,138 @@ public final class Reflection {
   }
 
   private final DefaultAnnotationValue annotationValueFrom(final Object value) throws IllegalAccessException, InvocationTargetException {
-    return new DefaultAnnotationValue(switch (value) {
-      case String s -> s;
-      case Boolean b -> b;
-      case Integer i -> i;
-      case Enum<?> e ->
-        new DefaultVariableElement(AnnotatedName.of(annotationMirrorsFrom(e), DefaultName.of(e.name())),
-                                   ElementKind.ENUM,
-                                   typeStubFrom(e.getDeclaringClass()),
-                                   Set.of(), // TODO: modifiers
-                                   null, // enclosingElement; not defined by javadocs?!
-                                   null); // no constant value // TODO: check
-      case Class<?> c -> typeStubFrom(c);
-      case Object[] array -> annotationValuesFrom(array);
-      case Annotation a -> annotationMirrorFrom(a);
-      case Byte b -> b;
-      case Character c -> c;
-      case Double d -> d;
-      case Float f -> f;
-      case Long l -> l;
-      case Short s -> s;
-      case Method m when m.getDefaultValue() != null -> annotationValueFrom(m.getDefaultValue());
-      case TypeMirror t -> t;
-      case VariableElement v -> v;
-      case AnnotationMirror a -> a;
-      case List<?> list -> annotationValuesFrom(list);
-      default -> throw new IllegalArgumentException("value: " + value);
-      });
+    switch (value) {
+    case String s : return annotationValueFrom(s);
+    case Boolean b : return annotationValueFrom(b);
+    case Integer i : return annotationValueFrom(i);
+    case Enum<?> e : return annotationValueFrom(e);
+    case Class<?> c : return annotationValueFrom(c);
+    case Object[] array : return annotationValueFrom(array);
+    case Annotation a : return annotationValueFrom(a);
+    case Byte b : return annotationValueFrom(b);
+    case Character c : return annotationValueFrom(c);
+    case Double d : return annotationValueFrom(d);
+    case Float f : return annotationValueFrom(f);
+    case Long l : return annotationValueFrom(l);
+    case Short s : return annotationValueFrom(s);
+    case Method m : return annotationValueFrom(m);
+    case TypeMirror t : return annotationValueFrom(t);
+    case VariableElement v : return annotationValueFrom(v);
+    case AnnotationMirror a : return annotationValueFrom(a);
+    case List<?> l : return annotationValueFrom(l);
+    default : throw new IllegalArgumentException("value: " + value);
+    }
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final String s) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(s);
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final Integer i) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(i);
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final List<?> list) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(annotationValuesFrom(list));
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final AnnotationMirror a) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(a);
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final VariableElement v) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(v);
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final TypeMirror t) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(t);
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final Annotation a) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(annotationMirrorFrom(null, a));
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final Boolean b) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(b);
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final Byte b) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(b);
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final Character c) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(c);
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final Double d) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(d);
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final Float f) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(f);
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final Long l) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(l);
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final Short s) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(s);
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final Class<?> c) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(typeStubFrom(c));
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final Object[] array) throws IllegalAccessException, InvocationTargetException {
+    return new DefaultAnnotationValue(annotationValuesFrom(array));
+  }
+
+  private final DefaultAnnotationValue annotationValueFrom(final Enum<?> e) throws IllegalAccessException, InvocationTargetException {
+    return
+      new DefaultAnnotationValue(new DefaultVariableElement(AnnotatedName.of(annotationMirrorsFrom(e), DefaultName.of(e.name())),
+                                                            ElementKind.ENUM,
+                                                            typeStubFrom(e.getDeclaringClass()),
+                                                            Set.of(), // TODO: modifiers
+                                                            null, // enclosingElement; not defined by javadocs?!
+                                                            null) // no constant value // TODO: check
+                                 );
+  }
+
+  private final <T> DefaultAnnotationValue annotationValueFrom(final Method m) throws IllegalAccessException, InvocationTargetException {
+    final Object defaultValue = m.getDefaultValue();
+    if (defaultValue == null) {
+      return null;
+    }
+    return new DefaultAnnotationValue(defaultValue);
+    /*
+    if (defaultValue == null) {
+      final Class<?> returnType = m.getReturnType();
+      if (returnType == boolean.class) {
+        return new DefaultAnnotationValue(Boolean.FALSE);
+      } else if (returnType == byte.class) {
+        return new DefaultAnnotationValue(Byte.valueOf((byte)0));
+      } else if (returnType == char.class) {
+        return new DefaultAnnotationValue(Character.valueOf((char)0));
+      } else if (returnType == int.class) {
+        return new DefaultAnnotationValue(Integer.valueOf(0));
+      } else if (returnType == long.class) {
+        return new DefaultAnnotationValue(Long.valueOf(0L));
+      } else if (returnType == double.class) {
+        return new DefaultAnnotationValue(Double.valueOf(0D));
+      } else if (returnType == float.class) {
+        return new DefaultAnnotationValue(Float.valueOf(0));
+      } else if (returnType == short.class) {
+        return new DefaultAnnotationValue(Short.valueOf((short)0));
+      } else if (returnType.isArray()) {
+        return new DefaultAnnotationValue(Array.newInstance(returnType.getComponentType(), 0));
+      } else {
+        return null;
+      }
+    } else {
+      return new DefaultAnnotationValue(defaultValue);
+    }
+    */
   }
 
   public final DefaultTypeElement elementStubFrom(final Class<?> c)
@@ -198,7 +326,7 @@ public final class Reflection {
     return elementStubFrom(c, (DefaultDeclaredType)typeStubFrom(c));
   }
 
-  final DefaultTypeElement elementStubFrom(final Class<?> c, final DefaultDeclaredType type)
+  private final DefaultTypeElement elementStubFrom(final Class<?> c, final DefaultDeclaredType type)
     throws IllegalAccessException, InvocationTargetException {
     if (c == null) {
       return null;
@@ -360,8 +488,10 @@ public final class Reflection {
         }
       }
 
+      final Annotation[] declaredAnnotations = c.getDeclaredAnnotations();
+
       e =
-        new DefaultTypeElement(AnnotatedName.of(annotationMirrorsFrom(c), DefaultName.of(c.getName())),
+        new DefaultTypeElement(AnnotatedName.of(annotationMirrorsFrom(c, declaredAnnotations), DefaultName.of(c.getName())),
                                kind,
                                type,
                                finalModifiers,
@@ -370,8 +500,8 @@ public final class Reflection {
                                permittedSubclassTypeMirrors,
                                interfaceTypeMirrors,
                                enclosingElement,
-                               List.of(), // enclosedElements; this is a stub; we don't inflate them
-                               typeParameterElements);
+                               new DeferredList<>(() -> this.memberElementStubsFrom(c)), // enclosedElements
+                               typeParameterElements);      
 
       lock = this.elementStubsByClassLock.writeLock();
       lock.lock();
@@ -385,6 +515,21 @@ public final class Reflection {
       } finally {
         lock.unlock();
       }
+
+      /*
+      System.out.println("*** " + c);
+      for (final Annotation declaredAnnotation : declaredAnnotations) {
+        System.out.println("*** declaredAnnotation: " + declaredAnnotation);
+        final DefaultDeclaredType declaredType = typeStubFrom(declaredAnnotation);
+        assert declaredType == typeStubFrom(declaredAnnotation);
+        DefaultTypeElement annotationElement = (DefaultTypeElement)declaredType.asElement();
+        if (annotationElement == null) {
+          annotationElement = elementStubFrom(declaredAnnotation.annotationType(), declaredType);
+        }
+        assert annotationElement.asType() == declaredType;
+        assert declaredType.asElement() == annotationElement;
+      }
+      */
 
     }
     return e;
@@ -408,18 +553,27 @@ public final class Reflection {
     };
   }
 
-  public final DefaultExecutableElement elementStubFrom(final Executable e) throws IllegalAccessException, InvocationTargetException {
+  public final DefaultExecutableElement elementStubFrom(final Executable e)
+    throws IllegalAccessException, InvocationTargetException {
+    return this.elementStubFrom(e, typeStubFrom(e));
+  }
+
+  final DefaultExecutableElement elementStubFrom(final Executable e,
+                                                 final DefaultExecutableType type)
+    throws IllegalAccessException, InvocationTargetException {
     if (e == null) {
       return null;
     }
     final int modifiers = e.getModifiers();
     final Collection<Modifier> modifierSet = new HashSet<>();
     final ElementKind kind;
+    final DefaultName simpleName;
     final boolean isDefault;
     final AnnotationValue defaultValue;
     if (e instanceof Method m) {
       // TODO: handle static and instance initializers
       kind = ElementKind.METHOD;
+      simpleName = DefaultName.of(m.getName());
       isDefault = m.isDefault();
       if (isDefault) {
         modifierSet.add(Modifier.DEFAULT);
@@ -442,6 +596,7 @@ public final class Reflection {
       defaultValue = annotationValueFrom(e);
     } else {
       kind = ElementKind.CONSTRUCTOR;
+      simpleName = DefaultName.of("<init>");
       isDefault = false;
       defaultValue = null;
     }
@@ -455,17 +610,42 @@ public final class Reflection {
     }
 
     final List<DefaultTypeParameterElement> typeParameterElements;
-    // An Executable can be seen as representing both a type and an
-    // element.  Viewed as an element, it has type parameters.
-    // Viewed as a type, it has type arguments.
-    // java.lang.reflect.TypeVariable represents both.
-    final java.lang.reflect.TypeVariable<?>[] tvs = e.getTypeParameters();
-    if (tvs.length <= 0) {
+    final java.lang.reflect.TypeVariable<?>[] typeParameters = e.getTypeParameters();
+    if (typeParameters.length <= 0) {
+      if (!type.getTypeVariables().isEmpty()) {
+        throw new IllegalArgumentException("type: " + type);
+      }
       typeParameterElements = List.of();
     } else {
-      typeParameterElements = new ArrayList<>(tvs.length);
-      for (final java.lang.reflect.TypeVariable<?> typeParameter : tvs) {
-        typeParameterElements.add(elementStubFrom(typeParameter));
+      @SuppressWarnings("unchecked")
+      final List<? extends DefaultTypeVariable> typeVariables = (List<? extends DefaultTypeVariable>)type.getTypeVariables();
+      assert typeVariables.size() == typeParameters.length;
+      typeParameterElements = new ArrayList<>(typeParameters.length);
+      for (int i = 0; i < typeParameters.length; i++) {
+        final java.lang.reflect.TypeVariable<?> typeParameter = typeParameters[i];
+        final DefaultTypeVariable typeVariable = typeVariables.get(i);
+        assert !typeVariable.defined();
+        final DefaultTypeParameterElement typeParameterElement = elementStubFrom(typeParameter, typeVariable);
+        assert typeVariable.defined();
+        assert typeVariable.asElement() == typeParameterElement;
+
+        // Side effects only below.
+        //
+        // For every bound, use the elementStubFrom() methods to
+        // create an appropriate Element for it (when, obviously, the
+        // bound is either a Class or a
+        // java.lang.reflect.TypeVariable, as those are the only kinds
+        // of types that have Elements in the javax.lang.model.*
+        // language model).  This deliberately relies on
+        // elementStubFrom()'s caching behavior as a side effect.
+        for (final AnnotatedType bound : typeParameter.getAnnotatedBounds()) {
+          switch (bound) {
+          case AnnotatedTypeVariable tv -> elementStubFrom(tv);
+          case AnnotatedType a -> elementStubFrom(a);
+          };
+        }
+
+        typeParameterElements.add(typeParameterElement);
       }
     }
 
@@ -483,11 +663,12 @@ public final class Reflection {
     }
 
     return
-      new DefaultExecutableElement(AnnotatedName.of(annotationMirrorsFrom(e), DefaultName.of(e.getName())),
+      new DefaultExecutableElement(AnnotatedName.of(annotationMirrorsFrom(e), simpleName),
                                    kind,
-                                   typeStubFrom(e), // OK
-                                   EnumSet.copyOf(modifierSet),
-                                   elementStubFrom(e.getDeclaringClass()),
+                                   type,
+                                   modifierSet.isEmpty() ? Set.of() : EnumSet.copyOf(modifierSet),
+                                   // elementStubFrom(e.getDeclaringClass()), // enclosingElement
+                                   null, // enclosingElement
                                    typeParameterElements,
                                    parameterElements,
                                    e.isVarArgs(),
@@ -522,7 +703,7 @@ public final class Reflection {
     final Object constantValue;
     if (java.lang.reflect.Modifier.isStatic(modifiers)) {
       modifierSet.add(Modifier.STATIC);
-      if (isFinal && annotatedType.getType() instanceof Class<?> c && (c == String.class || c.isPrimitive())) {
+      if (isFinal && annotatedType.getType() instanceof Class<?> c && (c == String.class || c.isPrimitive()) && f.trySetAccessible()) {
         constantValue = f.get(null);
       } else {
         constantValue = null;
@@ -611,6 +792,12 @@ public final class Reflection {
                                       tv,
                                       Set.of()); // modifiers
   }
+
+
+  //
+  // Type Stubs
+  //
+
 
   public final AbstractTypeMirror typeStubFrom(final AnnotatedType t) throws IllegalAccessException, InvocationTargetException {
     return switch (t) {
@@ -722,7 +909,8 @@ public final class Reflection {
       for (final AnnotatedType bound : bounds) {
         intersectionTypeBounds.add(typeStubFrom(bound));
       }
-      dtv = new DefaultTypeVariable(DefaultIntersectionType.of(intersectionTypeBounds), null, annotationMirrorsFrom(tv));
+      // dtv = new DefaultTypeVariable(DefaultIntersectionType.of(intersectionTypeBounds), null, annotationMirrorsFrom(tv));
+      dtv = new DefaultTypeVariable(DefaultIntersectionType.of(intersectionTypeBounds), null, List.of());
       break;
     }
     return dtv;
@@ -865,7 +1053,10 @@ public final class Reflection {
           }
         }
 
-        t = new DefaultDeclaredType(enclosingType, typeArguments, annotationMirrorsFrom(c));
+        // TODO FIXME: this isn't right; c's declared annotations are
+        // *element* annotations, not *type use* annotations
+        // t = new DefaultDeclaredType(enclosingType, typeArguments, annotationMirrorsFrom(c));
+        t = new DefaultDeclaredType(enclosingType, typeArguments, List.of());
       }
       lock = this.typeStubsByClassLock.writeLock();
       lock.lock();
@@ -930,7 +1121,32 @@ public final class Reflection {
                                 returnType,
                                 thrownTypes,
                                 typeVariables,
-                                annotationMirrorsFrom(e));
+                                List.of()); // don't think we want to use annotationMirrorsFrom(e)
+  }
+
+  private final List<AbstractElement> memberElementStubsFrom(final Class<?> c) {
+    final ArrayList<AbstractElement> list = new ArrayList<>();
+    try {
+      for (final Class<?> memberClass : c.getDeclaredClasses()) {
+        list.add(elementStubFrom(memberClass));
+      }
+
+      for (final Field field : c.getDeclaredFields()) {
+        list.add(elementStubFrom(field));
+      }
+
+      for (final Constructor<?> constructor : c.getDeclaredConstructors()) {
+        list.add(elementStubFrom(constructor));
+      }
+
+      for (final Method m : c.getDeclaredMethods()) {
+        list.add(elementStubFrom(m));
+      }
+    } catch (final IllegalAccessException | InvocationTargetException e) {
+      throw new IllegalStateException(e.getMessage(), e);
+    }
+    list.trimToSize();
+    return Collections.unmodifiableList(list);
   }
 
 }

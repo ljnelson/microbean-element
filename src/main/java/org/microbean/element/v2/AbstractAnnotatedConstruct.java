@@ -30,7 +30,13 @@ public abstract sealed class AbstractAnnotatedConstruct implements AnnotatedCons
   
   protected AbstractAnnotatedConstruct(final List<? extends AnnotationMirror> annotationMirrors) {
     super();
-    this.annotationMirrors = annotationMirrors == null ? List.of() : List.copyOf(annotationMirrors);
+    if (annotationMirrors == null) {
+      this.annotationMirrors = List.of();
+    } else if (annotationMirrors instanceof DeferredList<? extends AnnotationMirror>) {
+      this.annotationMirrors = annotationMirrors;
+    } else {
+      this.annotationMirrors = List.copyOf(annotationMirrors);
+    }
   }
 
   @Override // AnnotatedConstruct

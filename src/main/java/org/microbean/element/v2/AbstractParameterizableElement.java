@@ -92,9 +92,6 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
         } else if (definingElement != tp) {
           throw new IllegalArgumentException("typeParameters: " + tps);
         }
-        // assert !dt.defined();
-        // assert dt.asElement() == null;
-        // dt.setDefiningElement(tp);
       }
       this.typeParameters = tps;
     }

@@ -105,7 +105,11 @@ final class TypeMirrorPair {
     assert t.getKind() == TypeKind.ARRAY;
     return hashCode(t.getComponentType()) + 12;
   }
-  
+
+  // Involved:
+  // * kind
+  // * parameter types
+  // * return type
   private final int hashCode(final ExecutableType t) {
     final TypeKind tk = t.getKind();
     assert tk == TypeKind.EXECUTABLE;
@@ -123,20 +127,38 @@ final class TypeMirrorPair {
     return System.identityHashCode(t);
   }
 
+  // https://github.com/openjdk/jdk/blob/jdk-20+16/src/jdk.compiler/share/classes/com/sun/tools/javac/code/Types.java#L4204-L4212
   private final int hashCode(final WildcardType t) {
-    final TypeKind tk = t.getKind();
-    assert tk == TypeKind.WILDCARD;
-    int result = tk.hashCode();
+    assert t.getKind() == TypeKind.WILDCARD;
+    // javac's Types#HashcodeVisitor starts with the hashcode of the
+    // wildcard's BoundKind
+    // (https://github.com/openjdk/jdk/blob/jdk-20+17/src/jdk.compiler/share/classes/com/sun/tools/javac/code/BoundKind.java).
+    //
+    // BoundKind is:
+    //
+    // public enum BoundKind {
+    //  EXTENDS,
+    //  SUPER,
+    //  UNBOUND
+    // }
+    //
+    // ...so doesn't override the default enum hashcode calculation.
+    // Each constant in the enum therefore has a constant hashcode
+    // value of System.identityHashCode(CONSTANT).  We'll use 0, 1 and
+    // 2 instead.
+    //
+    // Other odd things:
+    //
+    // * the wildcard type denoted by ? extends Object has a different
+    //   hashcode according to Types#HashcodeVisitor than does ?.  Is
+    //   this deliberate? does it matter? not sure.    
     final TypeMirror superBound = t.getSuperBound();
     final TypeMirror extendsBound = t.getExtendsBound();
+    final int result;
     if (superBound == null) {
-      if (extendsBound != null) {
-        result *= 127;
-        result += hashCode(extendsBound);
-      }
+      result = extendsBound == null ? 254 /* 2 (UNBOUND) * 127 */ : hashCode(extendsBound) /* 0 (EXTENDS) * 127 + hashCode(extendsBound) */;
     } else if (extendsBound == null) {
-      result *= 127;
-      result += hashCode(superBound);
+      result = 127 + hashCode(superBound); // i.e. 1 (SUPER) * 127 + hashCode(superBound)
     } else {
       throw new IllegalArgumentException("t: " + t);
     }

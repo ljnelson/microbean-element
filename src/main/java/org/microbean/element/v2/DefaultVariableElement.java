@@ -71,6 +71,7 @@ public final class DefaultVariableElement extends AbstractElement implements Var
   private static final ElementKind validateKind(final ElementKind kind) {
     switch (kind) {
     case BINDING_VARIABLE:
+    case ENUM:
     case ENUM_CONSTANT:
     case EXCEPTION_PARAMETER:
     case FIELD:

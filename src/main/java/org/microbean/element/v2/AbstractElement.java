@@ -56,7 +56,7 @@ abstract sealed class AbstractElement
   /*
    * Instance fields.
    */
-
+  
 
   private final Name simpleName;
 
@@ -76,14 +76,14 @@ abstract sealed class AbstractElement
    */
 
 
-  protected <E extends Element & Encloseable> AbstractElement(final AnnotatedName simpleName,
+  protected <E extends Element & Encloseable> AbstractElement(final Name simpleName,
                                                               final ElementKind kind,
                                                               final TypeMirror type,
                                                               final Set<? extends Modifier> modifiers,
                                                               final Element enclosingElement, // nullable, normally null
                                                               final List<? extends E> enclosedElements) {
-    super(simpleName.getAnnotationMirrors());
-    this.simpleName = simpleName.getName();
+    super();
+    this.simpleName = Objects.requireNonNull(simpleName, "simpleName");
     this.kind = validateKind(kind);
     this.type = validateType(type);
     this.modifiers = modifiers == null || modifiers.isEmpty() ? Set.of() : Set.copyOf(modifiers);

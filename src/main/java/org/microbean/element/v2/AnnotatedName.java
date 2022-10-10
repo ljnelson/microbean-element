@@ -26,18 +26,33 @@ import java.util.function.Function;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Name;
 
+@Deprecated
 public final class AnnotatedName extends AbstractAnnotatedConstruct {
 
+  private final List<? extends AnnotationMirror> annotationMirrors;
+  
   private final Name name;
 
   public AnnotatedName(final List<? extends AnnotationMirror> annotationMirrors,
                        final Name name) {
-    super(annotationMirrors);
+    super();
     this.name = DefaultName.of(name);
+    if (annotationMirrors == null) {
+      this.annotationMirrors = List.of();
+    } else if (annotationMirrors instanceof DeferredList<? extends AnnotationMirror>) {
+      this.annotationMirrors = annotationMirrors;
+    } else {
+      this.annotationMirrors = List.copyOf(annotationMirrors);
+    }
   }
 
   public final Name getName() {
     return this.name;
+  }
+
+  @Override
+  public final List<? extends AnnotationMirror> getAnnotationMirrors() {
+    return this.annotationMirrors;
   }
 
   @Override // Object

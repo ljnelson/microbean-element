@@ -43,13 +43,13 @@ final class SyntheticCapturedType extends DefineableType<TypeParameterElement> i
   private final WildcardType wildcardType;
 
   SyntheticCapturedType(final WildcardType wildcardType) {
-    this(AnnotatedName.of(DefaultName.of("<captured wildcard>")), wildcardType);
+    this(DefaultName.of("<captured wildcard>"), List.of(), wildcardType);
   }
 
-  SyntheticCapturedType(final AnnotatedName name, final WildcardType wildcardType) {
-    super(TypeKind.TYPEVAR, name.getAnnotationMirrors());
+  SyntheticCapturedType(final Name name, final List<? extends AnnotationMirror> annotationMirrors, final WildcardType wildcardType) {
+    super(TypeKind.TYPEVAR, annotationMirrors);
     this.wildcardType = wildcardType;
-    this.setDefiningElement(new DefaultTypeParameterElement(name, this, Set.of()));
+    this.setDefiningElement(new DefaultTypeParameterElement(name, List.of(), this, Set.of()));
   }
 
   @Override // DefineableType<TypeParameterElement>

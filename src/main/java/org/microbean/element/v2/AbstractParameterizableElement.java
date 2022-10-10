@@ -42,7 +42,7 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
   protected
     <T extends Element & Encloseable,
      P extends TypeParameterElement & Encloseable>
-    AbstractParameterizableElement(final AnnotatedName name,
+    AbstractParameterizableElement(final Name name,
                                    final ElementKind kind,
                                    final TypeMirror type, // DeclaredType or ExecutableType
                                    final Set<? extends Modifier> modifiers,

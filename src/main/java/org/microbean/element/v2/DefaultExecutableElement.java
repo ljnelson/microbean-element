@@ -37,6 +37,8 @@ import javax.lang.model.type.TypeMirror;
 
 public final class DefaultExecutableElement extends AbstractParameterizableElement implements ExecutableElement {
 
+  private final List<? extends AnnotationMirror> annotationMirrors;
+  
   private final List<? extends VariableElement> parameters;
 
   private final boolean isDefault;
@@ -48,7 +50,8 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
   public
     <TP extends TypeParameterElement & Encloseable,
      P extends VariableElement & Encloseable>
-    DefaultExecutableElement(final AnnotatedName simpleName,
+    DefaultExecutableElement(final Name simpleName,
+                             final List<? extends AnnotationMirror> annotationMirrors,
                              final ElementKind kind,
                              final ExecutableType type,
                              final Set<? extends Modifier> modifiers,
@@ -65,6 +68,13 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
           validateNullableEnclosingElement(nullableEnclosingElement),
           List.of(),
           typeParameters);
+    if (annotationMirrors == null) {
+      this.annotationMirrors = List.of();
+    } else if (annotationMirrors instanceof DeferredList<? extends AnnotationMirror>) {
+      this.annotationMirrors = annotationMirrors;
+    } else {
+      this.annotationMirrors = List.copyOf(annotationMirrors);
+    }
     if (parameters == null || parameters.isEmpty()) {
       this.parameters = List.of();
     } else {
@@ -92,6 +102,11 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
     return (ExecutableType)super.asType();
   }
 
+  @Override
+  public final List<? extends AnnotationMirror> getAnnotationMirrors() {
+    return this.annotationMirrors;
+  }
+  
   @Override // ExecutableElement
   public final boolean isDefault() {
     return this.isDefault;
@@ -142,35 +157,34 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
     }
   }
 
-  private static final AnnotatedName validateNameAndKind(final AnnotatedName simpleName, final ElementKind kind) {
-    final Name name = simpleName.getName();
+  private static final Name validateNameAndKind(final Name name, final ElementKind kind) {
     switch (kind) {
     case CONSTRUCTOR:
       if (!name.contentEquals("<init>")) {
-        throw new IllegalArgumentException("name: " + simpleName);
+        throw new IllegalArgumentException("name: " + name);
       }
       break;
     case STATIC_INIT:
       if (!name.contentEquals("<clinit>")) {
-        throw new IllegalArgumentException("name: " + simpleName);
+        throw new IllegalArgumentException("name: " + name);
       }
       break;
     case INSTANCE_INIT:
       if (!name.isEmpty()) {
-        throw new IllegalArgumentException("name: " + simpleName);
+        throw new IllegalArgumentException("name: " + name);
       }
       break;
     case METHOD:
       if (name.isEmpty()) {
         throw new IllegalArgumentException("name.isEmpty()");
       } else if (name.contentEquals("<init>") || name.contentEquals("<clinit>")) {
-        throw new IllegalArgumentException("name: " + simpleName);
+        throw new IllegalArgumentException("name: " + name);
       }
       break;
     default:
       throw new IllegalArgumentException("kind: " + kind);
     }
-    return simpleName;
+    return name;
   }
   
   private static final TypeElement validateNullableEnclosingElement(final TypeElement enclosingElement) {
@@ -210,7 +224,8 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
       return defaultExecutableElement;
     }
     return
-      new DefaultExecutableElement(AnnotatedName.of(e.getAnnotationMirrors(), e.getSimpleName()),
+      new DefaultExecutableElement(e.getSimpleName(),
+                                   e.getAnnotationMirrors(),
                                    e.getKind(),
                                    (ExecutableType)e.asType(),
                                    e.getModifiers(),

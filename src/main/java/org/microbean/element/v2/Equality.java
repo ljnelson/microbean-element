@@ -345,6 +345,7 @@ public final class Equality {
                ia ? hashCode(e.getAnnotationMirrors(), ia) : 0);
   }
 
+  @Deprecated
   static final int hashCode(final AnnotatedName a, final boolean ia) {
     if (a == null) {
       return 0;
@@ -956,6 +957,7 @@ public final class Equality {
       equals(e1.getEnclosingElement(), e2.getEnclosingElement(), ia);
   }
 
+  @Deprecated
   static final boolean equals(final AnnotatedName a1, final AnnotatedName a2, final boolean ia) {
     if (a1 == a2) {
       return true;

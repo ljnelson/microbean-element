@@ -35,9 +35,12 @@ import javax.lang.model.type.TypeVariable;
 
 public final class DefaultVariableElement extends AbstractElement implements VariableElement {
 
+  private final List<? extends AnnotationMirror> annotationMirrors;
+  
   public final Object constantValue;
 
-  public DefaultVariableElement(final AnnotatedName simpleName,
+  public DefaultVariableElement(final Name simpleName,
+                                final List<? extends AnnotationMirror> annotationMirrors,
                                 final ElementKind kind,
                                 final TypeMirror type,
                                 final Set<? extends Modifier> modifiers,
@@ -49,12 +52,24 @@ public final class DefaultVariableElement extends AbstractElement implements Var
           modifiers,
           enclosingElement,
           List.of());
+    if (annotationMirrors == null) {
+      this.annotationMirrors = List.of();
+    } else if (annotationMirrors instanceof DeferredList<? extends AnnotationMirror>) {
+      this.annotationMirrors = annotationMirrors;
+    } else {
+      this.annotationMirrors = List.copyOf(annotationMirrors);
+    }
     this.constantValue = constantValue;
   }
 
   @Override // AbstractElement
   public final <R, P> R accept(final ElementVisitor<R, P> v, final P p) {
     return v.visitVariable(this, p);
+  }
+
+  @Override
+  public final List<? extends AnnotationMirror> getAnnotationMirrors() {
+    return this.annotationMirrors;
   }
 
   @Override // VariableElement
@@ -127,7 +142,8 @@ public final class DefaultVariableElement extends AbstractElement implements Var
       return defaultVariableElement;
     }
     return
-      new DefaultVariableElement(AnnotatedName.of(e.getAnnotationMirrors(), e.getSimpleName()),
+      new DefaultVariableElement(e.getSimpleName(),
+                                 e.getAnnotationMirrors(),
                                  e.getKind(),
                                  e.asType(),
                                  e.getModifiers(),

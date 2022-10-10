@@ -128,7 +128,8 @@ final class TestMakePackage {
     @Override
     public final PackageElement build() {
       return
-        new DefaultPackageElement(AnnotatedName.of(this.annotations(), this.fullyQualifiedName()),
+        new DefaultPackageElement(this.fullyQualifiedName(),
+                                  this.annotations(),
                                   DefaultNoType.of(this.type()),
                                   DefaultModuleElement.of(this.module()),
                                   DefaultTypeElement.encloseableTypeElementsOf(this.enclosedElements().get()));

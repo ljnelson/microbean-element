@@ -49,13 +49,22 @@ public sealed class AbstractTypeMirror extends AbstractAnnotatedConstruct implem
 
   private final TypeKind kind;
 
+  private final List<? extends AnnotationMirror> annotationMirrors;
+
   public AbstractTypeMirror(final TypeKind kind) {
     this(kind, List.of());
   }
 
   public AbstractTypeMirror(final TypeKind kind, final List<? extends AnnotationMirror> annotationMirrors) {
-    super(annotationMirrors);
+    super();
     this.kind = Objects.requireNonNull(kind, "kind");
+    if (annotationMirrors == null) {
+      this.annotationMirrors = List.of();
+    } else if (annotationMirrors instanceof DeferredList<? extends AnnotationMirror>) {
+      this.annotationMirrors = annotationMirrors;
+    } else {
+      this.annotationMirrors = List.copyOf(annotationMirrors);
+    }
   }
 
   @Override // TypeMirror
@@ -63,6 +72,11 @@ public sealed class AbstractTypeMirror extends AbstractAnnotatedConstruct implem
     return this.kind;
   }
 
+  @Override
+  public List<? extends AnnotationMirror> getAnnotationMirrors() {
+    return this.annotationMirrors;
+  }
+  
   @Override // TypeMirror
   public <R, P> R accept(final TypeVisitor<R, P> v, P p) {
     switch (this.getKind()) {

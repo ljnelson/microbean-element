@@ -36,7 +36,10 @@ public final class DefaultRecordComponentElement extends AbstractElement impleme
 
   private final ExecutableElement accessor;
 
-  public DefaultRecordComponentElement(final AnnotatedName simpleName,
+  private final List<? extends AnnotationMirror> annotationMirrors;
+  
+  public DefaultRecordComponentElement(final Name simpleName,
+                                       final List<? extends AnnotationMirror> annotationMirrors,
                                        final DeclaredType type,
                                        final Set<? extends Modifier> modifiers,
                                        final ExecutableElement accessor) {
@@ -46,12 +49,24 @@ public final class DefaultRecordComponentElement extends AbstractElement impleme
           modifiers,
           null,
           List.of());
+    if (annotationMirrors == null) {
+      this.annotationMirrors = List.of();
+    } else if (annotationMirrors instanceof DeferredList<? extends AnnotationMirror>) {
+      this.annotationMirrors = annotationMirrors;
+    } else {
+      this.annotationMirrors = List.copyOf(annotationMirrors);
+    }
     this.accessor = Objects.requireNonNull(accessor, "accessor");
   }
 
   @Override // AbstractElement
   public <R, P> R accept(final ElementVisitor<R, P> v, final P p) {
     return v.visitRecordComponent(this, p);
+  }
+
+  @Override
+  public final List<? extends AnnotationMirror> getAnnotationMirrors() {
+    return this.annotationMirrors;
   }
 
   @Override // RecordComponentElement
@@ -79,7 +94,8 @@ public final class DefaultRecordComponentElement extends AbstractElement impleme
       return defaultRecordComponentElement;
     }
     return
-      new DefaultRecordComponentElement(AnnotatedName.of(rce.getAnnotationMirrors(), rce.getSimpleName()),
+      new DefaultRecordComponentElement(rce.getSimpleName(),
+                                        rce.getAnnotationMirrors(),
                                         (DeclaredType)rce.asType(),
                                         rce.getModifiers(),
                                         rce.getAccessor());

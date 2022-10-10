@@ -19,6 +19,7 @@ package org.microbean.element.v2;
 import java.util.List;
 import java.util.Set;
 
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Name;
 
@@ -55,12 +56,17 @@ final class SyntheticPrimitiveElement extends AbstractElement {
 
 
   private SyntheticPrimitiveElement(final Name name, final PrimitiveType type) {
-    super(AnnotatedName.of(name),
+    super(name,
           ElementKind.OTHER, // not really right, but this whole thing isn't really right, because javac isn't really right
           validateType(type),
           Set.of(),
           null,
           List.of());
+  }
+
+  @Override
+  public final List<? extends AnnotationMirror> getAnnotationMirrors() {
+    return List.of();
   }
 
 

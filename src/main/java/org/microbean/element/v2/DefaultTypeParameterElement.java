@@ -37,21 +37,38 @@ import javax.lang.model.type.TypeVariable;
 public final class DefaultTypeParameterElement extends AbstractElement implements TypeParameterElement {
 
   private Element genericElement;
+
+  private final List<? extends AnnotationMirror> annotationMirrors;
   
   public <T extends DefineableType<? super TypeParameterElement> & TypeVariable>
-    DefaultTypeParameterElement(final AnnotatedName simpleName, final T type) {
-    this(simpleName, type, Set.of());
+    DefaultTypeParameterElement(final Name simpleName,
+                                final List<? extends AnnotationMirror> annotationMirrors,
+                                final T type) {
+    this(simpleName,
+         annotationMirrors,
+         type,
+         Set.of());
   }
   
   public <T extends DefineableType<? super TypeParameterElement> & TypeVariable>
-    DefaultTypeParameterElement(final AnnotatedName simpleName, final T typeVariable, final Set<? extends Modifier> modifiers) {
+    DefaultTypeParameterElement(final Name simpleName,
+                                final List<? extends AnnotationMirror> annotationMirrors,
+                                final T typeVariable,
+                                final Set<? extends Modifier> modifiers) {
     super(simpleName,
           ElementKind.TYPE_PARAMETER,
           validateTypeVariable(typeVariable),
           modifiers,
           null, // enclosingElement. See #setEnclosingElement(Element) below.
-          List.of());
+          List.of());    
     typeVariable.setDefiningElement(this);
+    if (annotationMirrors == null) {
+      this.annotationMirrors = List.of();
+    } else if (annotationMirrors instanceof DeferredList<? extends AnnotationMirror>) {
+      this.annotationMirrors = annotationMirrors;
+    } else {
+      this.annotationMirrors = List.copyOf(annotationMirrors);
+    }
   }
   
   @Override // AbstractElement
@@ -62,6 +79,11 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
   @Override // TypeParameterElement
   public final TypeVariable asType() {
     return (TypeVariable)super.asType();
+  }
+
+  @Override
+  public final List<? extends AnnotationMirror> getAnnotationMirrors() {
+    return this.annotationMirrors;
   }
   
   @Override // TypeParameterElement
@@ -162,7 +184,8 @@ public final class DefaultTypeParameterElement extends AbstractElement implement
       return defaultTypeParameterElement;
     }
     return
-      new DefaultTypeParameterElement(AnnotatedName.of(e.getAnnotationMirrors(), e.getSimpleName()),
+      new DefaultTypeParameterElement(e.getSimpleName(),
+                                      e.getAnnotationMirrors(),
                                       DefaultTypeVariable.of((TypeVariable)e.asType()),
                                       e.getModifiers());
   }

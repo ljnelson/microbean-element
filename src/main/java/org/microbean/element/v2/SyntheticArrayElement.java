@@ -19,6 +19,7 @@ package org.microbean.element.v2;
 import java.util.List;
 import java.util.Set;
 
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.ElementKind;
 
 final class SyntheticArrayElement extends AbstractElement {
@@ -26,12 +27,17 @@ final class SyntheticArrayElement extends AbstractElement {
   static final SyntheticArrayElement INSTANCE = new SyntheticArrayElement();
   
   private SyntheticArrayElement() {
-    super(AnnotatedName.of(DefaultName.of("Array")), // emulate javac
+    super(DefaultName.of("Array"), // emulate javac
           ElementKind.CLASS, // emulate javac
           new DefaultDeclaredType(), // emulate javac
           Set.of(),
           null,
           List.of());
+  }
+
+  @Override
+  public final List<? extends AnnotationMirror> getAnnotationMirrors() {
+    return List.of();
   }
   
 }

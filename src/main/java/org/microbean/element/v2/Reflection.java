@@ -276,7 +276,8 @@ public final class Reflection {
 
   private final DefaultAnnotationValue annotationValueFrom(final Enum<?> e) throws IllegalAccessException, InvocationTargetException {
     return
-      new DefaultAnnotationValue(new DefaultVariableElement(AnnotatedName.of(annotationMirrorsFrom(e), DefaultName.of(e.name())),
+      new DefaultAnnotationValue(new DefaultVariableElement(DefaultName.of(e.name()),
+                                                            annotationMirrorsFrom(e),
                                                             ElementKind.ENUM,
                                                             typeStubFrom(e.getDeclaringClass()),
                                                             Set.of(), // TODO: modifiers
@@ -491,7 +492,8 @@ public final class Reflection {
       final Annotation[] declaredAnnotations = c.getDeclaredAnnotations();
 
       e =
-        new DefaultTypeElement(AnnotatedName.of(annotationMirrorsFrom(c, declaredAnnotations), DefaultName.of(c.getName())),
+        new DefaultTypeElement(DefaultName.of(c.getName()),
+                               annotationMirrorsFrom(c, declaredAnnotations),
                                kind,
                                type,
                                finalModifiers,
@@ -663,7 +665,8 @@ public final class Reflection {
     }
 
     return
-      new DefaultExecutableElement(AnnotatedName.of(annotationMirrorsFrom(e), simpleName),
+      new DefaultExecutableElement(simpleName,
+                                   annotationMirrorsFrom(e),
                                    kind,
                                    type,
                                    modifierSet.isEmpty() ? Set.of() : EnumSet.copyOf(modifierSet),
@@ -726,7 +729,8 @@ public final class Reflection {
     }
     final EnumSet<Modifier> finalModifiers = EnumSet.copyOf(modifierSet);
     return
-      new DefaultVariableElement(AnnotatedName.of(annotationMirrorsFrom(f), DefaultName.of(f.getName())),
+      new DefaultVariableElement(DefaultName.of(f.getName()),
+                                 annotationMirrorsFrom(f),
                                  ElementKind.FIELD,
                                  typeStubFrom(annotatedType),
                                  finalModifiers,
@@ -736,13 +740,16 @@ public final class Reflection {
 
   private final DefaultModuleElement elementStubFrom(final Module m) throws IllegalAccessException, InvocationTargetException {
     final ModuleDescriptor md = m.getDescriptor();
-    return new DefaultModuleElement(AnnotatedName.of(annotationMirrorsFrom(m), DefaultName.of(md.name())), md.isOpen(), List.of());
+    return new DefaultModuleElement(DefaultName.of(md.name()),
+                                    annotationMirrorsFrom(m),
+                                    md.isOpen(),
+                                    List.of());
   }
 
   private final DefaultPackageElement elementStubFrom(final Module m, final Package p)
     throws IllegalAccessException, InvocationTargetException {
     final DefaultPackageElement returnValue =
-      new DefaultPackageElement(AnnotatedName.of(annotationMirrorsFrom(p), DefaultName.of(p.getName())));
+      new DefaultPackageElement(DefaultName.of(p.getName()), annotationMirrorsFrom(p));
     returnValue.setEnclosingElement(elementStubFrom(m));
     return returnValue;
   }
@@ -750,7 +757,8 @@ public final class Reflection {
   private final DefaultVariableElement elementStubFrom(final Parameter p)
     throws IllegalAccessException, InvocationTargetException {
     return
-      new DefaultVariableElement(AnnotatedName.of(annotationMirrorsFrom(p), DefaultName.of(p.getName())),
+      new DefaultVariableElement(DefaultName.of(p.getName()),
+                                 annotationMirrorsFrom(p),
                                  ElementKind.PARAMETER,
                                  typeStubFrom(p.getParameterizedType()),
                                  Set.of(), // modifiers
@@ -787,8 +795,8 @@ public final class Reflection {
     // shenanigans, look elsewhere.
     assert !tv.defined();
     return
-      new DefaultTypeParameterElement(AnnotatedName.of(annotationMirrorsFrom(t), // annotations are element annotations; this is appropriate
-                                                       DefaultName.of(t.getName())),
+      new DefaultTypeParameterElement(DefaultName.of(t.getName()),
+                                      annotationMirrorsFrom(t), // annotations are element annotations; this is appropriate
                                       tv,
                                       Set.of()); // modifiers
   }

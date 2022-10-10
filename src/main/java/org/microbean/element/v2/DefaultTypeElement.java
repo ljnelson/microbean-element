@@ -64,6 +64,8 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
 
   private final DefaultName simpleName;
 
+  private final List<? extends AnnotationMirror> annotationMirrors;
+
   private final NestingKind nestingKind;
 
   // Can't be DeclaredType because it might be NoType.NONE.
@@ -83,7 +85,8 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
     <E extends Element & Encloseable,
      P extends TypeParameterElement & Encloseable,
      T extends DefineableType<? super TypeElement> & DeclaredType>
-    DefaultTypeElement(final AnnotatedName qualifiedName,
+    DefaultTypeElement(final Name qualifiedName,
+                       final List<? extends AnnotationMirror> annotationMirrors,
                        final ElementKind kind,
                        final T type,
                        final Set<? extends Modifier> modifiers,
@@ -101,10 +104,17 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
           validateEnclosingElement(enclosingElement),
           validateEnclosedElements(enclosedElements == null ? List.of() : enclosedElements),
           validateTypeParameters(typeParameters == null ? List.of() : typeParameters));
-    this.simpleName = DefaultName.ofSimple(qualifiedName.getName());
+    this.simpleName = DefaultName.ofSimple(qualifiedName);
+    if (annotationMirrors == null) {
+      this.annotationMirrors = List.of();
+    } else if (annotationMirrors instanceof DeferredList<? extends AnnotationMirror>) {
+      this.annotationMirrors = annotationMirrors;
+    } else {
+      this.annotationMirrors = List.copyOf(annotationMirrors);
+    }
     this.nestingKind = nestingKind == null ? NestingKind.TOP_LEVEL : nestingKind;
     if (superclass == null || superclass.getKind() == TypeKind.NONE) {
-      if (kind.isInterface() || (kind.isClass() && qualifiedName.getName().contentEquals("java.lang.Object"))) {
+      if (kind.isInterface() || (kind.isClass() && qualifiedName.contentEquals("java.lang.Object"))) {
         this.superclass = DefaultNoType.NONE;
       } else {
         throw new NullPointerException("superclass");
@@ -133,6 +143,11 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
     return v.visitType(this, p);
   }
 
+  @Override
+  public List<? extends AnnotationMirror> getAnnotationMirrors() {
+    return this.annotationMirrors;
+  }
+  
   @Override // TypeElement
   public TypeMirror getSuperclass() {
     return this.superclass;
@@ -250,7 +265,8 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
       return defaultTypeElement;
     }
     return
-      new DefaultTypeElement(AnnotatedName.of(e.getAnnotationMirrors(), e.getSimpleName()),
+      new DefaultTypeElement(e.getSimpleName(), // TODO: this needs to be qualified
+                             e.getAnnotationMirrors(),
                              e.getKind(),
                              DefaultDeclaredType.of((DeclaredType)e.asType()),
                              e.getModifiers(),

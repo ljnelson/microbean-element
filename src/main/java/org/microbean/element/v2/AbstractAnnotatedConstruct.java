@@ -26,17 +26,8 @@ import javax.lang.model.element.AnnotationMirror;
 
 public abstract sealed class AbstractAnnotatedConstruct implements AnnotatedConstruct permits AbstractElement, AnnotatedName, AbstractTypeMirror {
 
-  private final List<? extends AnnotationMirror> annotationMirrors;
-  
-  protected AbstractAnnotatedConstruct(final List<? extends AnnotationMirror> annotationMirrors) {
+  protected AbstractAnnotatedConstruct() {
     super();
-    if (annotationMirrors == null) {
-      this.annotationMirrors = List.of();
-    } else if (annotationMirrors instanceof DeferredList<? extends AnnotationMirror>) {
-      this.annotationMirrors = annotationMirrors;
-    } else {
-      this.annotationMirrors = List.copyOf(annotationMirrors);
-    }
   }
 
   @Override // AnnotatedConstruct
@@ -48,11 +39,6 @@ public abstract sealed class AbstractAnnotatedConstruct implements AnnotatedCons
   @SuppressWarnings("unchecked")
   public <A extends Annotation> A[] getAnnotationsByType(final Class<A> annotationType) {
     return null;
-  }
-  
-  @Override // AnnotatedConstruct
-  public final List<? extends AnnotationMirror> getAnnotationMirrors() {
-    return this.annotationMirrors;
   }
   
 }

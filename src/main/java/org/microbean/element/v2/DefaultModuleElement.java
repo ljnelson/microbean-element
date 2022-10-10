@@ -42,6 +42,8 @@ public final class DefaultModuleElement extends AbstractElement implements Modul
 
   private final DefaultName simpleName;
 
+  private final List<? extends AnnotationMirror> annotationMirrors;
+  
   private final boolean open;
 
   private final List<Directive> directives;
@@ -52,7 +54,8 @@ public final class DefaultModuleElement extends AbstractElement implements Modul
    */
 
 
-  public DefaultModuleElement(final AnnotatedName fullyQualifiedName,
+  public DefaultModuleElement(final Name fullyQualifiedName,
+                              final List<? extends AnnotationMirror> annotationMirrors,
                               final boolean open,
                               final List<? extends Directive> directives) {
     super(fullyQualifiedName,
@@ -61,7 +64,14 @@ public final class DefaultModuleElement extends AbstractElement implements Modul
           Set.of(), // modifiers
           null, // enclosingElement
           List.of());
-    this.simpleName = DefaultName.ofSimple(fullyQualifiedName.getName());
+    this.simpleName = DefaultName.ofSimple(fullyQualifiedName);
+    if (annotationMirrors == null) {
+      this.annotationMirrors = List.of();
+    } else if (annotationMirrors instanceof DeferredList<? extends AnnotationMirror>) {
+      this.annotationMirrors = annotationMirrors;
+    } else {
+      this.annotationMirrors = List.copyOf(annotationMirrors);
+    }
     this.open = open;
     this.directives = directives == null || directives.isEmpty() ? List.of() : List.copyOf(directives);
   }
@@ -87,6 +97,11 @@ public final class DefaultModuleElement extends AbstractElement implements Modul
     return this.open;
   }
 
+  @Override
+  public final List<? extends AnnotationMirror> getAnnotationMirrors() {
+    return this.annotationMirrors;
+  }
+  
   @Override // ModuleElement
   public final List<? extends Directive> getDirectives() {
     return this.directives;
@@ -122,7 +137,8 @@ public final class DefaultModuleElement extends AbstractElement implements Modul
     if (e instanceof DefaultModuleElement defaultModuleElement) {
       return defaultModuleElement;
     }
-    return new DefaultModuleElement(AnnotatedName.of(e.getAnnotationMirrors(), e.getSimpleName()),
+    return new DefaultModuleElement(e.getSimpleName(),
+                                    e.getAnnotationMirrors(),
                                     e.isOpen(),
                                     e.getDirectives());
   }

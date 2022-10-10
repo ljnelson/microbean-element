@@ -51,6 +51,8 @@ public final class DefaultPackageElement extends AbstractElement implements Pack
 
   private final DefaultName simpleName;
 
+  private final List<? extends AnnotationMirror> annotationMirrors;
+
 
   /*
    * Constructors.
@@ -58,20 +60,43 @@ public final class DefaultPackageElement extends AbstractElement implements Pack
 
 
   public DefaultPackageElement() {
-    this(AnnotatedName.of(DefaultName.of("")), DefaultNoType.PACKAGE, null, List.of());
+    this(DefaultName.of(""),
+         List.of(),
+         DefaultNoType.PACKAGE,
+         null,
+         List.of());
+  }
+  
+  public DefaultPackageElement(final Name fullyQualifiedName) {
+    this(fullyQualifiedName,
+         List.of(),
+         DefaultNoType.PACKAGE,
+         null,
+         List.of());
   }
 
-  public DefaultPackageElement(final AnnotatedName fullyQualifiedName) {
-    this(fullyQualifiedName, DefaultNoType.PACKAGE, null, List.of());
+  public DefaultPackageElement(final Name fullyQualifiedName,
+                               final List<? extends AnnotationMirror> annotationMirrors) {
+    this(fullyQualifiedName,
+         annotationMirrors,
+         DefaultNoType.PACKAGE,
+         null,
+         List.of());
   }
 
-  public DefaultPackageElement(final AnnotatedName fullyQualifiedName, final NoType packageType) {
-    this(fullyQualifiedName, packageType, null, List.of());
+  public DefaultPackageElement(final Name fullyQualifiedName,
+                               final NoType packageType) {
+    this(fullyQualifiedName,
+         List.of(),
+         packageType,
+         null,
+         List.of());
   }
 
   public
     <T extends TypeElement & Encloseable>
-    DefaultPackageElement(final AnnotatedName fullyQualifiedName,
+    DefaultPackageElement(final Name fullyQualifiedName,
+                          final List<? extends AnnotationMirror> annotationMirrors,
                           final NoType packageType,
                           final ModuleElement enclosingElement,
                           final List<? extends T> enclosedElements) {
@@ -81,7 +106,14 @@ public final class DefaultPackageElement extends AbstractElement implements Pack
           Set.of(),
           enclosingElement,
           enclosedElements);
-    this.simpleName = DefaultName.ofSimple(fullyQualifiedName.getName());
+    this.simpleName = DefaultName.ofSimple(fullyQualifiedName);
+    if (annotationMirrors == null) {
+      this.annotationMirrors = List.of();
+    } else if (annotationMirrors instanceof DeferredList<? extends AnnotationMirror>) {
+      this.annotationMirrors = annotationMirrors;
+    } else {
+      this.annotationMirrors = List.copyOf(annotationMirrors);
+    }
   }
 
 
@@ -100,6 +132,11 @@ public final class DefaultPackageElement extends AbstractElement implements Pack
     return (NoType)super.asType();
   }
 
+  @Override
+  public final List<? extends AnnotationMirror> getAnnotationMirrors() {
+    return this.annotationMirrors;
+  }
+  
   @Override // PackageElement
   public final Name getQualifiedName() {
     return super.getSimpleName();
@@ -140,7 +177,8 @@ public final class DefaultPackageElement extends AbstractElement implements Pack
       return defaultPackageElement;
     }
     return
-      new DefaultPackageElement(AnnotatedName.of(e.getAnnotationMirrors(), e.getQualifiedName()),
+      new DefaultPackageElement(e.getQualifiedName(),
+                                e.getAnnotationMirrors(),
                                 (NoType)e.asType(),
                                 (ModuleElement)e.getEnclosingElement(),
                                 DefaultTypeElement.encloseableTypeElementsOf(e.getEnclosedElements()));

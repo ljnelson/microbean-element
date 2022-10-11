@@ -21,7 +21,6 @@ import java.util.Objects;
 
 import javax.lang.model.element.Element;
 
-import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.ErrorType;
 import javax.lang.model.type.IntersectionType;

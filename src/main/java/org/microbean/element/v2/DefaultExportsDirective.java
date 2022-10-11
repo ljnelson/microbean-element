@@ -16,8 +16,6 @@
  */
 package org.microbean.element.v2;
 
-import java.lang.module.ModuleDescriptor;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -32,7 +30,7 @@ public final class DefaultExportsDirective extends AbstractDirective implements 
   private final PackageElement pkg;
 
   private final List<? extends ModuleElement> targetModules;
-  
+
   public DefaultExportsDirective(final PackageElement pkg, final List<? extends ModuleElement> targetModules) {
     super(DirectiveKind.EXPORTS);
     this.pkg = Objects.requireNonNull(pkg, "pkg");

@@ -16,8 +16,6 @@
  */
 package org.microbean.element.v2;
 
-import javax.lang.model.type.TypeMirror;
-
 public final class EqualityBasedEqualsAndHashCode implements EqualsAndHashCode<Object> {
 
   private final boolean includeAnnotations;

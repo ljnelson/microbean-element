@@ -18,11 +18,6 @@ package org.microbean.element.v2;
 
 import java.util.List;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import java.util.function.Function;
-
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Name;
 
@@ -30,7 +25,7 @@ import javax.lang.model.element.Name;
 public final class AnnotatedName extends AbstractAnnotatedConstruct {
 
   private final List<? extends AnnotationMirror> annotationMirrors;
-  
+
   private final Name name;
 
   public AnnotatedName(final List<? extends AnnotationMirror> annotationMirrors,

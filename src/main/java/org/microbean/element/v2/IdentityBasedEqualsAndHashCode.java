@@ -16,8 +16,6 @@
  */
 package org.microbean.element.v2;
 
-import javax.lang.model.type.TypeMirror;
-
 public final class IdentityBasedEqualsAndHashCode implements EqualsAndHashCode<Object> {
 
   public IdentityBasedEqualsAndHashCode() {

@@ -16,15 +16,6 @@
  */
 package org.microbean.element.v2;
 
-import java.lang.reflect.AnnotatedArrayType;
-import java.lang.reflect.AnnotatedParameterizedType;
-import java.lang.reflect.AnnotatedType;
-import java.lang.reflect.AnnotatedTypeVariable;
-import java.lang.reflect.AnnotatedWildcardType;
-import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -45,11 +36,28 @@ import javax.lang.model.type.TypeVisitor;
 import javax.lang.model.type.UnionType;
 import javax.lang.model.type.WildcardType;
 
-public sealed class AbstractTypeMirror extends AbstractAnnotatedConstruct implements TypeMirror permits DefaultArrayType, DefaultExecutableType, DefaultIntersectionType, DefaultNoType, DefaultNullType, DefaultPrimitiveType, DefaultUnionType, DefaultWildcardType, DefineableType {
+public sealed class AbstractTypeMirror
+  extends AbstractAnnotatedConstruct
+  implements TypeMirror
+  permits DefaultArrayType,
+          DefaultExecutableType,
+          DefaultIntersectionType,
+          DefaultNoType,
+          DefaultNullType,
+          DefaultPrimitiveType,
+          DefaultUnionType,
+          DefaultWildcardType,
+          DefineableType {
 
   private final TypeKind kind;
 
   private final List<? extends AnnotationMirror> annotationMirrors;
+
+
+  /*
+   * Constructors.
+   */
+
 
   public AbstractTypeMirror(final TypeKind kind) {
     this(kind, List.of());
@@ -67,6 +75,12 @@ public sealed class AbstractTypeMirror extends AbstractAnnotatedConstruct implem
     }
   }
 
+
+  /*
+   * Instance methods.
+   */
+
+
   @Override // TypeMirror
   public TypeKind getKind() {
     return this.kind;
@@ -76,7 +90,7 @@ public sealed class AbstractTypeMirror extends AbstractAnnotatedConstruct implem
   public List<? extends AnnotationMirror> getAnnotationMirrors() {
     return this.annotationMirrors;
   }
-  
+
   @Override // TypeMirror
   public <R, P> R accept(final TypeVisitor<R, P> v, P p) {
     switch (this.getKind()) {

@@ -17,7 +17,6 @@
 package org.microbean.element.v2;
 
 import java.util.List;
-import java.util.Objects;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;

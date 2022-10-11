@@ -16,19 +16,14 @@
  */
 package org.microbean.element.v2;
 
-import java.lang.ref.Reference;
-import java.lang.ref.WeakReference;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.WeakHashMap;
 
 import javax.lang.model.element.AnnotationMirror;
 
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 
 import javax.lang.model.type.ArrayType;

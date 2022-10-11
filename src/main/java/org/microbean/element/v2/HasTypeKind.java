@@ -16,8 +16,6 @@
  */
 package org.microbean.element.v2;
 
-import java.util.List;
-
 import javax.lang.model.type.TypeKind;
 
 public interface HasTypeKind {

@@ -18,14 +18,12 @@ package org.microbean.element.v2;
 
 import java.lang.annotation.Annotation;
 
-import java.util.List;
-
 import javax.lang.model.AnnotatedConstruct;
-
-import javax.lang.model.element.AnnotationMirror;
 
 @SuppressWarnings("deprecation")
 public abstract sealed class AbstractAnnotatedConstruct implements AnnotatedConstruct permits AbstractElement, AnnotatedName, AbstractTypeMirror {
+
+  private static final Annotation[] EMPTY_ANNOTATION_ARRAY = new Annotation[0];
 
   protected AbstractAnnotatedConstruct() {
     super();
@@ -39,7 +37,7 @@ public abstract sealed class AbstractAnnotatedConstruct implements AnnotatedCons
   @Override // AnnotatedConstruct
   @SuppressWarnings("unchecked")
   public <A extends Annotation> A[] getAnnotationsByType(final Class<A> annotationType) {
-    return null;
+    return (A[])EMPTY_ANNOTATION_ARRAY;
   }
-  
+
 }

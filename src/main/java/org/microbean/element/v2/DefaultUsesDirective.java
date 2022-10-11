@@ -16,10 +16,8 @@
  */
 package org.microbean.element.v2;
 
-import java.util.List;
 import java.util.Objects;
 
-import javax.lang.model.element.ModuleElement;
 import javax.lang.model.element.ModuleElement.DirectiveKind;
 import javax.lang.model.element.ModuleElement.DirectiveVisitor;
 import javax.lang.model.element.ModuleElement.UsesDirective;

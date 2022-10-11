@@ -21,8 +21,6 @@ import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.Objects;
 
-import java.util.function.BiFunction;
-
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 

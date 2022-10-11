@@ -17,12 +17,10 @@
 package org.microbean.element.v2;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
-import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ElementVisitor;
 import javax.lang.model.element.ExecutableElement;
@@ -38,7 +36,7 @@ import javax.lang.model.type.TypeMirror;
 public final class DefaultExecutableElement extends AbstractParameterizableElement implements ExecutableElement {
 
   private final List<? extends AnnotationMirror> annotationMirrors;
-  
+
   private final List<? extends VariableElement> parameters;
 
   private final boolean isDefault;
@@ -106,7 +104,7 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
   public final List<? extends AnnotationMirror> getAnnotationMirrors() {
     return this.annotationMirrors;
   }
-  
+
   @Override // ExecutableElement
   public final boolean isDefault() {
     return this.isDefault;
@@ -186,7 +184,7 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
     }
     return name;
   }
-  
+
   private static final TypeElement validateNullableEnclosingElement(final TypeElement enclosingElement) {
     if (enclosingElement == null) {
       return null;
@@ -234,7 +232,7 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
                                    DefaultVariableElement.encloseableParametersOf(e.getParameters()),
                                    e.isVarArgs(),
                                    e.isDefault(),
-                                   e.getDefaultValue());                                   
+                                   e.getDefaultValue());
   }
 
 }

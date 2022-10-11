@@ -20,14 +20,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
-import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.ErrorType;
-import javax.lang.model.type.NoType;
-import javax.lang.model.type.NullType;
-import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.WildcardType;
 
 import javax.lang.model.util.SimpleTypeVisitor14;
@@ -36,7 +31,7 @@ import javax.lang.model.util.SimpleTypeVisitor14;
 /*
  * <p>From the documentation of {@code
  * com.sun.tools.javac.code.Types#containsType(Type, Type)}:</p>
- * 
+ *
  * <blockquote><p>Check if {@code t} contains {@code s}.</p>
  *
  * <p>{@code T} contains {@code S} if:</p>
@@ -72,7 +67,7 @@ import javax.lang.model.util.SimpleTypeVisitor14;
 final class ContainsTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror> {
 
   private final Types2 types2;
-  
+
   IsSameTypeVisitor isSameTypeVisitor;
 
   SubtypeVisitor subtypeVisitor;
@@ -93,7 +88,7 @@ final class ContainsTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror>
     }
     return true;
   }
-  
+
   @Override
   protected final Boolean defaultAction(final TypeMirror t, final TypeMirror s) {
     return this.isSameTypeVisitor.visit(t, s);
@@ -106,7 +101,7 @@ final class ContainsTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror>
   }
 
   @Override
-  public final Boolean visitWildcard(final WildcardType w, final TypeMirror s) {    
+  public final Boolean visitWildcard(final WildcardType w, final TypeMirror s) {
     assert w.getKind() == TypeKind.WILDCARD;
     switch (s.getKind()) {
     case TYPEVAR:
@@ -132,7 +127,7 @@ final class ContainsTypeVisitor extends SimpleTypeVisitor14<Boolean, TypeMirror>
       return this.subtypeVisitor.withCapture(false).visit(this.types2.extendsBound(s), this.types2.extendsBound(t));
     } else if (t.getExtendsBound() == null) {
       // Super bounded.  So super bounded AND:
-      return this.subtypeVisitor.withCapture(false).visit(tSuperBound, this.types2.superBound(s));      
+      return this.subtypeVisitor.withCapture(false).visit(tSuperBound, this.types2.superBound(s));
     } else {
       throw new IllegalArgumentException("t: " + t + "; s: " + s);
     }

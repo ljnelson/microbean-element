@@ -1,11 +1,12 @@
-# microBean™ Type
+# microBean™ Element
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.microbean/microbean-type/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.microbean/microbean-type)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.microbean/microbean-element/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.microbean/microbean-element)
 
-The microBean™ Type project provides classes and interfaces assisting
-with Java <a
-href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/reflect/Type.html"><code>Type</code></a>
-instances, as well as other frameworks' representations of such instances.
+The microBean™ Element project provides classes and interfaces
+assisting with Java <a
+href="https://docs.oracle.com/en/java/javase/19/docs/api/java.compiler/javax/lang/model/element/Element.html"><code>Element</code></a>
+instances, as well as other frameworks' representations of such
+instances.
 
 # Status
 
@@ -20,24 +21,24 @@ project version and without notice.**
 
 # Requirements
 
-microBean™ Type requires a Java runtime of version 17 or higher.
+microBean™ Type requires a Java runtime of version 19 or higher.
 
 # Installation
 
-microBean™ Type is available on [Maven
-Central](https://search.maven.org/).  Include microBean™ Type as a
+microBean™ Element is available on [Maven
+Central](https://search.maven.org/).  Include microBean™ Element as a
 Maven dependency:
 
 ```xml
 <dependency>
   <groupId>org.microbean</groupId>
-  <artifactId>microbean-type</artifactId>
-  <!-- Always check https://search.maven.org/artifact/org.microbean/microbean-type for up-to-date available versions. -->
-  <version>0.3.3</version>
+  <artifactId>microbean-element</artifactId>
+  <!-- Always check https://search.maven.org/artifact/org.microbean/microbean-element for up-to-date available versions. -->
+  <version>0.0.1</version>
 </dependency>
 ```
 
 # Documentation
 
 Full documentation is available at
-[microbean.github.io/microbean-type](https://microbean.github.io/microbean-type/).
+[microbean.github.io/microbean-element](https://microbean.github.io/microbean-element/).

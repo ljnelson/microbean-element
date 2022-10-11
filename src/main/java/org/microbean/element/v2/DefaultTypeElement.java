@@ -17,40 +17,25 @@
 package org.microbean.element.v2;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ElementVisitor;
-import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.NestingKind;
-import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.RecordComponentElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
-import javax.lang.model.element.VariableElement;
 
 import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.type.TypeVariable;
 
 import javax.lang.model.util.ElementFilter;
 
@@ -141,7 +126,7 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
     return v.visitType(this, p);
   }
 
-  @Override
+  @Override // AbstractAnnotatedConstruct
   public final List<? extends AnnotationMirror> getAnnotationMirrors() {
     if (this.annotationMirrors == null) {
       throw new IllegalStateException();
@@ -149,13 +134,28 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
     return this.annotationMirrors;
   }
 
+  /**
+   * Irrevocably sets this {@link DefaultTypeElement}'s associated
+   * {@link AnnotationMirror}s.
+   *
+   * @param annotationMirrors a {@link List} of {@link
+   * AnnotationMirror}s; must not be {@code null}
+   *
+   * @exception NullPointerException if {@code annotationMirrors} is
+   * {@code null}
+   *
+   * @exception IllegalStateException if this {@link
+   * DefaultTypeElement}'s associated {@link AnnotationMirror}s have
+   * already been set
+   */
   public final void setAnnotationMirrors(final List<? extends AnnotationMirror> annotationMirrors) {
+    Objects.requireNonNull(annotationMirrors, "annotationMirrors");
     if (this.annotationMirrors != null) {
       throw new IllegalStateException();
     }
-    this.annotationMirrors = Objects.requireNonNull(annotationMirrors, "annotationMirrors");
+    this.annotationMirrors = annotationMirrors;
   }
-  
+
   @Override // TypeElement
   public TypeMirror getSuperclass() {
     return this.superclass;
@@ -222,7 +222,7 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
   private static final <E extends Element & Encloseable> List<? extends E> validateEnclosedElements(final List<? extends E> enclosedElements) {
     return enclosedElements;
   }
-  
+
   private static final ElementKind validateKind(final ElementKind kind) {
     switch (kind) {
     case ANNOTATION_TYPE:
@@ -247,7 +247,7 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
     }
     return modifiers;
   }
-  
+
   private static final <T extends DefineableType<? super TypeElement> & DeclaredType> T validateType(final T type) {
     switch (type.getKind()) {
     case DECLARED:

@@ -19,10 +19,7 @@ package org.microbean.element.v2;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.StringJoiner;
-
-import javax.lang.model.element.AnnotationMirror;
 
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.IntersectionType;

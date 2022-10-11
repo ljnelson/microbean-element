@@ -18,8 +18,6 @@ package org.microbean.element.v2;
 
 import java.util.List;
 
-import javax.lang.model.element.AnnotationMirror;
-
 import javax.lang.model.type.NoType;
 import javax.lang.model.type.TypeKind;
 

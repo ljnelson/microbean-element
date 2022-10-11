@@ -27,8 +27,6 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.WildcardType;
 
-import javax.lang.model.util.SimpleTypeVisitor14;
-
 // Basically done.
 final class EraseVisitor extends StructuralTypeMapping<Boolean> {
 

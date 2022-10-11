@@ -16,8 +16,6 @@
  */
 package org.microbean.element.v2;
 
-import java.util.List;
-
 import javax.lang.model.type.TypeMirror;
 
 public interface HasType<T extends TypeMirror> {

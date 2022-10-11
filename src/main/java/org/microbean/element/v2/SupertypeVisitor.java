@@ -16,11 +16,9 @@
  */
 package org.microbean.element.v2;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import javax.lang.model.element.Element;
 import javax.lang.model.element.QualifiedNameable;
 import javax.lang.model.element.TypeElement;
 
@@ -34,7 +32,6 @@ import javax.lang.model.type.TypeVariable;
 
 import javax.lang.model.util.SimpleTypeVisitor14;
 
-import com.sun.tools.javac.code.Symbol;
 
 // Basically done
 final class SupertypeVisitor extends SimpleTypeVisitor14<TypeMirror, Void> {

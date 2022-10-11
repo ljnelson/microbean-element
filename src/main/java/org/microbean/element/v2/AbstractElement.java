@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ElementVisitor;
@@ -56,7 +55,7 @@ abstract sealed class AbstractElement
   /*
    * Instance fields.
    */
-  
+
 
   private final Name simpleName;
 

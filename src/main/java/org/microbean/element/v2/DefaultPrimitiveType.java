@@ -22,7 +22,6 @@ import javax.lang.model.element.AnnotationMirror;
 
 import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeKind;
-import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVisitor;
 
 public final class DefaultPrimitiveType extends AbstractTypeMirror implements PrimitiveType {

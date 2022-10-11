@@ -25,10 +25,7 @@ import java.util.Objects;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 
-import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.ErrorType;
-import javax.lang.model.type.IntersectionType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;

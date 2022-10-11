@@ -24,7 +24,6 @@ import java.util.Set;
 
 import javax.lang.model.element.Name;
 import javax.lang.model.element.QualifiedNameable;
-import javax.lang.model.element.TypeElement;
 
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;

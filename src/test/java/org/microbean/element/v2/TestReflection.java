@@ -43,11 +43,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-/*
- * The Reflection class is currently savagely broken. Most tests in
- * this class are disabled on purpose for the time being.
- */
-
 @ExtendWith(AnnotationProcessingInterceptor.class)
 final class TestReflection {
 
@@ -70,7 +65,7 @@ final class TestReflection {
     assertSame(documentedElement,
                documentedElement.getAnnotationMirrors().get(0).getAnnotationType().asElement());
   }
-  
+
   // @Disabled
   @Test
   final void testDocumented() throws IllegalAccessException, InvocationTargetException {
@@ -80,7 +75,7 @@ final class TestReflection {
   }
 
   // @Disabled
-  @Test  
+  @Test
   final void testEnclosedElements() throws IllegalAccessException, InvocationTargetException {
     final DefaultTypeElement string = this.reflection.elementStubFrom(String.class);
     for (final Element e : string.getEnclosedElements()) {

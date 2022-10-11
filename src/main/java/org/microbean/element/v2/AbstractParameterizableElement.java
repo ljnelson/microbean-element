@@ -16,17 +16,14 @@
  */
 package org.microbean.element.v2;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.Parameterizable;
-import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 
 import javax.lang.model.type.DeclaredType;
@@ -67,7 +64,7 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
       for (final P tp : tps) {
         validateAndEncloseTypeParameter(tp);
       }
-      this.typeParameters = tps;      
+      this.typeParameters = tps;
     } else if (typeArguments.size() != typeParameters.size()) {
       throw new IllegalArgumentException("type: " + type);
     } else {
@@ -76,7 +73,7 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
       for (int i = 0; i < size; i++) {
         final P tp = tps.get(i);
         validateAndEncloseTypeParameter(tp);
-        
+
         final TypeMirror typeArgument = typeArguments.get(i);
         if (!(typeArgument instanceof TypeVariable)) {
           throw new IllegalArgumentException("type: " + type);
@@ -97,7 +94,7 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
     }
   }
 
-  
+
   @Override // Parameterizable
   public List<? extends TypeParameterElement> getTypeParameters() {
     return this.typeParameters;
@@ -130,24 +127,6 @@ public abstract sealed class AbstractParameterizableElement extends AbstractElem
       return ((ExecutableType)t).getTypeVariables();
     default:
       throw new IllegalArgumentException("t: " + t);
-    }
-  }
-
-  private static final ElementKind validateKind(final ElementKind kind) {
-    switch (kind) {
-    case ANNOTATION_TYPE:
-    case CLASS:
-    case CONSTRUCTOR:
-    case ENUM:
-    case INSTANCE_INIT:
-    case INTERFACE:
-    case METHOD:
-    case RECORD:
-    case STATIC_INIT:
-      return kind;
-    default:
-      throw new IllegalArgumentException("kind: " + kind);
-
     }
   }
 

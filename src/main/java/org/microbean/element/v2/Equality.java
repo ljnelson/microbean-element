@@ -758,6 +758,7 @@ public final class Equality {
     }
   }
 
+  @SuppressWarnings("deprecation")
   static final boolean equals(final AnnotatedConstruct ac1, final AnnotatedConstruct ac2, final boolean ia) {
     if (ac1 == ac2) {
       return true;

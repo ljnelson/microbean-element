@@ -63,7 +63,7 @@ public final class DefaultElement implements ExecutableElement, ModuleElement, P
   private DefaultElement(final Element delegate, final EqualsAndHashCode<? super Element> ehc) {
     super();
     this.delegate = Objects.requireNonNull(delegate, "delegate");
-    this.ehc = ehc == null ? new EqualityBasedEqualsAndHashCode() : ehc;
+    this.ehc = ehc == null ? new EqualityBasedEqualsAndHashCode(true) : ehc;
   }
 
 

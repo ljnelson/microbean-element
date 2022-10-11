@@ -24,6 +24,7 @@ import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.ModuleElement;
 import javax.lang.model.element.ModuleElement.Directive;
 import javax.lang.model.element.ModuleElement.ExportsDirective;
@@ -33,6 +34,7 @@ import javax.lang.model.element.RecordComponentElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 
+import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeKind;
@@ -68,6 +70,7 @@ final class TestORama {
     DefaultPackageElement.cache.clear();
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   @ExtendWith(org.microbean.element.v2.AnnotationProcessingInterceptor.class)
   final void testORama(final ProcessingEnvironment processingEnvironment) {
@@ -84,7 +87,7 @@ final class TestORama {
 
     final PackageElement javaLang = (PackageElement)comparableElement.getEnclosingElement();
     assertTrue(javaLang.getSimpleName().contentEquals("lang"));
-    System.out.println("*** java.lang modifiers: " + javaLang.getModifiers());
+    assertTrue(javaLang.getModifiers().isEmpty());
 
     final ModuleElement javaBase = (ModuleElement)javaLang.getEnclosingElement();
     assertTrue(javaBase.getQualifiedName().contentEquals("java.base"));
@@ -272,7 +275,7 @@ final class TestORama {
       throw new IllegalStateException(classNotFoundException.getMessage(), classNotFoundException);
     }
     System.out.println(orgMicrobeanElement.getQualifiedName());
-    System.out.println("*** module: " + this.getClass().getModule());
+    assertEquals("org.microbean.element", this.getClass().getModule().getName());
 
     final TypeElement annotatedTypeVariableCheck = elements.getTypeElement("AnnotatedTypeVariableCheck");
     assertNotNull(annotatedTypeVariableCheck);
@@ -281,15 +284,15 @@ final class TestORama {
         final ExecutableElement frobMethod = (ExecutableElement)e;
         final ExecutableType t = (ExecutableType)frobMethod.asType();
         final List<? extends TypeVariable> tvs = t.getTypeVariables();
-        for (final TypeVariable tv : tvs) {
-          System.out.println("*** frob type variable: " + tv);
-          System.out.println("    frob type variable annotations: " + tv.getAnnotationMirrors());
-        }
+        assertEquals(1, tvs.size());
+        final TypeVariable tv = tvs.get(0);
+        assertTrue(tv.asElement().getSimpleName().contentEquals("T"));
+        assertTrue(tv.getAnnotationMirrors().isEmpty());
       } else if (e.getSimpleName().contentEquals("strings")) {
         final ExecutableElement stringsMethod = (ExecutableElement)e;
         final ExecutableType t = (ExecutableType)stringsMethod.asType();
-        final TypeMirror returnType = t.getReturnType();
-        System.out.println("*** strings return type kind: " + returnType.getKind());
+        final ArrayType returnType = (ArrayType)t.getReturnType();
+        assertSame(TypeKind.ARRAY, returnType.getKind());
       }
     }
 
@@ -297,9 +300,9 @@ final class TestORama {
     for (final Element e : record.getEnclosedElements()) {
       if (e.getKind() == ElementKind.RECORD_COMPONENT) {
         final RecordComponentElement rce = (RecordComponentElement)e;
-        final TypeMirror rceType = rce.asType();
-        System.out.println("*** rceType: " + rceType);
-        System.out.println("    modifiers: " + rce.getModifiers());
+        final DeclaredType rceType = (DeclaredType)rce.asType();
+        assertTrue(((TypeElement)rceType.asElement()).getQualifiedName().contentEquals("java.lang.String"));
+        assertEquals(Set.of(Modifier.PUBLIC), rce.getModifiers());
       }
     }
   }

@@ -20,18 +20,21 @@ import javax.lang.model.type.TypeMirror;
 
 public final class EqualityBasedEqualsAndHashCode implements EqualsAndHashCode<Object> {
 
-  public EqualityBasedEqualsAndHashCode() {
+  private final boolean includeAnnotations;
+
+  public EqualityBasedEqualsAndHashCode(final boolean includeAnnotations) {
     super();
+    this.includeAnnotations = includeAnnotations;
   }
 
   @Override
   public final boolean equals(final Object t, final Object o) {
-    return Equality.equals(t, o, true);
+    return Equality.equals(t, o, this.includeAnnotations);
   }
   
   @Override
   public final int hashCode(final Object t) {
-    return Equality.hashCode(t, true);
+    return Equality.hashCode(t, this.includeAnnotations);
   }  
   
 }

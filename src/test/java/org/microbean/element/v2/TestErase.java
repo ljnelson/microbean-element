@@ -83,7 +83,7 @@ final class TestErase {
     assertSame(TypeKind.DECLARED, comparableIntegerType.getKind()); // ...which is kind of weird when you think about it
 
     List<? extends TypeMirror> typeArguments = comparableIntegerType.getTypeArguments();
-    System.out.println("*** type arguments: " + typeArguments);
+    // System.out.println("*** type arguments: " + typeArguments);
 
     // Cannot rely on identity for some reason:
     // assertSame(integerElementType, typeArguments.get(0));

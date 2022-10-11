@@ -51,7 +51,7 @@ public final class DefaultTypeMirror implements ArrayType, ErrorType, Executable
   private DefaultTypeMirror(final TypeMirror delegate, final EqualsAndHashCode<? super TypeMirror> ehc) {
     super();
     this.delegate = Objects.requireNonNull(delegate, "delegate");
-    this.ehc = ehc == null ? new EqualityBasedEqualsAndHashCode() : ehc;
+    this.ehc = ehc == null ? new EqualityBasedEqualsAndHashCode(true) : ehc;
   }
 
   @Override // TypeMirror

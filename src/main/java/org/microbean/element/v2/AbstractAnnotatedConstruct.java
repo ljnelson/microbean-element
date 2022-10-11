@@ -24,6 +24,7 @@ import javax.lang.model.AnnotatedConstruct;
 
 import javax.lang.model.element.AnnotationMirror;
 
+@SuppressWarnings("deprecation")
 public abstract sealed class AbstractAnnotatedConstruct implements AnnotatedConstruct permits AbstractElement, AnnotatedName, AbstractTypeMirror {
 
   protected AbstractAnnotatedConstruct() {

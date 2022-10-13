@@ -21,6 +21,8 @@ import java.lang.annotation.Documented;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
+import java.util.List;
+
 import javax.annotation.processing.ProcessingEnvironment;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -32,6 +34,7 @@ import javax.lang.model.type.TypeMirror;
 
 import com.sun.tools.javac.model.JavacTypes;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -57,6 +60,11 @@ final class TestReflection {
     this.reflection = new Reflection();
   }
 
+  @AfterEach
+  final void teardown() {
+    this.reflection.clear();
+  }
+
   @Test
   final void testCompilerViewOfDocumented(final ProcessingEnvironment env) {
     // This is all a little batty. java.lang.annotation.Documented
@@ -78,7 +86,21 @@ final class TestReflection {
   @Test
   final void testEnclosedElements() throws IllegalAccessException, InvocationTargetException {
     final DefaultTypeElement string = this.reflection.elementStubFrom(String.class);
-    for (final Element e : string.getEnclosedElements()) {
+    final List<? extends Element> elements = string.getEnclosedElements();
+    System.out.println("*** elements.size(): " + elements.size());
+    System.out.println("*** elements: " + elements);
+    for (final Element e : elements) {
+      assertSame(string, e.getEnclosingElement());
+    }
+  }
+
+  @Test
+  final void testEnclosedElementsCompilerViewpoint(final ProcessingEnvironment env) throws IllegalAccessException, InvocationTargetException {
+    final TypeElement string = env.getElementUtils().getTypeElement("java.lang.String");
+    final List<? extends Element> elements = string.getEnclosedElements();
+    System.out.println("*** elements.size(): " + elements.size());
+    System.out.println("*** elements: " + elements);
+    for (final Element e : elements) {
       assertSame(string, e.getEnclosingElement());
     }
   }

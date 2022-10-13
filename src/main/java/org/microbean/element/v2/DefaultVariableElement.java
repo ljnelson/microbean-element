@@ -75,6 +75,11 @@ public final class DefaultVariableElement extends AbstractElement implements Var
     return this.constantValue;
   }
 
+  @Override
+  public final String toString() {
+    return this.getSimpleName().toString();
+  }
+
 
   /*
    * Static methods.

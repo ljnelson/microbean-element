@@ -174,6 +174,12 @@ public sealed class DefaultDeclaredType extends DefineableType<TypeElement> impl
     return this.typeArguments;
   }
 
+  @Override
+  public String toString() {
+    final Object element = this.asElement();
+    return element == null ? "(undefined type; arguments: " + this.getTypeArguments() + ")" : element.toString();
+  }
+
 
   /*
    * Static methods.

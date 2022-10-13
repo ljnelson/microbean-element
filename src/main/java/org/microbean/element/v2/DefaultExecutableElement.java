@@ -16,6 +16,7 @@
  */
 package org.microbean.element.v2;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -30,6 +31,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
 
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeMirror;
 
@@ -138,6 +140,42 @@ public final class DefaultExecutableElement extends AbstractParameterizableEleme
   @Override // ExecutableElement
   public final TypeMirror getReturnType() {
     return this.asType().getReturnType();
+  }
+
+  @Override
+  public final String toString() {
+    final StringBuilder sb = new StringBuilder();
+    final List<? extends TypeParameterElement> typeParameterElements = this.getTypeParameters();
+    if (!typeParameterElements.isEmpty()) {
+      sb.append('<');
+      final Iterator<? extends TypeParameterElement> i = typeParameterElements.iterator();
+      while (i.hasNext()) {
+        sb.append(i.next());
+        if (i.hasNext()) {
+          sb.append(", ");
+        }
+      }
+      sb.append('>');
+    }
+    final Name name = this.getSimpleName();
+    if (name.contentEquals("<init>")) {
+      sb.append(this.getEnclosingElement().getSimpleName());
+    } else {
+      sb.append(name);
+    }
+    final List<? extends VariableElement> parameters = this.getParameters();
+    if (!parameters.isEmpty()) {
+      sb.append('(');
+      final Iterator<? extends VariableElement> i = parameters.iterator();
+      while (i.hasNext()) {
+        sb.append(i.next().asType());
+        if (i.hasNext()) {
+          sb.append(',');
+        }
+      }
+      sb.append(')');
+    }
+    return sb.toString();
   }
 
 

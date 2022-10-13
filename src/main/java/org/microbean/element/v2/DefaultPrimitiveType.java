@@ -74,6 +74,11 @@ public final class DefaultPrimitiveType extends AbstractTypeMirror implements Pr
     return v.visitPrimitive(this, p);
   }
 
+  @Override
+  public final String toString() {
+    return this.getKind().toString().toLowerCase();
+  }
+
 
   /*
    * Static methods.

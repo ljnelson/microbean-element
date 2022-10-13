@@ -196,6 +196,13 @@ public final class DefaultTypeElement extends AbstractParameterizableElement imp
     return this.nestingKind;
   }
 
+  @Override
+  public final String toString() {
+    final StringBuilder sb = new StringBuilder();
+    sb.append(this.getQualifiedName()); // TODO: refine
+    return sb.toString();
+  }
+
 
   /*
    * Static methods.
